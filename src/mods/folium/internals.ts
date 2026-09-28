@@ -1,4 +1,5 @@
 import React from 'react';
+import { externalPlaybackBridge } from './externalPlayback';
 import * as ReactDOMClient from 'react-dom/client';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppViewStore } from '@/stores/useAppViewStore';
@@ -28,5 +29,6 @@ export const createFoliumInternals = (): Record<string, unknown> => ({
         lyricSettings: useLyricSettingsStore,
     }),
     omni,
+    externalPlayback: externalPlaybackBridge,
     visualizerRegistry: VISUALIZER_REGISTRY,
 });

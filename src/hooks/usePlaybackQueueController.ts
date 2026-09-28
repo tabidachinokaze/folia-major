@@ -1,3 +1,4 @@
+import { routeExternalPlayback, externalPlaybackRevision, isExternalPlaybackOwner } from '../services/externalPlaybackSession';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { MotionValue } from 'framer-motion';
@@ -258,6 +259,7 @@ export function usePlaybackQueueController({
     }, [activePlaybackContext, currentSong, mainPlaybackSnapshotRef, persistLastPlaybackCache, playQueue, queueAddBehavior, setPlayQueue, setStatusMsg, t]);
 
     const addOnlineSongToQueue = useCallback((song: SongResult) => {
+        if (routeExternalPlayback({ type: 'select', song })) return;
         if (isSongUnavailable(song)) {
             return;
         }
@@ -449,6 +451,8 @@ export function usePlaybackQueueController({
         // The hook is async, so a later playSong may finish its hook first; this call then drops
         // out instead of replacing the song the user picked last.
         // An automix advance skips the hook (see `isAutomixAdvance`).
+        if (routeExternalPlayback({ type: 'select', song: requestedSong }, options.externalPlaybackToken)) return;
+        const externalRevision = externalPlaybackRevision();
         const playSongCallId = ++playSongCallIdRef.current;
         const allowedSong = !options.isAutomixAdvance && hasBeforePlayHook()
             ? await runBeforePlayHook(requestedSong)
@@ -456,6 +460,8 @@ export function usePlaybackQueueController({
         if (!allowedSong || playSongCallIdRef.current !== playSongCallId) {
             return;
         }
+        if (externalPlaybackRevision() !== externalRevision) return;
+        if (options.externalPlaybackToken && allowedSong !== requestedSong) throw new Error('房间歌曲不能被其他插件替换');
         const song = allowedSong;
         interruptStagePlaybackForMainTransition();
 
@@ -474,7 +480,9 @@ export function usePlaybackQueueController({
         }
 
         const playbackRequestId = ++playbackRequestIdRef.current;
-        const isLatestPlaybackRequest = () => playbackRequestIdRef.current === playbackRequestId;
+        const isLatestPlaybackRequest = () => playbackRequestIdRef.current === playbackRequestId
+            && externalPlaybackRevision() === externalRevision
+            && (!options.externalPlaybackToken || isExternalPlaybackOwner(options.externalPlaybackToken));
         const isLocal = isLocalPlaybackSong(song);
         const isNavidrome = isNavidromePlaybackSong(song);
         let prefetched: ReturnType<typeof getPrefetchedData> = null;
@@ -487,6 +495,7 @@ export function usePlaybackQueueController({
         // prompt or a countdown, so they are not the blend's advance even when this call was.
         const deferredPlayOptions: PlaybackNavigationOptions = { ...options, isAutomixAdvance: undefined };
 
+        if (options.externalPlaybackToken && isSongUnavailable(song)) throw new Error('当前账号无法完整播放这首房间歌曲');
         if (!isLocal && !isNavidrome && isSongUnavailable(song)) {
             if (await handleMarkedUnavailableSong(song, queueContext, isFmCall, deferredPlayOptions)) {
                 return;
@@ -558,6 +567,7 @@ export function usePlaybackQueueController({
             }
 
             if (preloadedOnlineAudioResult.kind === 'unavailable') {
+                if (options.externalPlaybackToken) throw new Error('当前账号无法播放这首房间歌曲');
                 const nextSong = getNextPlayableQueueSong(queueContext, song);
                 const canSkip = Boolean(nextSong) && skipCount < MAX_UNAVAILABLE_AUTO_SKIP_COUNT;
 
@@ -577,13 +587,15 @@ export function usePlaybackQueueController({
                 return;
             }
         } catch (error) {
+            if (!isLatestPlaybackRequest()) return;
+            if (options.externalPlaybackToken) throw error;
             console.error('[App] Failed to fetch song URL:', error);
             setStatusMsg({ type: 'error', text: t('status.playbackError') });
             setIsLyricsLoading(false);
             return;
         }
 
-        shouldAutoPlayRef.current = true;
+        shouldAutoPlayRef.current = options.autoplay !== false;
         const songKey = getPlaybackSongKey(song);
         const resolvedSong = preloadedOnlineAudioResult?.kind === 'ok'
             ? applyOnlineAudioSourceMetadata(song, preloadedOnlineAudioResult.replayGain)
@@ -595,6 +607,7 @@ export function usePlaybackQueueController({
         currentOnlineAudioUrlFetchedAtRef.current = null;
 
         const onlineLyricsState = await loadOnlineLyricsState(song);
+        if (!isLatestPlaybackRequest()) return;
 
         setLyrics(null);
         setCurrentLineIndex(-1);
@@ -615,7 +628,7 @@ export function usePlaybackQueueController({
             setPlayQueue(resolvedQueue);
         }
 
-        void persistLastPlaybackCache({ ...resolvedSong, onlineLyricsState: onlineLyricsState ?? undefined }, resolvedQueue);
+        if (!options.externalPlaybackToken) void persistLastPlaybackCache({ ...resolvedSong, onlineLyricsState: onlineLyricsState ?? undefined }, resolvedQueue);
 
         if (shouldNavigateToPlayer) {
             navigateToPlaybackView();
@@ -623,7 +636,7 @@ export function usePlaybackQueueController({
         setPlayerState(PlayerState.IDLE);
 
         const cachedCoverUrl = await getCachedSongCoverUrl(song);
-        if (currentSongRef.current !== songKey) return;
+        if (currentSongRef.current !== songKey || !isLatestPlaybackRequest()) return;
         if (cachedCoverUrl) {
             setCachedCoverUrl(cachedCoverUrl);
         } else if (prefetched?.coverUrl) {
@@ -650,10 +663,11 @@ export function usePlaybackQueueController({
             currentOnlineAudioUrlFetchedAtRef.current = null;
         }
         setAudioSrc(audioResult.audioSrc);
+        options.onAudioReady?.();
 
         try {
             await loadOnlineSongLyrics(song, prefetched, userId, {
-                isCurrent: () => currentSongRef.current === songKey,
+                isCurrent: () => currentSongRef.current === songKey && isLatestPlaybackRequest(),
                 onLyrics: resolvedLyrics => setLyrics(resolvedLyrics),
                 onPureMusicChange: isPureMusic => {
                     setCurrentSong(prev => {
@@ -673,14 +687,16 @@ export function usePlaybackQueueController({
                 onDone: () => setIsLyricsLoading(false),
             });
         } catch (error) {
+            if (!isLatestPlaybackRequest()) return;
             console.warn('[App] Lyric fetch failed', error);
             setLyrics(null);
             setIsLyricsLoading(false);
         }
 
+        if (!isLatestPlaybackRequest()) return;
         try {
             await restoreCachedThemeForSong(song);
-            if (currentSongRef.current !== songKey) return;
+            if (currentSongRef.current !== songKey || !isLatestPlaybackRequest()) return;
         } catch (error) {
             console.warn('Theme load error', error);
         }
@@ -843,6 +859,7 @@ export function usePlaybackQueueController({
     ]);
 
     const handleNextTrack = useCallback(async (options?: NextTrackOptions) => {
+        if (routeExternalPlayback({ type: options?.allowStopOnMissing || options?.isAutomixAdvance ? 'ended' : 'next' })) return;
         if (isNowPlayingStageActive) return;
 
         const stopAtQueueEnd = () => {
@@ -916,6 +933,7 @@ export function usePlaybackQueueController({
     }, [audioRef, currentSong, endHeldTransition, getDisplaySong, isFmMode, isNowPlayingStageActive, loopMode, playQueue, playSong, setPlayQueue, setPlayerState, shouldNavigateToPlayerOnTrackChange]);
 
     const handlePrevTrack = useCallback(() => {
+        if (routeExternalPlayback({ type: 'previous' })) return;
         if (isNowPlayingStageActive) return;
         if (!currentSong || playQueue.length === 0) return;
 

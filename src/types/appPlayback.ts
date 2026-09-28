@@ -14,6 +14,11 @@ import type { MediaId } from './onlineMusic';
 
 // Shared playback-specific types extracted from App.tsx.
 export type PlaybackNavigationOptions = {
+    /** Internal server-owned playback lease. */
+    externalPlaybackToken?: symbol;
+    autoplay?: boolean;
+    /** Signals source commit before independent lyric/theme work finishes. */
+    onAudioReady?: () => void;
     shouldNavigateToPlayer?: boolean;
     unavailableSkipCount?: number;
     unifiedQueue?: SongResult[];
