@@ -4,6 +4,12 @@
 
 插件独立仓库：<https://github.com/tabidachinokaze/folium-mod-music-party>。按插件 README 构建 ZIP 并安装到桌面模组系统；本 fork 无需再次应用插件仓库提供的兼容补丁。
 
+## 推送代码后构建安装包
+
+`Build Desktop` 工作流在 `main` 的桌面源码、依赖或打包配置变更后自动运行，也支持从 Actions 手动执行。它会分别构建 Windows、Linux、macOS 安装包及更新元数据，产物放在对应运行页面底部的 Artifacts 中：`folia-windows-latest`、`folia-ubuntu-latest`、`folia-macos-latest`，保留 14 天。
+
+这个流程用于获取当前提交的桌面安装包；GitHub Releases 正式发布使用下面的发布流程。插件 ZIP 则在插件仓库的 `Build Folium plugin` 工作流中构建，两个仓库的 Artifacts 分别下载。
+
 ## 桌面应用更新
 
 Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新元数据。本 fork 的构建配置、运行时检查地址和「查看发布」链接均指向 `tabidachinokaze/folia-major`。

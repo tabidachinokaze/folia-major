@@ -1,0 +1,101 @@
+name: Build Desktop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'electron/**'
+      - 'shared/**'
+      - 'public/**'
+      - 'build/**'
+      - 'packaging/**'
+      - 'mods/**'
+      - 'api-ts/**'
+      - 'worker/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.npmrc'
+      - 'vite.config.*'
+      - 'tsconfig*.json'
+      - '*.html'
+      - '.github/workflows/desktop-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Package Folia on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check types
+        run: npm run typecheck
+      - name: Install Rust toolchain
+        if: runner.os == 'Linux' || runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Cache windowtolayer build
+        if: runner.os == 'Linux'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .windowtolayer-src
+      - name: Cache wallpaper helper build
+        if: runner.os == 'Windows'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packaging/windows/wallpaper-helper
+      - name: Build wallpaper helper
+        if: runner.os == 'Windows'
+        run: npm run build:wallpaper-helper
+      - name: Build windowtolayer
+        if: runner.os == 'Linux'
+        run: npm run build:windowtolayer
+      - name: Set update channel
+        run: node -e "const fs=require('fs'); const pkg=require('./package.json'); pkg.foliaReleaseChannel='realeco'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+      - name: Build Electron renderer
+        env:
+          ELECTRON: 'true'
+          APP_VERSION_LABEL: Realeco
+          APP_RELEASE_CHANNEL: realeco
+        run: npm run build
+      - name: Package installers and update metadata
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --publish never --config.publish.channel=latest
+      - name: Upload desktop packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: folia-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/*.tar.gz
+            release/*.blockmap
+            release/*.yml
+            !release/builder-debug.yml
+          if-no-files-found: error
+          retention-days: 14
