@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { registerExternalPlaybackActions } from './externalPlayback';
 import type { SongResult } from '@/types';
 import { PlayerState } from '@/types';
 import {
@@ -29,7 +30,7 @@ export interface FoliumAppActions {
     seekToLyricTime: (lyricSeconds: number) => void;
     next: () => void;
     previous: () => void;
-    playSong: (song: SongResult) => void | Promise<void>;
+    playSong: (song: SongResult, externalToken?: symbol) => void | Promise<void>;
     enqueue: (song: SongResult) => void;
     navigateToPlayer: () => void;
     navigateToHome: () => void;
@@ -61,6 +62,11 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
     ).disabled;
 
     useEffect(() => {
+        registerExternalPlaybackActions({
+            play: async (song, token) => { await actionsRef.current.playSong(song, token); },
+            pause: () => actionsRef.current.pause(),
+            seek: (seconds) => actionsRef.current.seek(seconds),
+        });
         registerFoliumHostActions({
             getPlaybackState: () => {
                 const state = usePlaybackStore.getState();
@@ -113,7 +119,7 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
             navigate: (target) => (target === 'player' ? actionsRef.current.navigateToPlayer() : actionsRef.current.navigateToHome()),
             openVolume: () => actionsRef.current.openVolume(),
         });
-        return () => registerFoliumHostActions(null);
+        return () => { registerFoliumHostActions(null); registerExternalPlaybackActions(null); };
     }, []);
 
     // playback.likeChanged follows the value getState().liked reports, whatever changed it.

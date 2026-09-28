@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { hasExternalPlayback, subscribeExternalPlayback, routeExternalPlayback } from './services/externalPlaybackSession';
+import { useState, useSyncExternalStore, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { AnimatePresence, motion, useMotionValueEvent } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
@@ -158,6 +159,7 @@ const LOCAL_TAIL_DECODE_ERROR_TOLERANCE_SEC = 3;
 const NEXT_UP_LEAD_SEC = 5;
 
 export default function App() {
+    const externalPlaybackActive = useSyncExternalStore(subscribeExternalPlayback, hasExternalPlayback, () => false);
     countRender('App');
     const { t } = useTranslation();
     const {
@@ -500,7 +502,7 @@ export default function App() {
     // control below keeps editing the per-song value alone.
     const effectiveLyricTimelineOffsetMs = lyricTimelineOffsetMs + globalLyricTimelineOffsetMs;
 
-    const effectiveLoopMode: StageLoopMode = loopMode;
+    const effectiveLoopMode: StageLoopMode = externalPlaybackActive ? 'off' : loopMode;
 
     const getTargetPlaybackVolume = useCallback(() => (isMuted ? 0 : volume), [isMuted, volume]);
 
@@ -1149,7 +1151,7 @@ export default function App() {
         currentSongKeyRef: currentSongRef,
         coverUrl,
         loopMode: effectiveLoopMode,
-        isEnabled: automixEnabled && !isNowPlayingStageActive,
+        isEnabled: automixEnabled && !isNowPlayingStageActive && !externalPlaybackActive,
         transition: transitionSettings,
         onAdvanceTrack: () => {
             // Same advance the end of a track would trigger, only early enough for the outgoing
@@ -2033,6 +2035,7 @@ export default function App() {
         return true;
     };
     const seekMainAudio = useCallback((time: number) => {
+        if (routeExternalPlayback({ type: 'seek', seconds: time })) return;
         if (seekDuringTransitionRef.current(time)) {
             return;
         }
@@ -2086,7 +2089,13 @@ export default function App() {
         seekToLyricTime: handleMonetLyricLineSeek,
         next: () => { void handleNextTrack(); },
         previous: handlePrevTrack,
-        playSong: (song) => playSong(song),
+        playSong: (song, externalToken) => externalToken
+            ? new Promise<void>((resolve, reject) => {
+                void playSong(song, [song], false, { externalPlaybackToken: externalToken,
+                    autoplay: false, shouldNavigateToPlayer: false, onAudioReady: resolve,
+                }).then(resolve, reject);
+            })
+            : playSong(song),
         enqueue: addOnlineSongToQueue,
         navigateToPlayer,
         navigateToHome,
