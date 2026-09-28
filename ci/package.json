@@ -1,0 +1,11 @@
+{
+  "name": "folia-release-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test desktop-release.test.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "4.1.1"
+  }
+}

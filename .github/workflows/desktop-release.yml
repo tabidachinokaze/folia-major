@@ -1,0 +1,58 @@
+name: Publish Desktop Release
+
+on:
+  workflow_run:
+    workflows: [Build Desktop]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Completed Build Desktop run ID; leave empty for the latest successful main build'
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop-release.yml'
+      - 'ci/desktop-release*.mjs'
+      - 'ci/package*.json'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: desktop-stable-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm ci --prefix ci --ignore-scripts --no-audit --no-fund
+      - run: npm test --prefix ci
+      - name: Verify source build and choose unpublished version
+        id: plan
+        env:
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id || '' }}
+        run: node ci/desktop-release.mjs plan
+      - name: Download existing desktop packages
+        if: steps.plan.outputs.publish == 'true'
+        uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.plan.outputs.run_id }}
+          pattern: folia-*
+          path: .release/artifacts
+      - name: Validate updater payloads and publish release
+        if: steps.plan.outputs.publish == 'true'
+        run: node ci/desktop-release.mjs publish

@@ -8,7 +8,9 @@
 
 `Build Desktop` 工作流在 `main` 的桌面源码、依赖或打包配置变更后自动运行，也支持从 Actions 手动执行。它会分别构建 Windows、Linux、macOS 安装包及更新元数据，产物放在对应运行页面底部的 Artifacts 中：`folia-windows-latest`、`folia-ubuntu-latest`、`folia-macos-latest`，保留 14 天。
 
-这个流程用于获取当前提交的桌面安装包；GitHub Releases 正式发布使用下面的发布流程。插件 ZIP 则在插件仓库的 `Build Folium plugin` 工作流中构建，两个仓库的 Artifacts 分别下载。
+构建成功后，`Publish Desktop Release` 自动检查该构建的版本是否尚未发布，并将三个平台产物发布到 GitHub Releases。相同版本的后续代码构建仍会生成 Artifacts，但不会覆盖已发布安装包；需要发布更新时提高 `package.json` 及锁文件的版本，并更新发布说明。插件 ZIP 则在插件仓库的 `Build Folium plugin` 工作流中构建。
+
+首次启用发布工作流时会查找最新成功的 `Build Desktop` 构建，直接发布已有产物；无需重新打包。也可以手动运行 `Publish Desktop Release` 并提供构建 run ID。发布前校验来源仓库、分支、提交、三平台产物以及更新元数据中的版本与 SHA-512；先上传到草稿，全部上传成功后自动正式发布。Release 标签指向产物的实际构建提交。
 
 ## 桌面应用更新
 
@@ -21,9 +23,9 @@ Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新�
 | Cielo 预览版 | `cielo` | `alpha.yml` / 平台对应文件 |
 | Internal | 无自动更新 | 无 |
 
-这些通道仍使用原有发布工作流；工作流通过 `GITHUB_REPOSITORY` 将产物发布到当前 fork。稳定版可以在 GitHub Actions 手动运行 **Publish Realeco**，也可以按项目规范更新 `realeco-release` 触发。工作流生成草稿 Release，核对安装包和更新元数据后，需要将草稿正式发布，客户端才能发现更新。
+日常稳定版使用上面的 `Build Desktop` → `Publish Desktop Release` 自动流程。预览版仍使用原有工作流。它们都通过 `GITHUB_REPOSITORY` 将产物发布到当前 fork。原有 **Publish Realeco** 工作流也保留，使用它会生成草稿，需要手动正式发布；一般不需要与自动流程同时运行。
 
-推送源码本身不会生成桌面应用更新。后续正式更新需要比已安装版本更高的版本号，且 Release 中必须包含对应平台安装包及 electron-builder 生成的更新元数据。首次从上游发行版迁移，应安装本 fork 构建的版本；原来的上游二进制仍然使用其原有更新地址。
+后续正式更新需要比已安装版本更高的版本号。自动流程会上传安装包及 electron-builder 生成的更新元数据；Windows/macOS 沿用应用更新器，Linux 当前包格式仍需下载后安装升级。首次从上游发行版迁移，应安装本 fork 构建的版本；原来的上游二进制仍然使用其原有更新地址。
 
 ## 插件更新
 
