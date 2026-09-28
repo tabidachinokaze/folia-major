@@ -1,42 +1,136 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-    acquireExternalPlayback, releaseExternalPlayback, routeExternalPlayback, runExternalPlaybackCommand,
-    hasExternalPlayback, externalPlaybackRevision, subscribeExternalPlayback,
+    acquireExternalPlayback,
+    releaseAllExternalPlayback,
+    releaseExternalPlayback,
+    releaseExternalPlaybackForMod,
+    routeExternalPlayback,
+    hasExternalPlayback,
+    captureExternalPlaybackBoundary,
+    subscribeExternalPlayback,
 } from '@/services/externalPlaybackSession';
+import { beginPlaybackRequest, invalidatePlaybackRequest } from '@/services/playbackRequest';
 
 // test/unit/mod-system/externalPlaybackSession.test.ts
-let token: symbol | undefined;
-afterEach(() => { if (token) releaseExternalPlayback(token); token = undefined; });
-describe('server-owned playback', () => {
-    it('keeps native next and natural end separate and never falls through when the owner throws', () => {
-        const dispatch = vi.fn(() => { throw new Error('offline'); });
-        token = acquireExternalPlayback(dispatch);
-        expect(routeExternalPlayback({ type: 'next' })).toBe(true);
-        expect(routeExternalPlayback({ type: 'ended' })).toBe(true);
-        expect(dispatch.mock.calls.map(call => (call as unknown as [{ type: string }])[0].type)).toEqual(['next', 'ended']);
-    });
-    it('only allows the current lease to seek locally and rejects a stale lease after release', () => {
+const acquire = (overrides: Partial<Parameters<typeof acquireExternalPlayback>[0]> = {}) =>
+    acquireExternalPlayback({ modId: 'test', dispatch: vi.fn(), cleanup: vi.fn(), report: vi.fn(), ...overrides });
+afterEach(() => {
+    releaseAllExternalPlayback();
+    invalidatePlaybackRequest();
+});
+
+describe('external playback ownership', () => {
+    it('separates natural end, next and queue intent and prevents a second owner', () => {
         const dispatch = vi.fn();
-        token = acquireExternalPlayback(dispatch);
-        expect(runExternalPlaybackCommand(token, () => routeExternalPlayback({ type: 'seek', seconds: 42 }))).toBe(false);
-        expect(dispatch).not.toHaveBeenCalled();
-        const stale = token;
-        releaseExternalPlayback(token);
-        expect(routeExternalPlayback({ type: 'select', song: {} as never }, stale)).toBe(true);
-        expect(() => runExternalPlaybackCommand(stale, () => {})).toThrow('会话已结束');
+        acquire({ dispatch });
+        expect(() => acquire()).toThrow('external-playback-busy');
+        routeExternalPlayback({ type: 'next' });
+        routeExternalPlayback({ type: 'ended' });
+        routeExternalPlayback({ type: 'enqueue', songs: [] });
+        expect(dispatch.mock.calls.map(([event]) => event.type)).toEqual(['next', 'ended', 'enqueue']);
     });
-    it('invalidates in-flight local loads and notifies the app when loop and automix must change', () => {
-        const before = externalPlaybackRevision();
-        const changed = vi.fn();
-        const stop = subscribeExternalPlayback(changed);
-        token = acquireExternalPlayback(() => {});
-        expect(hasExternalPlayback()).toBe(true);
-        expect(externalPlaybackRevision()).not.toBe(before);
-        expect(() => acquireExternalPlayback(() => {})).toThrow('另一个插件');
-        releaseExternalPlayback(token);
+    it('reports and releases a throwing/rejecting owner without executing a local command', async () => {
+        const cleanup = vi.fn(),
+            report = vi.fn();
+        acquire({
+            dispatch: () => {
+                throw Error('broken');
+            },
+            cleanup,
+            report,
+        });
+        expect(routeExternalPlayback({ type: 'next' })).toBe(true);
         expect(hasExternalPlayback()).toBe(false);
-        expect(changed).toHaveBeenCalledTimes(2);
+        expect(cleanup).toHaveBeenCalledOnce();
+        expect(report).toHaveBeenCalledOnce();
+        acquire({
+            dispatch: async () => {
+                throw Error('async broken');
+            },
+            cleanup,
+            report,
+        });
+        routeExternalPlayback({ type: 'next' });
+        await Promise.resolve();
+        expect(hasExternalPlayback()).toBe(false);
+        expect(report).toHaveBeenCalledTimes(2);
+    });
+    it('always releases on cleanup failure and only disposes the correct mod', () => {
+        const report = vi.fn();
+        acquire({
+            cleanup: () => {
+                throw Error('stop failed');
+            },
+            report,
+        });
+        releaseExternalPlaybackForMod('another');
+        expect(hasExternalPlayback()).toBe(true);
+        releaseExternalPlaybackForMod('test');
+        expect(hasExternalPlayback()).toBe(false);
+        expect(report).toHaveBeenCalledOnce();
         expect(routeExternalPlayback({ type: 'next' })).toBe(false);
+    });
+    it('invalidates work across an acquire/release round trip and notifies only transitions', () => {
+        const changed = vi.fn(),
+            stop = subscribeExternalPlayback(changed);
+        const current = captureExternalPlaybackBoundary();
+        const token = acquire();
+        expect(current()).toBe(false);
+        releaseExternalPlayback(token);
+        releaseExternalPlayback(token);
+        expect(current()).toBe(false);
+        expect(changed).toHaveBeenCalledTimes(2);
         stop();
+    });
+});
+
+describe('shared playback requests', () => {
+    it('cancels pending normal loads on acquire and lease loads on release, cleaning resources', async () => {
+        const normal = beginPlaybackRequest(),
+            cleanup = vi.fn();
+        normal.onCancel(cleanup);
+        const token = acquire();
+        expect(await normal.result).toEqual({ status: 'cancelled' });
+        expect(cleanup).toHaveBeenCalledOnce();
+        expect(normal.isCurrent()).toBe(false);
+        const own = beginPlaybackRequest(token);
+        releaseExternalPlayback(token);
+        expect(await own.result).toEqual({ status: 'cancelled' });
+    });
+    it('does not let a normal or expired-lease load supersede the current owner', async () => {
+        const token = acquire(),
+            own = beginPlaybackRequest(token);
+        const rogue = beginPlaybackRequest();
+        expect(await rogue.result).toEqual({ status: 'cancelled' });
+        expect(own.isCurrent()).toBe(true);
+        releaseExternalPlayback(token);
+        const local = beginPlaybackRequest();
+        expect(await beginPlaybackRequest(token).result).toEqual({ status: 'cancelled' });
+        expect(local.isCurrent()).toBe(true);
+    });
+    it('supersedes earlier loads, preserves committed resources and acknowledges only once', async () => {
+        const a = beginPlaybackRequest(),
+            cleanup = vi.fn();
+        const handoff = a.onCancel(cleanup);
+        handoff();
+        a.finish('source-committed');
+        a.finish('cancelled');
+        expect(await a.result).toEqual({ status: 'source-committed' });
+        const b = beginPlaybackRequest();
+        expect(a.isCurrent()).toBe(false);
+        expect(cleanup).not.toHaveBeenCalled();
+        beginPlaybackRequest();
+        expect(await b.result).toEqual({ status: 'superseded' });
+    });
+    it('cleans late resources immediately and exposes unavailable/failed outcomes', async () => {
+        const request = beginPlaybackRequest();
+        request.finish('unavailable');
+        const cleanup = vi.fn();
+        request.onCancel(cleanup);
+        expect(cleanup).toHaveBeenCalledOnce();
+        expect(await request.result).toEqual({ status: 'unavailable' });
+        const failed = beginPlaybackRequest();
+        failed.finish('failed');
+        expect(await failed.result).toEqual({ status: 'failed' });
     });
 });
