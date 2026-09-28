@@ -1466,7 +1466,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             >
                                                 {t('help.madeBy')}
                                             </button>{' '}
-                                            <a href="https://github.com/chthollyphile/folia-major" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-white/30 hover:decoration-white">chthollyphile/folia-major</a>
+                                            <a href="https://github.com/tabidachinokaze/folia-major" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-white/30 hover:decoration-white">tabidachinokaze/folia-major</a>
                                         </p>
                                     </div>
                                     <div className="flex flex-col items-center gap-2 mt-6 mb-2 text-xs font-mono text-center">

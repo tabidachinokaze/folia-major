@@ -75,7 +75,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "chthollyphile",
+        "owner": "tabidachinokaze",
         "repo": "folia-major"
       }
     ],
@@ -276,5 +276,13 @@
     "three-stdlib": {
       "fflate": "$fflate"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tabidachinokaze/folia-major.git"
+  },
+  "homepage": "https://github.com/tabidachinokaze/folia-major",
+  "bugs": {
+    "url": "https://github.com/tabidachinokaze/folia-major/issues"
   }
 }
