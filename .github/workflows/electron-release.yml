@@ -23,6 +23,8 @@ concurrency:
 jobs:
   validate-release:
     name: Validate Realeco release metadata
+    # This fork promotes Build Desktop artifacts automatically; keep the legacy path manual to avoid two publishers racing on one tag.
+    if: github.event_name == 'workflow_dispatch' || github.repository != 'tabidachinokaze/folia-major'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.validate.outputs.version }}

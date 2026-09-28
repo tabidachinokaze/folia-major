@@ -23,7 +23,7 @@ Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新�
 | Cielo 预览版 | `cielo` | `alpha.yml` / 平台对应文件 |
 | Internal | 无自动更新 | 无 |
 
-日常稳定版使用上面的 `Build Desktop` → `Publish Desktop Release` 自动流程。预览版仍使用原有工作流。它们都通过 `GITHUB_REPOSITORY` 将产物发布到当前 fork。原有 **Publish Realeco** 工作流也保留，使用它会生成草稿，需要手动正式发布；一般不需要与自动流程同时运行。
+日常稳定版使用上面的 `Build Desktop` → `Publish Desktop Release` 自动流程。预览版仍使用原有工作流。它们都通过 `GITHUB_REPOSITORY` 将产物发布到当前 fork。原有 **Publish Realeco** 工作流在此 fork 中仅保留手动触发，避免同一次版本提交启动两套发布流程；使用它会生成草稿，需要手动正式发布，一般不需要与自动流程同时运行。
 
 后续正式更新需要比已安装版本更高的版本号。自动流程会上传安装包及 electron-builder 生成的更新元数据；Windows/macOS 沿用应用更新器，Linux 当前包格式仍需下载后安装升级。首次从上游发行版迁移，应安装本 fork 构建的版本；原来的上游二进制仍然使用其原有更新地址。
 
