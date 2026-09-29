@@ -1,9 +1,10 @@
+import { ExternalQueueActions } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { ListEnd, ListPlus, Trash2 } from 'lucide-react';
 import type { RowComponentProps } from 'react-window';
 import { getSongUnavailableLabel, isSongUnavailable } from '../../services/onlineMusic/songAvailability';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
-import { getPlaybackSongKey } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../utils/appPlaybackGuards';
 import type { CommandPaletteMatch } from './types';
 
 // src/components/command-palette/CommandPaletteQueueRow.tsx
@@ -54,7 +55,7 @@ const CommandPaletteQueueRow = ({
     }
 
     const isSelected = index === activeIndex;
-    const isPlaying = currentSongKey === getPlaybackSongKey(song);
+    const isPlaying = currentSongKey === getQueueSongKey(song);
     const unavailable = isSongUnavailable(song);
     const selectedClass = isDaylight ? 'bg-black/10' : 'bg-white/10';
     const hoverClass = isDaylight ? 'hover:bg-black/[0.05]' : 'hover:bg-white/[0.06]';
@@ -114,7 +115,7 @@ const CommandPaletteQueueRow = ({
                         group-hover/queue-row:pointer-events-auto group-hover/queue-row:opacity-100
                         focus-within:pointer-events-auto focus-within:opacity-100`}
                 >
-                    {[
+                    {song.externalQueueEntryKey ? <ExternalQueueActions entryKey={song.externalQueueEntryKey} /> : [
                         { label: labels.playNext, icon: ListPlus, action: onMoveSongToNext },
                         { label: labels.moveToEnd, icon: ListEnd, action: onMoveSongToEnd },
                         { label: labels.remove, icon: Trash2, action: onRemoveSong },

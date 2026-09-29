@@ -493,6 +493,7 @@ export default {
       "playback-add-to-playlist": { "title": "Add to a playlist", "description": "Put the current song in one of your playlists" },
       "playback-mute": { "title": "Mute", "description": "Silence playback, or bring the sound back" },
       "playback-shuffle": { "title": "Shuffle queue", "description": "Shuffle current play queue" },
+      "playback-sync-queue": { "title": "Sync queue", "description": "Refresh the current session queue" },
       "playback-clear-queue": { "title": "Clear queue", "description": "Remove all songs from the current play queue" },
       "theme-generate-current": { "title": "Generate AI theme", "description": "Generate an AI theme for the current song" },
       "theme-quick-editor": { "title": "Quick theme editor", "description": "Quickly edit AI theme for the current song" },

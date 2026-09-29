@@ -1,3 +1,4 @@
+import { hasExternalPlayback } from '../services/externalPlaybackSession';
 import { routeExternalPlayback } from '../services/externalPlaybackSession';
 import { useCallback, useEffect } from 'react';
 import type React from 'react';
@@ -295,7 +296,7 @@ export function usePlaybackInteractionBridge({
                         : (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey);
 
                     if (isNextTrackKey) {
-                        if (currentSong) {
+                        if (currentSong || hasExternalPlayback()) {
                             event.preventDefault();
                             if (isNowPlayingStageActive) {
                                 return;

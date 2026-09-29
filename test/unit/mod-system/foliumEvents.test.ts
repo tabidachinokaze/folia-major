@@ -112,7 +112,8 @@ const fakeActions = () => ({
     play: vi.fn(), pause: vi.fn(), toggle: vi.fn(), seek: vi.fn(), seekToLyricTime: vi.fn(), next: vi.fn(), previous: vi.fn(),
     playSongRef: vi.fn(async () => true), enqueueSongRef: vi.fn(() => true),
     shuffleQueue: vi.fn(() => true), toggleLike: vi.fn(() => false),
-    toast: vi.fn(), openPlayerPanel: vi.fn(), navigate: vi.fn(), openVolume: vi.fn(),
+    toast: vi.fn(), openPlayerPanel: vi.fn(),
+    openHomeTab: vi.fn(), navigate: vi.fn(), openVolume: vi.fn(),
 });
 
 describe('folium services', () => {

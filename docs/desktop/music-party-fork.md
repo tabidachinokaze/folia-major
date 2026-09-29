@@ -32,3 +32,5 @@ Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新�
 插件的 ZIP 在独立仓库构建。推送与 `package.json`、`mod.json` 一致的 `v*` 标签后，插件的 GitHub Actions 会运行检查并发布 ZIP。它不通过 Folia 的应用更新器升级；安装新 ZIP 后按 Folium 提示重新启用。
 
 Folia 0.7.10 配套插件 0.2.0。旧版 Folia 0.7.9 安装包配套插件 0.1.0；升级时请同时升级宿主和插件，插件更新后需要重新启用。
+
+当前 `feat/native-party-queue` 开发分支将播放会话接口升级到 v2，并提供首页模组入口；配套 Music Party 0.3.0 开发包。已发布的 Folia 0.7.10 安装包仍是 v1，不能单独安装新插件替代宿主升级。开发时应同时使用两个仓库的同名分支。

@@ -1,3 +1,5 @@
+import { FoliumHomeTabBody, useFoliumHomeTabs } from '../mods/folium/registries/homeTabs';
+import { useExternalQueuePresentation } from '../hooks/useExternalQueuePresentation';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Loader2, Settings, PanelsTopLeft } from 'lucide-react';
@@ -174,6 +176,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         submitSearch: state.submitSearch,
     })));
 
+    const homeModTab = useSearchNavigationStore(state => state.homeModTab);
+    const setHomeModTab = useSearchNavigationStore(state => state.setHomeModTab);
+    const homeModTabs = useFoliumHomeTabs();
+    const externalQueue = useExternalQueuePresentation();
     const isOnlineTab = homeViewTab === 'playlist' || homeViewTab === 'albums' || homeViewTab === 'radio';
     const activeProviderId = onlineProviderPlatform?.activeProviderId || 'netease';
     const activeProviderSummary = onlineProviderPlatform?.activeProvider;
@@ -772,7 +778,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                     }] : []),
                                     ...(navidromeEnabled ? [{ key: 'navidrome', label: t('navidrome.title') || 'Navidrome', disabledReason: undefined }] : []),
                                 ].map((tab) => {
-                                    const isActive = homeViewTab === tab.key;
+                                    const isActive = !homeModTab && homeViewTab === tab.key;
                                     return (
                                         <span
                                             key={tab.key}
@@ -800,6 +806,12 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                         </span>
                                     );
                                 })}
+                                {homeModTabs.map(tab => <button key={tab.id} type="button" aria-label={tab.label}
+                                    aria-pressed={homeModTab === tab.id} onClick={() => setHomeModTab(tab.id)}
+                                    className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${homeModTab === tab.id ? activeTabBg : navPillInactiveText}`}>
+                                    {homeModTab === tab.id && <motion.span layoutId="home-active-tab-pill-desktop" className="absolute inset-0 rounded-full bg-white shadow-sm" transition={{ type: 'spring', stiffness: 460, damping: 36, mass: 0.9 }} />}
+                                    <span className="relative z-10">{tab.label}</span>
+                                </button>)}
                                 {stageEnabled && (
                                     <button
                                         onClick={() => onOpenStagePlayer?.()}
@@ -813,7 +825,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                     而不是标题旁的工具图标。没有在播歌曲时队列也是空的，直接不出现。
                                     平时只占一个图标的宽度，指针悬停或键盘聚焦时才展开文字——这一排
                                     已经有五个内容 tab，多一个常驻文字就把胶囊撑得太长。点击始终直达。 */}
-                                {onOpenLattice && currentTrack && (
+                                {onOpenLattice && (currentTrack || externalQueue.active) && (
                                     <button
                                         onClick={onOpenLattice}
                                         data-testid="home-lattice-pill"
@@ -836,7 +848,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
                     {/* Right Search Bar */}
                     <div className="flex justify-end order-2 md:order-none">
-                        <form onSubmit={handleSearch} className="relative w-full md:w-56 transition-all focus-within:md:w-72">
+                        <form hidden={Boolean(homeModTab)} onSubmit={handleSearch} className="relative w-full md:w-56 transition-all focus-within:md:w-72">
                             {isSearchingActive ? (
                                 <Loader2 className="absolute left-3 top-1/2 w-4 h-4 animate-spin opacity-40 -mt-2" />
                             ) : (
@@ -860,7 +872,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
             {/* Desktop Canvas Surface */}
             <div className="flex-1 min-h-0 flex flex-col items-center justify-center relative">
-                {isOnlineTab && activeAccountView === 'resolving' ? (
+                {homeModTab ? <FoliumHomeTabBody tab={homeModTab} theme={theme} isDaylight={isDaylight} /> : isOnlineTab && activeAccountView === 'resolving' ? (
                     <div className="flex flex-1 w-full items-center justify-center" aria-busy="true">
                         <Loader2 className="animate-spin opacity-30" size={28} />
                     </div>

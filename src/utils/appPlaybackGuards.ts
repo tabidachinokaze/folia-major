@@ -117,3 +117,6 @@ export const replacePlaybackSongInQueue = (
 export const hasMixedPlaybackSources = (queue: SongResult[]): boolean => (
     new Set(queue.map(getPlaybackSongSource)).size > 1
 );
+
+/** Queue occurrence identity is independent from the underlying provider/media identity. */
+export const getQueueSongKey = (song: SongResult): string => song.externalQueueEntryKey ?? getPlaybackSongKey(song);

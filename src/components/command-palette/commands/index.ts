@@ -99,6 +99,7 @@ export const DEFAULT_LANDING_COMMAND_IDS = [
     'playback-next',
     'playback-prev',
     'playback-shuffle',
+    'playback-sync-queue',
     'playback-loop',
     'panel-queue',
     'settings-options',

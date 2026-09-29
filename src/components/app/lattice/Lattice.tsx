@@ -1,3 +1,5 @@
+import { useExternalQueuePresentation } from '../../../hooks/useExternalQueuePresentation';
+import { ExternalQueueActions } from '../../shared/ExternalQueueActions';
 import { useEffect, useMemo, type CSSProperties } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -43,12 +45,12 @@ export default function Lattice({
     lyrics,
     lyricSource,
     lyricKeywordColoringEnabled,
-    currentSong,
+    currentSong: audioSong,
     playerState,
     currentTime,
     playbackDuration,
     canTogglePlayback,
-    queue,
+    queue: personalQueue,
     isDaylight,
     onBack,
     onOpenPlayer,
@@ -57,6 +59,9 @@ export default function Lattice({
     onSeek,
 }: LatticeProps) {
     countRender('Lattice');
+    const external = useExternalQueuePresentation();
+    const queue = external.queue ?? personalQueue;
+    const currentSong = external.active ? external.currentSong ?? null : audioSong;
     const { t } = useTranslation();
     const vignette = useLatticeSettingsStore(state => state.latticeVignette);
     const lightsOn = useLatticeSettingsStore(state => state.latticeLightsOn);
@@ -123,6 +128,7 @@ export default function Lattice({
                 onOpenPlayer={wall.onOpenPlayer}
                 onBack={onBack}
             />
+            {external.active && <ExternalQueueActions className="absolute top-5 right-5 z-50" size={20} />}
             <LatticeFocusButton isDaylight={isDaylight} />
             <button type="button" className="lattice-back" onClick={onBack}
                 aria-label={t('home.latticeBack')} title={t('home.latticeBack')}>

@@ -74,6 +74,7 @@ type AppOverlaysAmbient = {
     playerControlSlotPrimary: PlayerControlSlotActionId;
     playerControlSlotSecondary: PlayerControlSlotActionId;
     playerControlSlotContext: SlotContextFromApp;
+    externalCanNext?: boolean;
     onCommitPlayerBottomBarOffset: (offsetPx: number) => void;
 };
 
@@ -181,6 +182,7 @@ export const buildAppOverlaysModel = ({
     playerControlSlotPrimary,
     playerControlSlotSecondary,
     playerControlSlotContext,
+    externalCanNext,
     onCommitPlayerBottomBarOffset,
 }: BuildAppOverlaysModelParams): AppOverlaysModel => ({
     // Gated on stageTrackPillOnScreen (computed in App: display mode plus which page allows the
@@ -305,8 +307,8 @@ export const buildAppOverlaysModel = ({
                     currentTrackKey: getPlaybackSongKey(currentSong),
                     onPrev: handlePrevTrack,
                     onNext: handleNextTrack,
-                    canPrev: neighbors.prev.canGo && !isNowPlayingControlDisabled,
-                    canNext: neighbors.next.canGo && !isNowPlayingControlDisabled,
+                    canPrev: externalCanNext === undefined && neighbors.prev.canGo && !isNowPlayingControlDisabled,
+                    canNext: externalCanNext ?? (neighbors.next.canGo && !isNowPlayingControlDisabled),
                     prevTitle: neighbors.prev.title,
                     nextTitle: neighbors.next.title,
                     prevLabel: prevTrackLabel,

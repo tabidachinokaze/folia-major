@@ -60,7 +60,7 @@ const usePanelContext = (theme: Theme, isDaylight: boolean, locale: string): Fol
     return ctx;
 };
 
-const FoliumPanelTabContent: React.FC<{
+export const FoliumPanelTabContent: React.FC<{
     entry: FoliumRegistryEntry<FoliumPlayerPanelTabDef>;
     theme: Theme;
     isDaylight: boolean;

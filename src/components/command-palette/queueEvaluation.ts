@@ -23,19 +23,25 @@ const getQueueSearchIndex = (queue: SongResult[]) => {
 let lastQueue: SongResult[] | null = null;
 let lastCurrentSong: SongResult | null = null;
 let lastQuery: string | null = null;
+let lastExternal = false;
 let lastEvaluation: QueueSearchEvaluation | null = null;
 
 export const evaluateQueueForPalette = (context: CommandPaletteContext, query: string): QueueSearchEvaluation => {
     const queue = context.playback.queue;
-    const currentSong = context.shared.currentSong;
+    const currentSong = (context.playback.isExternalSession ? context.playback.queueCurrentSong ?? null : context.shared.currentSong);
 
-    if (lastEvaluation && lastQueue === queue && lastCurrentSong === currentSong && lastQuery === query) {
+    if (lastEvaluation && lastQueue === queue && lastCurrentSong === currentSong && lastQuery === query && lastExternal === Boolean(context.playback.isExternalSession)) {
         return lastEvaluation;
     }
 
     lastQueue = queue;
     lastCurrentSong = currentSong;
     lastQuery = query;
+    lastExternal = Boolean(context.playback.isExternalSession);
     lastEvaluation = evaluateQueueSearch(getQueueSearchIndex(queue), currentSong, query);
+    if (context.playback.isExternalSession) lastEvaluation = { ...lastEvaluation,
+        suggestions: lastEvaluation.suggestions.filter(suggestion => suggestion.type !== 'action'),
+        eligibleTargetIndices: [],
+    };
     return lastEvaluation;
 };

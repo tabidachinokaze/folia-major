@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import { PlayerState } from '../../../types';
 import { Heart, ListX, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Star, VolumeX } from 'lucide-react';
 import { executeModeCommand } from './executeModeCommand';
@@ -108,10 +109,11 @@ export const playbackCommands: CommandPaletteCommand[] = [
         context => context.playback.toggleMute(),
         { icon: VolumeX },
     ),
-    createToggleCommand('playback-shuffle', 'playback', 'Shuffle queue', 'Shuffle current play queue', ['shuffle', '打乱', '打乱队列'], context => context.playback.shuffleQueue(), { icon: Shuffle, executeShortcut: 'r', isAvailable: context => !context?.playback.isFmMode }),
+    createToggleCommand('playback-shuffle', 'playback', 'Shuffle queue', 'Shuffle current play queue', ['shuffle', '打乱', '打乱队列'], context => context.playback.shuffleQueue(), { icon: Shuffle, executeShortcut: 'r', isAvailable: context => !context?.playback.isFmMode && !context?.playback.isExternalSession }),
+    createToggleCommand('playback-sync-queue', 'playback', 'Sync queue', 'Refresh the session queue', ['sync', '同步队列'], context => context.playback.syncQueue?.(), { icon: RefreshCw, isAvailable: context => Boolean(context?.playback.isExternalSession) }),
     {
         id: 'playback-clear-queue',
-        isAvailable: context => (context ? !context.playback.isFmMode && context.playback.queue.length > 0 : true),
+        isAvailable: context => (context ? !context.playback.isFmMode && !context.playback.isExternalSession && context.playback.queue.length > 0 : true),
         group: 'playback',
         title: 'Clear queue',
         description: 'Remove all songs from the current play queue',

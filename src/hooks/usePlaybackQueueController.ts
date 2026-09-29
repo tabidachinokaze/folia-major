@@ -1,3 +1,4 @@
+import { activateExternalQueueSong } from '../services/externalPlaybackQueue';
 import { captureExternalPlaybackBoundary, hasExternalPlayback, routeExternalPlayback } from '../services/externalPlaybackSession';
 import { beginPlaybackRequest } from '../services/playbackRequest';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -447,6 +448,7 @@ export function usePlaybackQueueController({
         // The hook is async, so a later playSong may finish its hook first; this call then drops
         // out instead of replacing the song the user picked last.
         // An automix advance skips the hook (see `isAutomixAdvance`).
+        if (!options.request && activateExternalQueueSong(requestedSong)) return;
         if (!options.request && routeExternalPlayback({ type: 'play', song: requestedSong })) return;
         const request = options.request ?? beginPlaybackRequest();
         if (!request.isCurrent()) return;
