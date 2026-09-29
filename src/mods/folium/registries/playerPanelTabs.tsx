@@ -64,7 +64,8 @@ export const FoliumPanelTabContent: React.FC<{
     entry: FoliumRegistryEntry<FoliumPlayerPanelTabDef>;
     theme: Theme;
     isDaylight: boolean;
-}> = ({ entry, theme, isDaylight }) => {
+    fill?: boolean;
+}> = ({ entry, theme, isDaylight, fill = false }) => {
     const { i18n } = useTranslation();
     const ctx = usePanelContext(theme, isDaylight, i18n.language);
     const foliumTheme = useMemo(() => toFoliumTheme(theme, isDaylight), [theme, isDaylight]);
@@ -77,9 +78,9 @@ export const FoliumPanelTabContent: React.FC<{
             mount={entry.def.mount}
             ctx={ctx}
             shadow
-            fill={false}
+            fill={fill}
             theme={foliumTheme}
-            className="w-full"
+            className={fill ? "w-full h-full min-h-0" : "w-full"}
         />
     );
 };
