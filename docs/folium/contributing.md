@@ -133,6 +133,7 @@ function mountHello(folium, container, ctx) {
 | 给内置模式加调参项 | `registries.tunings` | — | [FoliumTuningDef](api.md#foliumtuningdef)，`k3panel` |
 | 模组自己的设置 | `registries.settingsSections` | — | [FoliumSettingsSectionDef](api.md#foliumsettingssectiondef) |
 | 命令（模组面板与命令面板） | `registries.commands` | — | [FoliumCommandDef](api.md#foliumcommanddef) |
+| 首页顶部导航入口 | `registries.homeTabs` | — | [FoliumPlayerPanelTabDef](api.md#foliumplayerpaneltabdef) |
 | 播放器面板里的标签页 | `registries.playerPanelTabs` | — | [FoliumPlayerPanelTabDef](api.md#foliumplayerpaneltabdef) |
 | 进度条旁的按钮、轨道上的标记 | `registries.controlButtons` / `progressLayers` | — | [FoliumProgressContext](api.md#foliumprogresscontext)，`sample-progress-bar` |
 | 改宿主外观 | `registries.styles`（只针对公开 part） | — | [FoliumStyleDef](api.md#foliumstyledef)，规范里的「styles 与公开 part」 |

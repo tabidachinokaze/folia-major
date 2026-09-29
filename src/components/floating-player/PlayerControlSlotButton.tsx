@@ -1,3 +1,5 @@
+import { useExternalQueuePresentation } from '../../hooks/useExternalQueuePresentation';
+import { ExternalQueueActions } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolvePlayerControlSlot, type PlayerControlSlotActionId, type PlayerControlSlotContext } from './playerControlSlotActions';
@@ -23,10 +25,12 @@ const PlayerControlSlotButton: React.FC<PlayerControlSlotButtonProps> = ({
     controlsDisabled = false,
     className = '',
 }) => {
+    const external = useExternalQueuePresentation();
     const { t } = useTranslation();
     const slot = resolvePlayerControlSlot(actionId, context);
     const Icon = slot.icon;
-    const disabled = slot.disabled || controlsDisabled;
+    const disabled = external.active && actionId === 'next' ? !external.canNext : slot.disabled || controlsDisabled;
+    if (external.active && actionId === 'shuffle') return <ExternalQueueActions className={className} size={20} />;
     const label = t(slot.labelKey);
 
     // 三段视觉：已开启（循环非 off / 已喜爱）高亮，不可用压暗，其余是低透明度的常态。

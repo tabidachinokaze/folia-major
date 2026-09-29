@@ -1,3 +1,5 @@
+import { useExternalQueuePresentation } from '../../hooks/useExternalQueuePresentation';
+import { ExternalQueueActions, ExternalQueueSummary } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { List, useListRef, type RowComponentProps } from 'react-window';
@@ -7,7 +9,7 @@ import { SongResult } from '../../types';
 import TextInputDialog from '../shared/TextInputDialog';
 import { getSongUnavailableLabel, isSongUnavailable } from '../../services/onlineMusic/songAvailability';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
-import { getPlaybackSongKey } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../utils/appPlaybackGuards';
 
 // src/components/panelTab/QueueTab.tsx
 
@@ -59,7 +61,7 @@ const QueueRow = ({
     labels,
 }: RowComponentProps<QueueRowProps>): React.ReactElement => {
     const song = playQueue[index];
-    const isActive = currentSongKey === getPlaybackSongKey(song);
+    const isActive = currentSongKey === getQueueSongKey(song);
     const isUnavailable = isSongUnavailable(song);
     const unavailableTagText = getSongUnavailableLabel(song, labels.unavailable);
     const activeRowClass = isDaylight ? 'bg-black/[0.08]' : 'bg-white/20';
@@ -88,7 +90,7 @@ const QueueRow = ({
                 <div className="text-[10px] opacity-40 truncate">{getSongArtistLabel(song)}</div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto">
-                {[
+                {song.externalQueueEntryKey ? <ExternalQueueActions entryKey={song.externalQueueEntryKey} /> : [
                     { label: labels.playNext, icon: ListPlus, action: onMoveSongToNext },
                     { label: labels.moveToEnd, icon: ListEnd, action: onMoveSongToEnd },
                     { label: labels.remove, icon: Trash2, action: onRemoveSong },
@@ -116,8 +118,8 @@ const QueueRow = ({
 };
 
 const QueueTab: React.FC<QueueTabProps> = ({
-    playQueue,
-    currentSong,
+    playQueue: personalQueue,
+    currentSong: personalCurrentSong,
     onPlaySong,
     queueScrollRef,
     shouldScrollToCurrent = false,
@@ -131,8 +133,11 @@ const QueueTab: React.FC<QueueTabProps> = ({
     isDaylight = false,
 }) => {
     const { t } = useTranslation();
+    const external = useExternalQueuePresentation();
+    const playQueue = external.queue ?? personalQueue;
+    const currentSong = external.active ? external.currentSong ?? null : personalCurrentSong;
     const ITEM_HEIGHT = 50;
-    const currentSongKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+    const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
     // Adjust container height calculation if needed, or rely on flex
     // previously CONTAINER_HEIGHT = 200 was passed to List. 
     // We should make List take available space.
@@ -190,7 +195,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
     // Auto-scroll to current song
     React.useEffect(() => {
         if (shouldScrollToCurrent && currentSongKey && listRef.current) {
-            const currentIndex = playQueue.findIndex(song => getPlaybackSongKey(song) === currentSongKey);
+            const currentIndex = playQueue.findIndex(song => getQueueSongKey(song) === currentSongKey);
             if (currentIndex >= 0) {
                 const isInitialMount = isInitialMountRef.current;
                 const songChanged = lastScrolledIndexRef.current !== currentIndex && lastScrolledIndexRef.current !== -1;
@@ -220,7 +225,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
         setIsSaveDialogOpen(true);
     };
 
-    if (playQueue.length === 0) {
+    if (playQueue.length === 0 && !external.active) {
         return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full max-h-[300px] select-none">
                 <div className="flex items-center justify-center h-full text-xs opacity-40">
@@ -235,7 +240,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full max-h-[300px] select-none">
                 <div className="flex items-center justify-between px-2 pb-2 shrink-0">
                     <span className="text-xs font-medium opacity-60">
-                        {t('queue.title')} ({playQueue.length})
+                        {external.active ? <ExternalQueueSummary /> : <>{t('queue.title')} ({playQueue.length})</>}
                     </span>
                     <div className="flex items-center gap-1">
                         {onOpenLattice && (
@@ -248,7 +253,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
                                 <PanelsTopLeft size={14} />
                             </button>
                         )}
-                        {canSaveLocalPlaylist && (
+                        {canSaveLocalPlaylist && !external.active && (
                             <button
                                 onClick={handleSavePlaylist}
                                 className="px-2 py-1 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100 text-[10px] font-medium"
@@ -257,7 +262,8 @@ const QueueTab: React.FC<QueueTabProps> = ({
                                 {t('localMusic.saveQueueAsPlaylist')}
                             </button>
                         )}
-                        {onShuffle && (
+                        {external.active && <ExternalQueueActions />}
+                        {onShuffle && !external.active && (
                             <button
                                 onClick={onShuffle}
                                 className="p-1.5 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"

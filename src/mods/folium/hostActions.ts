@@ -1,3 +1,6 @@
+import { hasExternalPlayback } from '@/services/externalPlaybackSession';
+import { homeTabsRegistry } from './registries/homeTabs';
+import { useSearchNavigationStore } from '@/stores/useSearchNavigationStore';
 import type { PlaybackRequest } from '@/types/externalPlayback';
 import { useEffect, useRef } from 'react';
 import { registerExternalPlaybackActions } from './externalPlayback';
@@ -49,7 +52,7 @@ type PlaybackStoreState = ReturnType<typeof usePlaybackStore.getState>;
 
 /* Same rule as the player bar's shuffle slot, plus external Stage playback, which shuffleQueue ignores. */
 const canShuffleQueue = (state: PlaybackStoreState) => (
-    !state.isFmMode && state.playQueue.length > 1 && state.activePlaybackContext !== 'stage'
+    !hasExternalPlayback() && !state.isFmMode && state.playQueue.length > 1 && state.activePlaybackContext !== 'stage'
 );
 
 export const useFoliumHostActions = (actions: FoliumAppActions) => {
@@ -118,6 +121,11 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
                 const view = useAppViewStore.getState();
                 if (tab) view.setPanelTab(tab as PanelTab);
                 view.setIsPanelOpen(true);
+            },
+            openHomeTab: (tab) => {
+                if (!homeTabsRegistry.list().some(entry => entry.id === tab)) throw new Error('home-tab-unavailable');
+                actionsRef.current.navigateToHome();
+                useSearchNavigationStore.getState().setHomeModTab(tab);
             },
             navigate: (target) => (target === 'player' ? actionsRef.current.navigateToPlayer() : actionsRef.current.navigateToHome()),
             openVolume: () => actionsRef.current.openVolume(),

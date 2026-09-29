@@ -1,9 +1,10 @@
+import { ExternalQueueActions } from '../../shared/ExternalQueueActions';
 import { motionValue } from 'framer-motion';
 import { ArrowUpRight, Pause, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ProgressBar from '../../ProgressBar';
 import { PlayerState } from '../../../types';
-import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../../utils/appPlaybackGuards';
 import { useLatticeTransport } from './LatticeTransportContext';
 import type { LatticeTile } from './latticeModel';
 import LatticeChromeTime from './LatticeChromeTime';
@@ -36,7 +37,7 @@ export default function LatticePlaybackControls({
     // Subscribed here rather than threaded through every poster: only this card reads transport state.
     const { currentSong, playerState, currentTime, playbackDuration, canTogglePlayback } = useLatticeTransport();
     const isCurrentSong = Boolean(
-        currentSong && getPlaybackSongKey(currentSong) === getPlaybackSongKey(tile.song),
+        currentSong && getQueueSongKey(currentSong) === getQueueSongKey(tile.song),
     );
     const canControlCurrent = isCurrentSong && canTogglePlayback;
     const isPlaying = canControlCurrent && playerState === PlayerState.PLAYING;
@@ -53,7 +54,7 @@ export default function LatticePlaybackControls({
             aria-label={t('home.latticePlaybackControls')}
         >
             <div className="lattice-chrome-transport">
-                <button
+                {(!tile.song.externalQueueEntryKey || canControlCurrent) && <button
                     type="button"
                     className="lattice-transport-button"
                     onClick={() => canControlCurrent ? onTogglePlayback() : onPlay(tile)}
@@ -61,7 +62,8 @@ export default function LatticePlaybackControls({
                     title={isPlaying ? t('player.pause') : t('player.play')}
                 >
                     {isPlaying ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
-                </button>
+                </button>}
+                {tile.song.externalQueueEntryKey && <ExternalQueueActions entryKey={tile.song.externalQueueEntryKey} size={20} />}
                 <div className="lattice-chrome-details" inert={!revealed} aria-hidden={!revealed}>
                     <LatticeExtraControls disabled={!canControlCurrent} />
                 </div>

@@ -1,9 +1,11 @@
+import { createExternalQueueAdapter } from './externalQueueAdapter';
+import { clearExternalQueue, setExternalQueue } from '@/services/externalPlaybackQueue';
 import { omni } from '@/services/onlineMusic/omni';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { currentTime } from '@/stores/motionSignals';
 import { PlayerState, type SongResult } from '@/types';
 import type { PlaybackRequest } from '@/types/externalPlayback';
-import { beginPlaybackRequest } from '@/services/playbackRequest';
+import { beginPlaybackRequest, invalidatePlaybackRequest } from '@/services/playbackRequest';
 import {
     acquireExternalPlayback,
     isExternalPlaybackOwner,
@@ -43,7 +45,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
         releaseExternalPlaybackForMod(mod.id);
     });
     return Object.freeze<FoliumPlaybackSessions>({
-        version: 1,
+        version: 2,
         async resolveSong(provider, id) {
             requireAccess();
             if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
@@ -83,6 +85,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                     return onIntent(dto);
                 },
                 cleanup: () => {
+                    clearExternalQueue(token);
                     try {
                         host.stop();
                     } finally {
@@ -109,7 +112,22 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                 releaseExternalPlayback(token);
                 throw error;
             }
+            const adaptQueue = createExternalQueueAdapter(token);
             return Object.freeze<FoliumPlaybackSession>({
+                setQueue(queue) {
+                    requireAccess();
+                    if (!isExternalPlaybackOwner(token)) throw new Error('playback-session-released');
+                    setExternalQueue(adaptQueue(queue));
+                },
+                stop() {
+                    requireAccess();
+                    if (!isExternalPlaybackOwner(token)) throw new Error('playback-session-released');
+                    invalidatePlaybackRequest();
+                    host.stop();
+                    usePlaybackStore.setState({ currentSong: null, audioSrc: null, lyrics: null, activeLocalLyricsSource: null,
+                        cachedCoverUrl: null, duration: 0, playerState: PlayerState.IDLE, currentLineIndex: -1 });
+                    currentTime.set(0);
+                },
                 play(song) {
                     if (!active || !isExternalPlaybackOwner(token))
                         return Promise.resolve({ status: 'cancelled' as const });

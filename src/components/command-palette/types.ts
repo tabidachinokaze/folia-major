@@ -139,6 +139,9 @@ export type CommandPalettePlaybackContext = {
     next: () => void;
     prev: () => void;
     queue: SongResult[];
+    queueCurrentSong?: SongResult | null;
+    isExternalSession?: boolean;
+    syncQueue?: () => void;
     playSong: (song: SongResult, queue?: SongResult[]) => void | Promise<void>;
     shuffleQueue: () => void;
     clearQueue: () => void;

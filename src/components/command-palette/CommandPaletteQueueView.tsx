@@ -1,3 +1,4 @@
+import { ExternalQueueActions } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { AtSign, CornerDownLeft, ListEnd, ListPlus, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import type { QueueBatchAction, QueueFacetKind } from './queueQuery';
 
 type CommandPaletteQueueViewProps = CommandPaletteQueueListProps & {
     evaluation: QueueSearchEvaluation;
+    externalSession?: boolean;
     onAcceptSuggestion: (suggestion: QueueSearchSuggestion) => void;
     onClearAction: () => void;
     onClearFacet: () => void;
@@ -35,6 +37,7 @@ const facetLabelKey: Record<QueueFacetKind, string> = {
 
 const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
     evaluation,
+    externalSession = false,
     isDaylight,
     isExecuting,
     onAcceptSuggestion,
@@ -58,7 +61,8 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-2" data-testid="command-palette-queue-view">
-            {(parsed.action || parsed.actionDraft !== null || parsed.facetDraft !== null) && (
+            {externalSession && <ExternalQueueActions />}
+            {!externalSession && (parsed.action || parsed.actionDraft !== null || parsed.facetDraft !== null) && (
                 <div className="flex flex-wrap items-center gap-1.5 px-1">
                     {parsed.action && ActionIcon && (
                         <button
@@ -123,13 +127,13 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
                 </div>
             )}
 
-            {!parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text && (
+            {!externalSession && !parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text && (
                 <div className="shrink-0 px-3 py-1 text-[11px] opacity-40" data-testid="command-palette-queue-syntax-hint">
                     {t('commandPalette.queueSyntaxHint')}
                 </div>
             )}
 
-            {parsed.action && (
+            {!externalSession && parsed.action && (
                 <div
                     className={`flex shrink-0 items-center gap-3 rounded-2xl border px-3 py-2.5 ${chipClass}`}
                     data-testid="command-palette-queue-batch-preview"

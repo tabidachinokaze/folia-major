@@ -14,6 +14,7 @@ const acceptSuggestion = (suggestion: QueueSearchSuggestion, setQuery: (next: st
 };
 
 const runBatch = (evaluation: QueueSearchEvaluation, context: CommandPaletteContext, close: () => void) => {
+    if (context.playback.isExternalSession) return false;
     const action = evaluation.parsed.action;
     if (!action || !evaluation.hasMeaningfulFilter || evaluation.eligibleTargetIndices.length === 0) {
         return false;
@@ -30,7 +31,8 @@ const buildViewProps = ({ context, query, matches, activeIndex, setActiveIndex, 
     const evaluation = evaluateQueueForPalette(context, query);
     return {
         activeIndex,
-        currentSong: context.shared.currentSong,
+        externalSession: context.playback.isExternalSession,
+        currentSong: (context.playback.isExternalSession ? context.playback.queueCurrentSong ?? null : context.shared.currentSong),
         evaluation,
         isDaylight,
         isExecuting,

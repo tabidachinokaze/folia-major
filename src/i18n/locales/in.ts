@@ -492,6 +492,7 @@ export default {
       "playback-add-to-playlist": { "title": "Tambahkan ke daftar putar", "description": "Masukkan lagu ini ke salah satu daftar putar Anda" },
       "playback-mute": { "title": "Bisukan", "description": "Bisukan pemutaran, atau kembalikan suaranya" },
       "playback-shuffle": { "title": "Acak antrean", "description": "Acak antrean putar saat ini" },
+      "playback-sync-queue": { "title": "Sinkronkan antrean", "description": "Perbarui antrean sesi saat ini" },
       "playback-clear-queue": { "title": "Kosongkan antrean", "description": "Hapus semua lagu dari antrean putar saat ini" },
       "theme-generate-current": { "title": "Buat tema AI", "description": "Buat tema AI untuk lagu saat ini" },
       "theme-quick-editor": { "title": "Editor tema cepat", "description": "Edit cepat tema AI untuk lagu saat ini" },

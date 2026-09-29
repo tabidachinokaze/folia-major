@@ -1,3 +1,4 @@
+import { homeTabsRegistry } from './registries/homeTabs';
 import type { ModRuntimeInfo } from '../types';
 import { invokeModRpc, invokeModStorage } from '../ipc';
 import {
@@ -43,6 +44,7 @@ const UI_ONLY_REGISTRIES = new Set<keyof FoliumRegistries>([
     'commands',
     'stageLayers',
     'playerPanelTabs',
+    'homeTabs',
     'controlButtons',
     'progressLayers',
     'styles',
@@ -58,6 +60,7 @@ const HOST_REGISTRIES: Record<keyof FoliumRegistries, AnyHostRegistry> = {
     stageLayers: stageLayersRegistry,
     settingsSections: settingsSectionsRegistry,
     playerPanelTabs: playerPanelTabsRegistry,
+    homeTabs: homeTabsRegistry,
     controlButtons: controlButtonsRegistry,
     progressLayers: progressLayersRegistry,
     styles: stylesRegistry,
@@ -174,6 +177,7 @@ export const createFoliumClientApi = (mod: ModRuntimeInfo, options: FoliumClient
                 return Object.freeze({ ...handle, params: stored!.def.access });
             },
         }),
+        homeTabs: bindRegistry(homeTabsRegistry, modId, inert('homeTabs')),
         playerPanelTabs: bindRegistry(playerPanelTabsRegistry, modId, inert('playerPanelTabs')),
         controlButtons: bindRegistry(controlButtonsRegistry, modId, inert('controlButtons')),
         progressLayers: bindRegistry(progressLayersRegistry, modId, inert('progressLayers')),

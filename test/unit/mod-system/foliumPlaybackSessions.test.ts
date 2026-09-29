@@ -1,3 +1,6 @@
+import { activateExternalQueueSong, invokeExternalQueueAction, useExternalQueueStore } from '@/services/externalPlaybackQueue';
+import { getPlaybackSongKey, getQueueSongKey } from '@/utils/appPlaybackGuards';
+import { buildLatticeTiles } from '@/components/app/lattice/latticeModel';
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.hoisted(() => {
@@ -88,6 +91,64 @@ afterEach(async () => {
 });
 
 describe('experimental playback.sessions', () => {
+    it('projects repeated recordings as distinct occurrences and routes current validated actions', () => {
+        const intent = vi.fn(), service = createFoliumPlaybackSessions(mod());
+        const originalQueue = [song()];
+        usePlaybackStore.setState({ playQueue: originalQueue });
+        const lease = service.acquire(options(intent));
+        const track = { id: 'song', source: 'qq', title: 'Same recording', artist: 'Artist' };
+        const remove = { id: 'remove', label: { en: 'Remove' }, icon: 'trash-2' as const };
+        const input = { entries: [{ id: 'a', track, actions: [] }, { id: 'b', track, actions: [remove] }],
+            currentId: 'a', canNext: true };
+        lease.setQueue(input);
+        const view = useExternalQueueStore.getState().view!;
+        expect(view.queue).toHaveLength(2);
+        expect(usePlaybackStore.getState().playQueue).toEqual([]);
+        expect(getPlaybackSongKey(view.queue[0])).toBe(getPlaybackSongKey(view.queue[1]));
+        expect(getQueueSongKey(view.queue[0])).not.toBe(getQueueSongKey(view.queue[1]));
+        expect(buildLatticeTiles({ queue: view.queue, currentSong: view.currentSong }).map(tile => tile.section)).toEqual(['now', 'upcoming']);
+        expect(activateExternalQueueSong(view.queue[1])).toBe(true);
+        expect(intent).not.toHaveBeenCalled();
+        expect(invokeExternalQueueAction(getQueueSongKey(view.queue[1]), 'remove')).toBe(true);
+        expect(intent).toHaveBeenLastCalledWith({ type: 'queue-action', entryId: 'b', actionId: 'remove' });
+        lease.setQueue({ ...input, entries: [input.entries[0], { ...input.entries[1], actions: [{ ...remove, disabled: true }] }] });
+        expect(invokeExternalQueueAction(getQueueSongKey(view.queue[1]), 'remove')).toBe(false);
+        lease.release();
+        expect(useExternalQueueStore.getState().view).toBeNull();
+        expect(usePlaybackStore.getState().playQueue).toEqual(originalQueue);
+        const next = service.acquire(options(intent));
+        next.setQueue(input);
+        expect(invokeExternalQueueAction(getQueueSongKey(view.queue[1]), 'remove')).toBe(false);
+        expect(activateExternalQueueSong(view.queue[1])).toBe(true);
+        expect(() => lease.setQueue(input)).toThrow('playback-session-released');
+    });
+    it('keeps song/queue identity stable as vote counts change and forwards every click', () => {
+        const intent = vi.fn(), lease = createFoliumPlaybackSessions(mod()).acquire(options(intent));
+        const vote = (count: number) => ({ entries: [{ id: 'now', track: { id: '1', source: 'qq', title: 'Song', artist: 'A' },
+            actions: [{ id: 'vote', icon: 'thumbs-up' as const, label: { en: 'Vote' }, count }] }], currentId: 'now', canNext: true });
+        lease.setQueue(vote(1));
+        const before = useExternalQueueStore.getState().view!;
+        lease.setQueue(vote(99));
+        const after = useExternalQueueStore.getState().view!;
+        expect(after.queue).toBe(before.queue);
+        expect(after.currentSong).toBe(before.currentSong);
+        for (let i = 0; i < 10; i++) invokeExternalQueueAction(getQueueSongKey(after.queue[0]), 'vote');
+        expect(intent).toHaveBeenCalledTimes(10);
+        expect(() => lease.setQueue({ ...vote(1), entries: [vote(1).entries[0], vote(1).entries[0]] })).toThrow('invalid-queue-entry');
+        expect(useExternalQueueStore.getState().view).toBe(after);
+    });
+    it('stops an in-flight source without releasing queue ownership', async () => {
+        host.play.mockImplementationOnce(() => new Promise(() => {}));
+        const lease = createFoliumPlaybackSessions(mod()).acquire(options());
+        const pending = lease.play(toFoliumSong(song())!);
+        lease.stop();
+        expect(await pending).toEqual({ status: 'cancelled' });
+        expect(hasExternalPlayback()).toBe(true);
+        expect(usePlaybackStore.getState().currentSong).toBeNull();
+        lease.release();
+        expect(() => lease.stop()).toThrow('playback-session-released');
+    });
+
     it('reports source failure to the mod and returns failed without releasing its queue ownership', async () => {
         clearFoliumIssues('session-test');
         host.play.mockRejectedValueOnce(new Error('source load failed'));

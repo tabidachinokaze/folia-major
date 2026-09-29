@@ -493,6 +493,7 @@ export default {
       "playback-add-to-playlist": { "title": "添加到歌单", "description": "把当前歌曲放进你的某个歌单" },
       "playback-mute": { "title": "静音", "description": "静音，或恢复声音" },
       "playback-shuffle": { "title": "打乱队列", "description": "打乱当前播放队列" },
+      "playback-sync-queue": { "title": "同步队列", "description": "刷新当前会话的播放队列" },
       "playback-clear-queue": { "title": "清空队列", "description": "移除当前播放队列中的所有歌曲" },
       "theme-generate-current": { "title": "生成 AI 主题", "description": "为当前歌曲生成 AI 主题" },
       "theme-quick-editor": { "title": "快速主题编辑器", "description": "快速编辑当前歌曲的 AI 主题" },
