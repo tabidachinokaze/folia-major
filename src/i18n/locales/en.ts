@@ -2377,6 +2377,21 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_12": {
+      "intro": "Pair with Music Party 0.3.1 for a refined messaging experience.",
+      "privateLayout": {
+        "title": "A clearer message layout",
+        "description": "A fixed-height split view with separate scrolling, avatars, message previews and themed scrollbars."
+      },
+      "messageHistory": {
+        "title": "Browse message history",
+        "description": "Scroll to load conversations and older messages while keeping your reading position. Attachments no longer repeat placeholder text."
+      },
+      "privateTools": {
+        "title": "Images and stickers",
+        "description": "The companion plugin adds emoji, kaomoji, image sending, sticker uploads and batch deletion."
+      }
+    },
     "v0_7_0": {
       "intro": "Here are the new features and improvements in version 0.7.0.",
       "temperaVisualExpansion": {

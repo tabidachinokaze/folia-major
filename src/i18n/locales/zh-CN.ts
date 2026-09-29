@@ -2376,6 +2376,21 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_12": {
+      "intro": "配套 Music Party 0.3.1，改善私信布局与消息体验。",
+      "privateLayout": {
+        "title": "更清爽的私信页面",
+        "description": "固定高度双栏，分别滚动会话与消息；头像、最新消息预览和主题滚动条一目了然。"
+      },
+      "messageHistory": {
+        "title": "自然翻阅历史消息",
+        "description": "滚动自动加载更多会话和历史消息，保留阅读位置；附件不再重复显示占位文字。"
+      },
+      "privateTools": {
+        "title": "图片与表情包",
+        "description": "配套插件提供 Emoji、颜文字、图片发送和表情包上传、整理、多选删除。"
+      }
+    },
     "v0_7_0": {
       "intro": "以下是 0.7.0 的新功能与改进",
       "temperaVisualExpansion": {

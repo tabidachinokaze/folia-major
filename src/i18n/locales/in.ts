@@ -2310,6 +2310,21 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_12": {
+      "intro": "Gunakan bersama Music Party 0.3.1 untuk pengalaman pesan yang lebih baik.",
+      "privateLayout": {
+        "title": "Tampilan pesan lebih rapi",
+        "description": "Dua kolom dengan tinggi tetap, gulir terpisah, avatar, pratinjau pesan, dan bilah gulir sesuai tema."
+      },
+      "messageHistory": {
+        "title": "Telusuri riwayat pesan",
+        "description": "Gulir untuk memuat percakapan dan pesan lama tanpa kehilangan posisi membaca. Lampiran tidak lagi mengulang teks pengganti."
+      },
+      "privateTools": {
+        "title": "Gambar dan stiker",
+        "description": "Plugin pendamping menyediakan emoji, kaomoji, pengiriman gambar, unggah stiker, dan penghapusan beberapa stiker."
+      }
+    },
     "v0_7_0": {
       "intro": "Berikut fitur baru dan peningkatan di versi 0.7.0.",
       "temperaVisualExpansion": {

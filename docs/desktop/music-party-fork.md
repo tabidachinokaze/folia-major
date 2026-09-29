@@ -31,4 +31,4 @@ Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新�
 
 插件的 ZIP 在独立仓库构建。推送与 `package.json`、`mod.json` 一致的 `v*` 标签后，插件的 GitHub Actions 会运行检查并发布 ZIP。它不通过 Folia 的应用更新器升级；安装新 ZIP 后按 Folium 提示重新启用。
 
-Folia 0.7.11 配套插件 0.3.0，提供 playback.sessions v2、原生房间队列及首页私信入口。Folia 0.7.10 配套插件 0.2.0；Folia 0.7.9 配套插件 0.1.0。升级时请先更新宿主，再安装并重新启用配套插件，新旧播放接口不能混用。
+Folia 0.7.12 配套插件 0.3.1，提供 playback.sessions v2、原生房间队列及首页私信入口。Folia 0.7.10 配套插件 0.2.0；Folia 0.7.9 配套插件 0.1.0。升级时请先更新宿主，再安装并重新启用配套插件，新旧播放接口不能混用。
