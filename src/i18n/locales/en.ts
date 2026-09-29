@@ -2588,6 +2588,25 @@ export default {
         "description": "Fixes lyric animations freezing after long playback and the app icon missing from the dock."
       }
     },
+    "v0_7_11": {
+      "intro": "0.7.11 brings multiplayer listening into the native queue, collage and home view. Update Music Party to 0.3.0 alongside Folia.",
+      "nativeQueue": {
+        "title": "Your room in the native queue",
+        "description": "Browse the shared queue in the player list, queue search and collage, with a sync button to refresh it."
+      },
+      "roomActions": {
+        "title": "Promote, remove and like",
+        "description": "Move waiting tracks to the top or remove your own recommendations. Like the current track repeatedly; duplicate recommendations stay distinct."
+      },
+      "homeMessages": {
+        "title": "Messages from the home bar",
+        "description": "Open private conversations, send stickers and invite friends from the top navigation. Typing messages does not trigger playback shortcuts."
+      },
+      "roomNext": {
+        "title": "Next track follows the room",
+        "description": "The player bar, collage, next-track command and shortcuts request an official room skip, independently of your personal queue length."
+      }
+    },
     "v0_7_10": {
       "intro": "0.7.10 improves shared playback controls, track changes and queue restoration. Use it with Music Party 0.2.0.",
       "sessionControls": {

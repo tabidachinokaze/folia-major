@@ -1,4 +1,4 @@
-import { ListMusic, Puzzle, RefreshCw } from 'lucide-react';
+import { PanelsTopLeft, ThumbsUp, MessageCircle, SkipForward } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // src/components/modal/newFeaturesRelease.ts
@@ -17,10 +17,11 @@ type NewFeaturesRelease = {
 
 // Defines the current release's cards; their localized text lives under i18nKey in every locale.
 export const NEW_FEATURES_RELEASE: NewFeaturesRelease = {
-    i18nKey: 'releaseNotes.v0_7_10',
+    i18nKey: 'releaseNotes.v0_7_11',
     features: [
-        { id: 'sessionControls', icon: Puzzle, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
-        { id: 'safeSwitching', icon: RefreshCw, daylightIconClassName: 'text-cyan-600', darkIconClassName: 'text-cyan-400' },
-        { id: 'queueRecovery', icon: ListMusic, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
+        { id: 'nativeQueue', icon: PanelsTopLeft, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
+        { id: 'roomActions', icon: ThumbsUp, daylightIconClassName: 'text-cyan-600', darkIconClassName: 'text-cyan-400' },
+        { id: 'homeMessages', icon: MessageCircle, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
+        { id: 'roomNext', icon: SkipForward, daylightIconClassName: 'text-amber-600', darkIconClassName: 'text-amber-400' },
     ],
 };

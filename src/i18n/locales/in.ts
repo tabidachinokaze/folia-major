@@ -2521,6 +2521,25 @@ export default {
         "description": "Memperbaiki animasi lirik yang macet setelah pemutaran lama dan ikon aplikasi yang hilang dari dock."
       }
     },
+    "v0_7_11": {
+      "intro": "0.7.11 menghadirkan dengar bersama ke antrean, kolase, dan beranda Folia. Perbarui juga plugin Music Party ke 0.3.0.",
+      "nativeQueue": {
+        "title": "Antrean ruang di Folia",
+        "description": "Lihat antrean bersama di daftar putar, pencarian antrean, dan kolase, dengan tombol sinkronisasi untuk memperbaruinya."
+      },
+      "roomActions": {
+        "title": "Pindahkan, hapus, dan sukai",
+        "description": "Pindahkan lagu ke urutan teratas atau hapus rekomendasi sendiri. Sukai lagu yang sedang diputar berulang kali; rekomendasi lagu yang sama tetap terpisah."
+      },
+      "homeMessages": {
+        "title": "Pesan dari navigasi beranda",
+        "description": "Buka percakapan pribadi, kirim stiker, dan undang teman dari navigasi atas. Mengetik pesan tidak memicu pintasan pemutaran."
+      },
+      "roomNext": {
+        "title": "Lagu berikutnya mengikuti ruang",
+        "description": "Bilah pemutar, kolase, perintah lagu berikutnya, dan pintasan meminta pergantian lagu di ruang resmi, tanpa bergantung pada panjang antrean pribadi."
+      }
+    },
     "v0_7_10": {
       "intro": "0.7.10 meningkatkan kontrol dengar bersama, pergantian lagu, dan pemulihan antrean. Gunakan bersama Music Party 0.2.0.",
       "sessionControls": {
