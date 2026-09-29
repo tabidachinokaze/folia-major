@@ -29,7 +29,7 @@ export function useFoliumHomeTabs() {
 export function FoliumHomeTabBody({ tab, theme, isDaylight }: { tab: string; theme: Theme; isDaylight: boolean }) {
     const entries = useFoliumRegistryEntries(homeTabsRegistry);
     const entry = entries.find(entry => entry.id === tab);
-    return entry ? <div className="w-full h-full overflow-auto px-4 md:px-12 py-4" data-home-mod-tab={tab}>
-        <FoliumPanelTabContent key={entry.id} entry={entry} theme={theme} isDaylight={isDaylight} />
+    return entry ? <div className="w-full h-full min-h-0 overflow-hidden px-4 md:px-12 py-4" data-home-mod-tab={tab}>
+        <FoliumPanelTabContent key={entry.id} entry={entry} theme={theme} isDaylight={isDaylight} fill />
     </div> : null;
 }
