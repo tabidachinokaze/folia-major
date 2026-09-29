@@ -1,10 +1,12 @@
 # Folia {{VERSION}} · Music Party
 
-此版本基于 Folia 0.7.9，加入网易云官方多人一起听插件所需的播放适配。项目与应用更新来源均为 [tabidachinokaze/folia-major](https://github.com/tabidachinokaze/folia-major)。
+**配套升级：Folia 0.7.10 + Music Party 插件 0.2.0。** 本版使用新的播放会话接口，旧插件 0.1.0 需要一并升级。项目与应用更新来源均为 [tabidachinokaze/folia-major](https://github.com/tabidachinokaze/folia-major)。
 
-- 配合 [Music Party 插件](https://github.com/tabidachinokaze/folium-mod-music-party/releases)，支持在 Folia 中加入官方多人房间、同步音乐、推歌、管理待播列表、查看成员与聊天。
-- 保留 Folia 的音频播放和歌词界面，房间内手动切歌与歌曲自然结束分别处理，退出后恢复个人队列。
-- 此安装包已包含播放适配接口，无需再次应用补丁。安装后请在「设置 → 实验室」开启模组系统，并导入插件 ZIP。
+- 统一进度条、键盘、遥控及批量入队操作，避免绕过房间的播放控制。
+- 会话退出、模组停用或加载被替代后，旧的在线、本地及 Navidrome 加载不会再覆盖新的播放状态；取消时回收未使用的音源资源。
+- 模组异常或卸载后正确释放播放接管，退出时恢复个人队列并保持停止。
+- 保留 Folia 的音频与歌词体验。创建、加入、恢复官方多人房间，以及聊天、私信邀请等功能由 [Music Party 插件 0.2.0](https://github.com/tabidachinokaze/folium-mod-music-party/releases/tag/v0.2.0) 提供。
+- 此安装包已包含新接口，无需打补丁。安装插件 ZIP 后按提示重新启用；进入房间前需结束私人 FM、Stage、视频录制或混音过渡。
 
 ## 下载
 

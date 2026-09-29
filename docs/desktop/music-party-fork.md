@@ -1,6 +1,6 @@
 # Music Party fork 与更新来源
 
-本发行版仓库为 <https://github.com/tabidachinokaze/folia-major>，基于 [Folia 上游](https://github.com/chthollyphile/folia-major)，包含 Music Party 所需的 `externalPlayback v1` 播放适配接口。
+本发行版仓库为 <https://github.com/tabidachinokaze/folia-major>，基于 [Folia 上游](https://github.com/chthollyphile/folia-major)，包含 Music Party 所需的 experimental `playback.sessions` 播放会话接口。
 
 插件独立仓库：<https://github.com/tabidachinokaze/folium-mod-music-party>。按插件 README 构建 ZIP 并安装到桌面模组系统；本 fork 无需再次应用插件仓库提供的兼容补丁。
 
@@ -31,4 +31,4 @@ Folia 使用 `electron-updater`，从 GitHub Releases 读取安装包及更新�
 
 插件的 ZIP 在独立仓库构建。推送与 `package.json`、`mod.json` 一致的 `v*` 标签后，插件的 GitHub Actions 会运行检查并发布 ZIP。它不通过 Folia 的应用更新器升级；安装新 ZIP 后按 Folium 提示重新启用。
 
-插件当前限定已验证的 Folia 0.7.9；升级宿主版本时需要同时验证插件并更新其兼容范围。
+Folia 0.7.10 配套插件 0.2.0。旧版 Folia 0.7.9 安装包配套插件 0.1.0；升级时请同时升级宿主和插件，插件更新后需要重新启用。

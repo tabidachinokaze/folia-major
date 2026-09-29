@@ -2586,6 +2586,21 @@ export default {
         "title": "Linux Fixes",
         "description": "Fixes lyric animations freezing after long playback and the app icon missing from the dock."
       }
+    },
+    "v0_7_10": {
+      "intro": "0.7.10 improves shared playback controls, track changes and queue restoration. Use it with Music Party 0.2.0.",
+      "sessionControls": {
+        "title": "Consistent listening controls",
+        "description": "Progress bars, keyboard shortcuts and remote controls follow the same session rules. Single and batch queue selections are forwarded to the mod."
+      },
+      "safeSwitching": {
+        "title": "Keep late loads from interrupting playback",
+        "description": "Earlier online, local and Navidrome loads no longer replace the current source after a track change or session exit."
+      },
+      "queueRecovery": {
+        "title": "Restore your personal queue",
+        "description": "Leaving a session or disabling its mod restores your queue and keeps playback stopped. End Personal FM, Stage, recording or an active transition before joining."
+      }
     }
   },
   "export": {

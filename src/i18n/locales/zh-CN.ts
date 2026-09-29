@@ -2585,6 +2585,21 @@ export default {
         "title": "Linux 修复",
         "description": "修复长时间播放后歌词动画卡死，以及 dock 栏不显示图标。"
       }
+    },
+    "v0_7_10": {
+      "intro": "0.7.10 改善一起听的播放接管、切换和退出恢复，请配合 Music Party 插件 0.2.0 使用。",
+      "sessionControls": {
+        "title": "一起听控制更一致",
+        "description": "进度条、键盘和遥控操作遵循同一套房间控制规则，单曲和批量推荐也能正确交给插件。"
+      },
+      "safeSwitching": {
+        "title": "避免旧曲加载打断同步",
+        "description": "切换房间歌曲或退出时，较早的在线、本地与 Navidrome 加载不再覆盖新的播放状态。"
+      },
+      "queueRecovery": {
+        "title": "退出后恢复个人队列",
+        "description": "退出或停用模组后恢复原队列并保持停止。进入前请结束私人 FM、Stage、录制或混音过渡。"
+      }
     }
   },
   "export": {

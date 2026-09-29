@@ -2519,6 +2519,21 @@ export default {
         "title": "Perbaikan Linux",
         "description": "Memperbaiki animasi lirik yang macet setelah pemutaran lama dan ikon aplikasi yang hilang dari dock."
       }
+    },
+    "v0_7_10": {
+      "intro": "0.7.10 meningkatkan kontrol dengar bersama, pergantian lagu, dan pemulihan antrean. Gunakan bersama Music Party 0.2.0.",
+      "sessionControls": {
+        "title": "Kontrol dengar bersama yang konsisten",
+        "description": "Bilah progres, pintasan keyboard, dan kontrol jarak jauh mengikuti aturan sesi yang sama. Pilihan satu atau beberapa lagu diteruskan ke mod."
+      },
+      "safeSwitching": {
+        "title": "Pemuatan lama tidak mengganggu sinkronisasi",
+        "description": "Pemuatan lagu online, lokal, dan Navidrome sebelumnya tidak lagi mengganti sumber yang sedang diputar setelah pergantian lagu atau keluar dari sesi."
+      },
+      "queueRecovery": {
+        "title": "Pulihkan antrean pribadi",
+        "description": "Keluar dari sesi atau menonaktifkan mod memulihkan antrean tanpa memulai pemutaran. Akhiri Personal FM, Stage, perekaman, atau transisi aktif sebelum bergabung."
+      }
     }
   },
   "export": {
