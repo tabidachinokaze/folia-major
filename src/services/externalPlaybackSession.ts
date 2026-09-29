@@ -1,51 +1,95 @@
-import type { SongResult } from '../types';
+import type { ExternalPlaybackIntent } from '../types/externalPlayback';
+import { configurePlaybackRequestGuard, invalidatePlaybackRequest } from './playbackRequest';
 
 // src/services/externalPlaybackSession.ts
-// One owner at a time. User commands are routed separately from server snapshots.
-export type ExternalPlaybackIntent =
-    | { type: 'select'; song: SongResult }
-    | { type: 'next' | 'previous' | 'ended' }
-    | { type: 'seek'; seconds: number };
-
-let owner: { token: symbol; dispatch: (intent: ExternalPlaybackIntent) => void } | null = null;
+// Owns control routing, not provider logic or UI. Cleanup always releases the owner, even on errors.
+interface Owner {
+    token: symbol;
+    modId: string;
+    dispatch(intent: ExternalPlaybackIntent): void | Promise<void>;
+    cleanup(): void;
+    report(error: unknown): void;
+}
+const report = (target: Owner, error: unknown) => {
+    try {
+        target.report(error);
+    } catch (reportError) {
+        console.warn('[Playback] session error reporter failed', reportError);
+    }
+};
+let owner: Owner | null = null;
 let revision = 0;
-let bypass: symbol | undefined;
+configurePlaybackRequestGuard((token) => (token ? owner?.token === token : owner === null));
+export const captureExternalPlaybackBoundary = () => {
+    const started = revision;
+    return () => started === revision;
+};
 const listeners = new Set<() => void>();
+const notify = () =>
+    listeners.forEach((fn) => {
+        try {
+            fn();
+        } catch (error) {
+            console.warn('[Playback] session subscriber failed', error);
+        }
+    });
 export const subscribeExternalPlayback = (fn: () => void) => {
     listeners.add(fn);
-    return () => { listeners.delete(fn); };
+    return () => {
+        listeners.delete(fn);
+    };
 };
 export const hasExternalPlayback = () => owner !== null;
-export const externalPlaybackRevision = () => revision;
 export const isExternalPlaybackOwner = (token: symbol) => owner?.token === token;
 
-export function acquireExternalPlayback(dispatch: (intent: ExternalPlaybackIntent) => void) {
-    if (owner) throw new Error('另一个插件正在接管播放，请先结束其播放会话');
+export function acquireExternalPlayback(options: Omit<Owner, 'token'>) {
+    if (owner) throw new Error('external-playback-busy');
+    invalidatePlaybackRequest();
     const token = Symbol('external-playback');
-    owner = { token, dispatch };
+    owner = { ...options, token };
     revision++;
-    listeners.forEach(fn => fn());
+    notify();
     return token;
 }
 
 export function releaseExternalPlayback(token: symbol) {
-    if (!isExternalPlaybackOwner(token)) return;
+    if (!owner || owner.token !== token) return;
+    const previous = owner;
     owner = null;
     revision++;
-    listeners.forEach(fn => fn());
+    invalidatePlaybackRequest();
+    try {
+        previous.cleanup();
+    } catch (error) {
+        report(previous, error);
+    } finally {
+        notify();
+    }
 }
 
-/** Returns true even if the owner fails: external playback must never fall through to a local skip. */
-export function routeExternalPlayback(intent: ExternalPlaybackIntent, token?: symbol) {
-    if (token && !isExternalPlaybackOwner(token)) return true;
-    if (!owner || owner.token === token || owner.token === bypass) return false;
-    try { owner.dispatch(intent); } catch { /* The plugin presents its own error state. */ }
+export function releaseExternalPlaybackForMod(modId: string) {
+    if (owner?.modId === modId) releaseExternalPlayback(owner.token);
+}
+export function releaseAllExternalPlayback() {
+    if (owner) releaseExternalPlayback(owner.token);
+}
+
+/** A failing owner is reported and released; the rejected command never falls through locally. */
+export function routeExternalPlayback(intent: ExternalPlaybackIntent) {
+    if (!owner) return false;
+    const target = owner;
+    const fail = (error: unknown) => {
+        if (owner !== target) return;
+        try {
+            report(target, error);
+        } finally {
+            releaseExternalPlayback(target.token);
+        }
+    };
+    try {
+        Promise.resolve(target.dispatch(intent)).catch(fail);
+    } catch (error) {
+        fail(error);
+    }
     return true;
-}
-
-export function runExternalPlaybackCommand<T>(token: symbol, fn: () => T): T {
-    if (!isExternalPlaybackOwner(token)) throw new Error('播放会话已结束');
-    const previous = bypass;
-    bypass = token;
-    try { return fn(); } finally { bypass = previous; }
 }

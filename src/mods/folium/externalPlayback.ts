@@ -2,66 +2,143 @@ import { omni } from '@/services/onlineMusic/omni';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { currentTime } from '@/stores/motionSignals';
 import { PlayerState, type SongResult } from '@/types';
-import type { FoliumSong } from './contract';
-import { resolveFoliumSongRef, toFoliumSong } from './dto';
+import type { PlaybackRequest } from '@/types/externalPlayback';
+import { beginPlaybackRequest } from '@/services/playbackRequest';
 import {
-    acquireExternalPlayback, isExternalPlaybackOwner, releaseExternalPlayback,
-    runExternalPlaybackCommand, type ExternalPlaybackIntent,
+    acquireExternalPlayback,
+    isExternalPlaybackOwner,
+    releaseExternalPlayback,
+    releaseExternalPlaybackForMod,
+    releaseAllExternalPlayback,
 } from '@/services/externalPlaybackSession';
+import type { ModRuntimeInfo } from '../types';
+import type { FoliumPlaybackSession, FoliumPlaybackSessions, FoliumPlaybackSessionIntent } from './contract';
+import { resolveFoliumSongRef, toFoliumSong } from './dto';
+import { reportFoliumIssue } from './status';
+import { registerFoliumServiceDisposer } from './lifecycle';
 
 // src/mods/folium/externalPlayback.ts
-// Versioned, opt-in internal bridge for a server-owned play queue. No provider credentials escape here.
-type Actions = {
-    play: (song: SongResult, token: symbol) => Promise<void>;
-    pause: () => void;
-    seek: (seconds: number) => void;
-};
+interface Actions {
+    play(song: SongResult, request: PlaybackRequest): Promise<void> | void;
+    stop(): void;
+    canAcquire?(): boolean;
+    seek(seconds: number): void;
+}
 let actions: Actions | null = null;
-export const registerExternalPlaybackActions = (value: Actions | null) => { actions = value; };
+export const registerExternalPlaybackActions = (value: Actions | null) => {
+    if (!value) releaseAllExternalPlayback();
+    actions = value;
+};
 
-export const externalPlaybackBridge = Object.freeze({
-    version: 1,
-    async resolveSong(provider: string, id: string): Promise<FoliumSong> {
-        if (provider !== 'netease' || !/^[1-9]\d{0,23}$/.test(id)) throw new Error('歌曲来源或 ID 无效');
-        const song = await omni.getSongDetail('netease', id);
-        if (!song) throw new Error('未找到这首网易云歌曲');
-        return toFoliumSong(song)!;
-    },
-    acquire(dispatch: (intent: Omit<ExternalPlaybackIntent, 'song'> & { song?: FoliumSong }) => void) {
-        if (!actions) throw new Error('播放器尚未就绪');
-        const state = usePlaybackStore.getState();
-        if (state.activePlaybackContext === 'stage' || state.transitionDisplay) {
-            throw new Error('请先结束 Stage 播放或等待歌曲过渡完成');
-        }
-        const queue = state.playQueue;
-        const token = acquireExternalPlayback(intent => dispatch(
-            intent.type === 'select' ? { type: 'select', song: toFoliumSong(intent.song)! } : intent,
-        ));
-        actions.pause();
-        state.setPlayQueue([]);
-        state.setIsFmMode(false);
-        return Object.freeze({
-            async play(song: FoliumSong) {
-                if (!isExternalPlaybackOwner(token)) return false;
-                const resolved = resolveFoliumSongRef(song.ref);
-                if (!resolved || toFoliumSong(resolved)?.source !== 'netease') throw new Error('歌曲引用已失效，请重新同步');
-                await actions!.play(resolved, token);
-                return isExternalPlaybackOwner(token);
-            },
-            seek(seconds: number) {
-                if (!Number.isFinite(seconds) || seconds < 0) throw new Error('播放进度无效');
-                runExternalPlaybackCommand(token, () => actions!.seek(seconds));
-            },
-            release() {
-                if (!isExternalPlaybackOwner(token)) return;
-                actions?.pause();
+export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybackSessions {
+    let active = true;
+    const requireAccess = () => {
+        if (!active) throw new Error('mod-service-disposed');
+        if (!mod.experimental?.includes('playback.sessions'))
+            throw new Error('experimental-not-declared:playback.sessions');
+        if (!mod.permissions.includes('playback.control')) throw new Error('permission-denied:playback.control');
+    };
+    registerFoliumServiceDisposer(mod.id, () => {
+        active = false;
+        releaseExternalPlaybackForMod(mod.id);
+    });
+    return Object.freeze<FoliumPlaybackSessions>({
+        version: 1,
+        async resolveSong(provider, id) {
+            requireAccess();
+            if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
+                throw new Error('invalid-song-reference');
+            const song = await omni.getSongDetail(provider, id);
+            requireAccess();
+            if (!song) throw new Error('song-unavailable');
+            return toFoliumSong(song)!;
+        },
+        acquire({ onIntent, restore }) {
+            requireAccess();
+            if (restore !== 'queue-stopped' || typeof onIntent !== 'function')
+                throw new Error('invalid-playback-session-options');
+            if (!actions) throw new Error('playback-unavailable');
+            const host = actions;
+            const state = usePlaybackStore.getState();
+            if (
+                state.activePlaybackContext !== 'main' ||
+                state.transitionDisplay ||
+                state.isFmMode ||
+                host.canAcquire?.() === false
+            ) {
+                throw new Error('external-playback-context-unavailable');
+            }
+            const queue = [...state.playQueue];
+            const report = (error: unknown) => reportFoliumIssue(mod.id, 'playback session', error);
+            const token = acquireExternalPlayback({
+                modId: mod.id,
+                report,
+                dispatch: (intent) => {
+                    const dto: FoliumPlaybackSessionIntent =
+                        intent.type === 'play'
+                            ? { type: 'play', song: toFoliumSong(intent.song)! }
+                            : intent.type === 'enqueue'
+                              ? { type: 'enqueue', songs: intent.songs.map((song) => toFoliumSong(song)!) }
+                              : intent;
+                    return onIntent(dto);
+                },
+                cleanup: () => {
+                    try {
+                        host.stop();
+                    } finally {
+                        usePlaybackStore.setState({
+                            playQueue: queue,
+                            currentSong: null,
+                            audioSrc: null,
+                            lyrics: null,
+                            activeLocalLyricsSource: null,
+                            cachedCoverUrl: null,
+                            duration: 0,
+                            playerState: PlayerState.IDLE,
+                            currentLineIndex: -1,
+                            isFmMode: false,
+                        });
+                        currentTime.set(0);
+                    }
+                },
+            });
+            try {
+                host.stop();
+                state.setPlayQueue([]);
+            } catch (error) {
                 releaseExternalPlayback(token);
-                // Restore the user's queue without starting music after leaving/disabling a mod.
-                usePlaybackStore.setState({ playQueue: queue, currentSong: null, audioSrc: null,
-                    lyrics: null, cachedCoverUrl: null, duration: 0, playerState: PlayerState.IDLE,
-                    currentLineIndex: -1, isFmMode: false });
-                currentTime.set(0);
-            },
-        });
-    },
-});
+                throw error;
+            }
+            return Object.freeze<FoliumPlaybackSession>({
+                play(song) {
+                    if (!active || !isExternalPlaybackOwner(token))
+                        return Promise.resolve({ status: 'cancelled' as const });
+                    const resolved = resolveFoliumSongRef(song.ref);
+                    if (!resolved) return Promise.resolve({ status: 'unavailable' as const });
+                    const request = beginPlaybackRequest(token);
+                    try {
+                        Promise.resolve(host.play(resolved, request))
+                            .catch((error) => {
+                                if (request.isCurrent()) {
+                                    report(error);
+                                    request.finish('failed');
+                                }
+                            })
+                            .finally(() => request.finish('cancelled'));
+                    } catch (error) {
+                        report(error);
+                        request.finish('failed');
+                    }
+                    return request.result;
+                },
+                seek(seconds) {
+                    requireAccess();
+                    if (!isExternalPlaybackOwner(token)) throw new Error('playback-session-released');
+                    if (!Number.isFinite(seconds) || seconds < 0) throw new Error('invalid-playback-position');
+                    host.seek(seconds);
+                },
+                release: () => releaseExternalPlayback(token),
+            });
+        },
+    });
+}

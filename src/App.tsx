@@ -1,3 +1,4 @@
+import { createSessionTransport } from './components/app/playback/createSessionTransport';
 import { hasExternalPlayback, subscribeExternalPlayback, routeExternalPlayback } from './services/externalPlaybackSession';
 import { useState, useSyncExternalStore, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { AnimatePresence, motion, useMotionValueEvent } from 'framer-motion';
@@ -1468,6 +1469,7 @@ export default function App() {
 
     const {
         exportState,
+        isExportRunning,
         handleExportCommand,
     } = useElectronVideoExportController({
         isElectronWindow,
@@ -2035,7 +2037,7 @@ export default function App() {
         return true;
     };
     const seekMainAudio = useCallback((time: number) => {
-        if (routeExternalPlayback({ type: 'seek', seconds: time })) return;
+        if (routeExternalPlayback({ type: 'seek', seconds: time, resume: true })) return;
         if (seekDuringTransitionRef.current(time)) {
             return;
         }
@@ -2089,13 +2091,9 @@ export default function App() {
         seekToLyricTime: handleMonetLyricLineSeek,
         next: () => { void handleNextTrack(); },
         previous: handlePrevTrack,
-        playSong: (song, externalToken) => externalToken
-            ? new Promise<void>((resolve, reject) => {
-                void playSong(song, [song], false, { externalPlaybackToken: externalToken,
-                    autoplay: false, shouldNavigateToPlayer: false, onAudioReady: resolve,
-                }).then(resolve, reject);
-            })
-            : playSong(song),
+        playSong: (song, request) => playSong(song, request ? [song] : [], false,
+            request ? { request, autoplay: false, shouldNavigateToPlayer: false } : {}),
+        sessionTransport: createSessionTransport({ audioRef, shouldAutoPlay, currentSongRef, blobUrlRef, pendingResumeTimeRef }, () => !isExportRunning()),
         enqueue: addOnlineSongToQueue,
         navigateToPlayer,
         navigateToHome,
@@ -2520,7 +2518,7 @@ export default function App() {
                 // If single loop is active, native loop handles it.
                 // If not, we handle queue logic.
                 if (effectiveLoopMode !== 'one') {
-                    void handleNextTrack({ allowStopOnMissing: true, shouldNavigateToPlayer: false });
+                    void handleNextTrack({ allowStopOnMissing: true, shouldNavigateToPlayer: false, reason: 'ended' });
                 }
             }}
             onLoadedMetadata={(e) => {
@@ -2579,7 +2577,7 @@ export default function App() {
                         return;
                     }
 
-                    void handleNextTrack({ allowStopOnMissing: true, shouldNavigateToPlayer: false });
+                    void handleNextTrack({ allowStopOnMissing: true, shouldNavigateToPlayer: false, reason: 'playback-error' });
                     return;
                 }
 

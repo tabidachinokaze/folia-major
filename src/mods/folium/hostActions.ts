@@ -1,3 +1,4 @@
+import type { PlaybackRequest } from '@/types/externalPlayback';
 import { useEffect, useRef } from 'react';
 import { registerExternalPlaybackActions } from './externalPlayback';
 import type { SongResult } from '@/types';
@@ -30,7 +31,8 @@ export interface FoliumAppActions {
     seekToLyricTime: (lyricSeconds: number) => void;
     next: () => void;
     previous: () => void;
-    playSong: (song: SongResult, externalToken?: symbol) => void | Promise<void>;
+    playSong: (song: SongResult, request?: PlaybackRequest) => void | Promise<void>;
+    sessionTransport: { stop(): void; seek(seconds: number): void; canAcquire?(): boolean };
     enqueue: (song: SongResult) => void;
     navigateToPlayer: () => void;
     navigateToHome: () => void;
@@ -63,9 +65,10 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
 
     useEffect(() => {
         registerExternalPlaybackActions({
-            play: async (song, token) => { await actionsRef.current.playSong(song, token); },
-            pause: () => actionsRef.current.pause(),
-            seek: (seconds) => actionsRef.current.seek(seconds),
+            play: async (song, request) => { await actionsRef.current.playSong(song, request); },
+            stop: () => actionsRef.current.sessionTransport.stop(),
+            canAcquire: () => actionsRef.current.sessionTransport.canAcquire?.() !== false,
+            seek: (seconds) => actionsRef.current.sessionTransport.seek(seconds),
         });
         registerFoliumHostActions({
             getPlaybackState: () => {

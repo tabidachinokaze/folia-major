@@ -1,3 +1,4 @@
+import { hasExternalPlayback, routeExternalPlayback } from '../../../services/externalPlaybackSession';
 import type { Dispatch, SetStateAction } from 'react';
 import { buildNavidromeQueue } from '../../../services/playbackAdapters';
 import { applyQueueAddBehavior } from '../../../utils/queueAddBehavior';
@@ -33,6 +34,7 @@ export const createQueueMutations = ({
         }
 
         const unifiedSongs = buildNavidromeQueue(songs);
+        if (routeExternalPlayback({ type: 'enqueue', songs: unifiedSongs })) return;
         const baseQueue = playQueue.length > 0 ? playQueue : (currentSong ? [currentSong] : []);
         const { nextQueue, affectedSongs, changed } = applyQueueAddBehavior({
             queue: baseQueue,
@@ -55,6 +57,7 @@ export const createQueueMutations = ({
     };
 
     const updateQueueOrder = (nextQueue: SongResult[]) => {
+        if (hasExternalPlayback()) { setStatusMsg({ type: 'info', text: t('status.externalPlaybackActive') }); return; }
         setPlayQueue(nextQueue);
         void persistLastPlaybackCache(currentSong, nextQueue);
     };
@@ -86,6 +89,7 @@ export const createQueueMutations = ({
     };
 
     const applyQueueBatchOperation = (action: QueueBatchAction, targetIndices: number[]) => {
+        if (hasExternalPlayback()) { setStatusMsg({ type: 'info', text: t('status.externalPlaybackActive') }); return false; }
         const result = transformQueueBatch({
             queue: playQueue,
             targetIndices,

@@ -1,3 +1,4 @@
+import { routeExternalPlayback } from '../services/externalPlaybackSession';
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { RefObject } from 'react';
@@ -617,6 +618,7 @@ export const useElectronPlaybackBridge = ({
                     ? safeDuration
                     : command.time;
                 const nextTime = Math.max(0, Math.min(command.time, upperBound));
+                if (routeExternalPlayback({ type: 'seek', seconds: nextTime, resume: false })) return;
                 // During a blend the visible track is the outgoing one; route through the same
                 // cancel-and-resume the window's bar uses instead of moving the hidden incoming deck.
                 if (onRemoteTransitionSeek?.(nextTime)) {
@@ -687,6 +689,11 @@ export const useElectronPlaybackBridge = ({
 
                 if (request.action === 'seek') {
                     const nextTime = Math.max(0, (request.positionMs ?? 0) / 1000);
+                    if (routeExternalPlayback({ type: 'seek', seconds: nextTime, resume: false })) {
+                        // The owning mod receives the intent and controls the resulting position.
+                        complete(request.requestId, true);
+                        return;
+                    }
                     // Same order as the remote's own seek above: mid-blend `audioRef` names the
                     // INCOMING deck, silent and holding a different track, so moving it moves
                     // nothing the listener can hear. The transition-aware path cancels the blend
