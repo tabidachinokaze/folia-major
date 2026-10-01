@@ -2377,6 +2377,21 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_13": {
+      "intro": "Pair with Music Party 0.3.5 for continuous playback, room matching and chat improvements.",
+      "continuousPlayback": {
+        "title": "Keep playing after leaving",
+        "description": "The companion plugin preserves the current track, position and pause state when leaving or rematching, handing playback back to Folia."
+      },
+      "roomChat": {
+        "title": "Open chat at the latest message",
+        "description": "The companion plugin opens at the latest message and loads history on upward scroll. Toasts replace persistent feedback and room activity stays unobtrusive."
+      },
+      "roomMatching": {
+        "title": "Receive official match confirmations",
+        "description": "The companion plugin receives multiplayer match confirmation and failure notifications, with cancellation and a separate timeout. Music continues while waiting."
+      }
+    },
     "v0_7_12": {
       "intro": "Pair with Music Party 0.3.1 for a refined messaging experience.",
       "privateLayout": {

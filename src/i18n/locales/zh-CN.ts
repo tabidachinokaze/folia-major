@@ -2376,6 +2376,21 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_13": {
+      "intro": "配套 Music Party 0.3.5，改善连续播放、房间匹配与聊天。",
+      "continuousPlayback": {
+        "title": "退出一起听，音乐继续",
+        "description": "配套插件退出房间或重新匹配时保留当前歌曲、进度和暂停状态，播放控制平滑交回 Folia。"
+      },
+      "roomChat": {
+        "title": "聊天从最新消息开始",
+        "description": "配套插件打开聊天定位最新，向上滚动加载历史；操作反馈改用 toast，房间动态不再抢占主要消息。"
+      },
+      "roomMatching": {
+        "title": "接收官方匹配确认",
+        "description": "配套插件接收多人匹配确认与失败通知，支持取消和独立超时；等待匹配时继续普通播放。"
+      }
+    },
     "v0_7_12": {
       "intro": "配套 Music Party 0.3.1，改善私信布局与消息体验。",
       "privateLayout": {

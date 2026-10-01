@@ -2310,6 +2310,21 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_13": {
+      "intro": "Gunakan bersama Music Party 0.3.5 untuk pemutaran berkelanjutan, pencocokan ruang, dan obrolan yang lebih baik.",
+      "continuousPlayback": {
+        "title": "Musik berlanjut setelah keluar",
+        "description": "Plugin pendamping mempertahankan lagu, posisi, dan status jeda saat keluar atau mencocokkan ulang, lalu mengembalikan kontrol ke Folia."
+      },
+      "roomChat": {
+        "title": "Buka obrolan di pesan terbaru",
+        "description": "Plugin pendamping membuka pesan terbaru dan memuat riwayat saat menggulir ke atas. Umpan balik memakai toast dan aktivitas ruang tidak menonjol."
+      },
+      "roomMatching": {
+        "title": "Terima konfirmasi pencocokan resmi",
+        "description": "Plugin pendamping menerima konfirmasi dan kegagalan pencocokan multipengguna, dengan pembatalan dan batas waktu terpisah. Musik berlanjut saat menunggu."
+      }
+    },
     "v0_7_12": {
       "intro": "Gunakan bersama Music Party 0.3.1 untuk pengalaman pesan yang lebih baik.",
       "privateLayout": {
