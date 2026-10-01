@@ -712,6 +712,7 @@ An exclusive session, released automatically on mod disable or failed activation
 | `stop()` | `(): void` | Cancel loading and clear the current source, retaining session ownership and queue presentation. |
 | `play()` | `(song: FoliumSong): Promise<FoliumPlaybackStartResult>` | Load a host-ref song without autoplay. Resolves at source assignment, cancellation or failure. |
 | `seek()` | `(seconds: number): void` | Set local audio time in seconds, preserving the current pause state. |
+| `handoff?()` | `(): void` | Release control while preserving the committed audio, position and pause state; restore the private queue with the current track if absent. Available when supportsHandoff is true. |
 | `release()` | `(): void` | Idempotent. Restore the previous queue stopped; clear current audio, song and lyrics. |
 
 相关：[FoliumPlaybackQueue](#foliumplaybackqueue) · [FoliumSong](#foliumsong) · [FoliumPlaybackStartResult](#foliumplaybackstartresult)
@@ -723,6 +724,7 @@ EXPERIMENTAL: requires manifest `playback.sessions` and permission `playback.con
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
 | `readonly version` | `2` | Experimental service contract version. |
+| `readonly supportsHandoff?` | `boolean` | Whether sessions can hand the current source back to ordinary playback without stopping it. |
 | `resolveSong()` | `(provider: string, id: string): Promise<FoliumSong>` | Resolve an online provider's opaque media ID through Omni, returning a host song ref. |
 | `acquire()` | `(options: { onIntent: (intent: FoliumPlaybackSessionIntent) => void \| Promise<void>; /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */ restore: 'queue-stopped'; }): FoliumPlaybackSession` | FM, Stage, video recording, active transitions and another session are rejected before changing playback. |
 

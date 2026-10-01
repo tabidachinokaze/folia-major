@@ -1,3 +1,4 @@
+import { getPlaybackSongKey } from '@/utils/appPlaybackGuards';
 import { createExternalQueueAdapter } from './externalQueueAdapter';
 import { clearExternalQueue, setExternalQueue } from '@/services/externalPlaybackQueue';
 import { omni } from '@/services/onlineMusic/omni';
@@ -46,6 +47,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
     });
     return Object.freeze<FoliumPlaybackSessions>({
         version: 2,
+        supportsHandoff: true,
         async resolveSong(provider, id) {
             requireAccess();
             if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
@@ -71,6 +73,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                 throw new Error('external-playback-context-unavailable');
             }
             const queue = [...state.playQueue];
+            let handoff = false;
             const report = (error: unknown) => reportFoliumIssue(mod.id, 'playback session', error);
             const token = acquireExternalPlayback({
                 modId: mod.id,
@@ -86,6 +89,13 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                 },
                 cleanup: () => {
                     clearExternalQueue(token);
+                    const current = usePlaybackStore.getState();
+                    if (handoff && current.currentSong && current.audioSrc) {
+                        const song = current.currentSong;
+                        const restored = queue.some(item => getPlaybackSongKey(item) === getPlaybackSongKey(song)) ? queue : [song, ...queue];
+                        usePlaybackStore.setState({ playQueue: restored });
+                        return;
+                    }
                     try {
                         host.stop();
                     } finally {
@@ -154,6 +164,12 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                     if (!isExternalPlaybackOwner(token)) throw new Error('playback-session-released');
                     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('invalid-playback-position');
                     host.seek(seconds);
+                },
+                handoff() {
+                    if (!isExternalPlaybackOwner(token)) return;
+                    requireAccess();
+                    handoff = true;
+                    releaseExternalPlayback(token);
                 },
                 release: () => releaseExternalPlayback(token),
             });

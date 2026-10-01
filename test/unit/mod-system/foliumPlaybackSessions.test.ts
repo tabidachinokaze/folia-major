@@ -32,7 +32,8 @@ import {
 import { toFoliumSong } from '@/mods/folium/dto';
 import type { FoliumPlaybackSessionIntent } from '@/mods/folium/contract';
 import type { PlaybackRequest } from '@/types/externalPlayback';
-import type { SongResult } from '@/types';
+import { PlayerState, type SongResult } from '@/types';
+import { currentTime } from '@/stores/motionSignals';
 import type { UnifiedSong } from '@/types';
 import type { ModRuntimeInfo } from '@/mods/types';
 
@@ -91,6 +92,31 @@ afterEach(async () => {
 });
 
 describe('experimental playback.sessions', () => {
+    it.each([PlayerState.PLAYING, PlayerState.PAUSED])('hands off committed audio without resetting time or state (%s)', (playerState) => {
+        const originalQueue = [song('netease', '1')], current = song('netease', '2');
+        usePlaybackStore.setState({ playQueue: originalQueue });
+        const lease = createFoliumPlaybackSessions(mod()).acquire(options());
+        usePlaybackStore.setState({ currentSong: current, audioSrc: 'blob:playing', duration: 100, playerState });
+        currentTime.set(36);
+        host.stop.mockClear();
+        lease.handoff!();
+        expect(host.stop).not.toHaveBeenCalled();
+        expect(hasExternalPlayback()).toBe(false);
+        expect(usePlaybackStore.getState()).toMatchObject({ currentSong: current, audioSrc: 'blob:playing', playerState, playQueue: [current, ...originalQueue] });
+        expect(currentTime.get()).toBe(36);
+        lease.handoff!();
+        lease.release();
+        expect(host.stop).not.toHaveBeenCalled();
+    });
+    it('cancels pending sources on handoff and falls back to stopped restoration without committed audio', async () => {
+        host.play.mockImplementationOnce(() => new Promise(() => {}));
+        const lease = createFoliumPlaybackSessions(mod()).acquire(options());
+        const pending = lease.play(toFoliumSong(song())!);
+        lease.handoff!();
+        expect(await pending).toEqual({ status: 'cancelled' });
+        expect(usePlaybackStore.getState().currentSong).toBeNull();
+        expect(hasExternalPlayback()).toBe(false);
+    });
     it('projects repeated recordings as distinct occurrences and routes current validated actions', () => {
         const intent = vi.fn(), service = createFoliumPlaybackSessions(mod());
         const originalQueue = [song()];
