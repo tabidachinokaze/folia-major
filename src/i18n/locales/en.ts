@@ -2377,6 +2377,13 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_16": {
+      "intro": "Keep your pause state when an earlier playback request finishes late.",
+      "pauseState": {
+        "title": "Stay paused",
+        "description": "Pausing while audio is still getting ready now prevents an older play request from restarting playback or triggering an unnecessary source retry."
+      }
+    },
     "v0_7_15": {
       "intro": "Pair with Music Party 0.3.10 for the updated listen-together icon and chat layout.",
       "panelIcons": {

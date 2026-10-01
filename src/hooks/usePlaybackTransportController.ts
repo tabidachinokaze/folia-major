@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
 import { PlayerState } from '../types';
 import { setStatusMessage as setStatusMsg } from '../stores/useStatusMessageStore';
@@ -6,6 +6,7 @@ import { setPlayerState } from '../stores/usePlaybackStore';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '../stores/usePlaybackStore';
 import { currentTime } from '../stores/motionSignals';
+import { captureExternalPlaybackBoundary } from '../services/externalPlaybackSession';
 
 // src/hooks/usePlaybackTransportController.ts
 
@@ -28,6 +29,7 @@ type UsePlaybackTransportControllerParams = {
         failedSrc?: string | null;
         resumeAt?: number;
         autoplay: boolean;
+        shouldAutoplay?: () => boolean;
     }) => Promise<boolean>;
     getSyntheticStageLyricsTime: () => number;
     syncStageLyricsClock: (timeSec: number, endTimeSec: number, nextPlayerState: PlayerState, startTimeSec?: number) => void;
@@ -64,11 +66,19 @@ export function usePlaybackTransportController({
     const activePlaybackContext = usePlaybackStore(state => state.activePlaybackContext);
     const audioSrc = usePlaybackStore(state => state.audioSrc);
     const duration = usePlaybackStore(state => state.duration);
+    const transportRevision = useRef(0);
+    const wantsPlayback = useRef(false);
+    useEffect(() => () => {
+        transportRevision.current++;
+        wantsPlayback.current = false;
+    }, []);
 
     const resumePlayback = useCallback(async () => {
         if (isNowPlayingStageActive) {
             return;
         }
+        const revision = ++transportRevision.current;
+        wantsPlayback.current = true;
 
         if (activePlaybackContext === 'stage' && stageActiveEntryKind === 'lyrics' && !audioSrc) {
             const currentSyntheticTime = getSyntheticStageLyricsTime();
@@ -78,43 +88,65 @@ export function usePlaybackTransportController({
             return;
         }
 
-        if (!audioRef.current) {
+        const audio = audioRef.current;
+        if (!audio) {
             return;
         }
+        // A pause does not cancel source loading, but it must cancel an older
+        // asynchronous resume. Store notifications alone cannot identify that
+        // stale PLAYING event once a caller has already observed PAUSED.
+        const boundary = captureExternalPlaybackBoundary();
+        const source = usePlaybackStore.getState().audioSrc;
+        const isSameSource = () => boundary()
+            && audioRef.current === audio && usePlaybackStore.getState().audioSrc === source;
+        const isCurrent = () => revision === transportRevision.current && isSameSource();
+        // A pending refresh can still supply the source after a pause. Its autoplay
+        // decision follows the latest transport intent, including a later resume.
+        const shouldAutoplay = () => wantsPlayback.current && isSameSource();
 
         setupAudioAnalyzer();
         if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
+            try {
+                await audioContextRef.current.resume();
+            } catch (error) {
+                if (!isCurrent()) return;
+                throw error;
+            }
         }
+        if (!isCurrent()) return;
 
         syncOutputGain(getTargetPlaybackVolume(), 0);
         if (shouldRefreshCurrentOnlineAudioSource()) {
             const refreshed = await recoverOnlinePlaybackSource({
-                failedSrc: audioRef.current.currentSrc || audioSrc,
-                resumeAt: audioRef.current.currentTime,
+                failedSrc: audio.currentSrc || audioSrc,
+                resumeAt: audio.currentTime,
                 autoplay: true,
+                shouldAutoplay,
             });
 
-            if (refreshed) {
+            if (!isCurrent() || refreshed) {
                 return;
             }
         }
 
         try {
-            await audioRef.current.play();
+            await audio.play();
+            if (!isCurrent()) return;
             setPlayerState(PlayerState.PLAYING);
         } catch (error) {
+            if (!isCurrent()) return;
             const recovered = await recoverOnlinePlaybackSource({
-                failedSrc: audioRef.current.currentSrc || audioSrc,
-                resumeAt: audioRef.current.currentTime,
+                failedSrc: audio.currentSrc || audioSrc,
+                resumeAt: audio.currentTime,
                 autoplay: true,
+                shouldAutoplay,
             });
 
-            if (recovered) {
+            if (!isCurrent() || recovered) {
                 return;
             }
 
-            if (!audioRef.current.paused && !audioRef.current.ended) {
+            if (!audio.paused && !audio.ended) {
                 setPlayerState(PlayerState.PLAYING);
                 return;
             }
@@ -135,6 +167,8 @@ export function usePlaybackTransportController({
         if (isNowPlayingStageActive) {
             return;
         }
+        transportRevision.current++;
+        wantsPlayback.current = false;
 
         if (activePlaybackContext === 'stage' && stageActiveEntryKind === 'lyrics' && !audioSrc) {
             const currentSyntheticTime = getSyntheticStageLyricsTime();

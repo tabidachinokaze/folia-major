@@ -2310,6 +2310,13 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_16": {
+      "intro": "Pertahankan status jeda saat permintaan pemutaran sebelumnya selesai terlambat.",
+      "pauseState": {
+        "title": "Tetap dijeda",
+        "description": "Menjeda saat audio masih disiapkan kini mencegah permintaan lama memulai pemutaran kembali atau mencoba ulang sumber tanpa perlu."
+      }
+    },
     "v0_7_15": {
       "intro": "Gunakan bersama Music Party 0.3.10 untuk ikon mendengarkan bersama dan tata letak obrolan terbaru.",
       "panelIcons": {

@@ -2376,6 +2376,13 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_16": {
+      "intro": "修复一起听与普通播放中暂停状态被延迟播放请求覆盖的问题。",
+      "pauseState": {
+        "title": "暂停后保持暂停",
+        "description": "音频仍在准备时点击暂停，较早的播放请求完成后不会重新开始播放，也不会触发多余的音源重试。"
+      }
+    },
     "v0_7_15": {
       "intro": "配套 Music Party 0.3.10，更新一起听图标并修复聊天布局。",
       "panelIcons": {
