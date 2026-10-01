@@ -2376,6 +2376,13 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_14": {
+      "intro": "配套 Music Party 0.3.9，让一起听入口更容易辨认。",
+      "panelIcons": {
+        "title": "一起听，使用专属图标",
+        "description": "模组侧栏支持自己的图标。配套新版 Music Party 后，一起听入口显示双人图标，与底部入口保持一致。"
+      }
+    },
     "v0_7_13": {
       "intro": "配套 Music Party 0.3.5，改善连续播放、房间匹配与聊天。",
       "continuousPlayback": {

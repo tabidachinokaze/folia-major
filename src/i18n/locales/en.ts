@@ -2377,6 +2377,13 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_14": {
+      "intro": "Pair with Music Party 0.3.9 for a clearer listen-together entry.",
+      "panelIcons": {
+        "title": "A dedicated listen-together icon",
+        "description": "Mods can provide their own sidebar tab icons. With the updated Music Party plugin, the listen-together tab uses a two-person icon matching the playback-bar entry."
+      }
+    },
     "v0_7_13": {
       "intro": "Pair with Music Party 0.3.5 for continuous playback, room matching and chat improvements.",
       "continuousPlayback": {

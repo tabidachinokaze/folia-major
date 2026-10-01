@@ -2310,6 +2310,13 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_14": {
+      "intro": "Gunakan bersama Music Party 0.3.9 agar pintasan mendengarkan bersama lebih mudah dikenali.",
+      "panelIcons": {
+        "title": "Ikon khusus untuk mendengarkan bersama",
+        "description": "Mod dapat menyediakan ikon tab bilah sisi sendiri. Dengan plugin Music Party terbaru, tab mendengarkan bersama memakai ikon dua orang yang sama dengan pintasan di bilah pemutaran."
+      }
+    },
     "v0_7_13": {
       "intro": "Gunakan bersama Music Party 0.3.5 untuk pemutaran berkelanjutan, pencocokan ruang, dan obrolan yang lebih baik.",
       "continuousPlayback": {
