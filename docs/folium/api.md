@@ -247,6 +247,7 @@ A tab in the player panel. `folium.ui.openPlayerPanel(id)` opens it.
 | --- | --- | --- |
 | `id` | `string` | Local id; pass it to `folium.ui.openPlayerPanel`. |
 | `label` | `FoliumLabel` | Tab title. |
+| `icon?` | `string` | Optional player-panel icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. |
 | `order?` | `number` | Tab order; default 500. |
 | `mount` | `FoliumMount<FoliumPanelContext>` | Draws the tab into its container. |
 

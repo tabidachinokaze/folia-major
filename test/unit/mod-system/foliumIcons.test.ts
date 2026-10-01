@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SkipForward } from 'lucide-react';
-import { buildIconElement, createFoliumIcon, hasFoliumIcon } from '@/mods/folium/icons';
+import { buildIconElement, createFoliumIcon, hasFoliumIcon, loadFoliumIconComponent } from '@/mods/folium/icons';
 
 // test/unit/mod-system/foliumIcons.test.ts
 // folium.ui.icon (Folium 1.2): lucide icons for mods as plain, mod-owned SVG elements.
@@ -14,6 +14,12 @@ const shapesOf = (svg: Element) => Array.from(svg.children).map(child => [
 ]);
 
 describe('folium.ui.icon', () => {
+    it('loads a React component from the same icon chunks for host-rendered tabs', async () => {
+        const Icon = await loadFoliumIconComponent('users');
+        expect(Icon).not.toBeNull();
+        expect(renderToStaticMarkup(createElement(Icon!, { size: 16 }))).toContain('lucide-users');
+        await expect(loadFoliumIconComponent('not-an-icon')).resolves.toBeNull();
+    });
     it('draws the same shapes as the host lucide component', async () => {
         const icon = await createFoliumIcon('skip-forward');
         expect(icon).not.toBeNull();

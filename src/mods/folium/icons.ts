@@ -1,4 +1,5 @@
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
+import type { LucideIcon } from 'lucide-react';
 import type { FoliumIconOptions } from './contract';
 
 // src/mods/folium/icons.ts
@@ -9,13 +10,18 @@ import type { FoliumIconOptions } from './contract';
 // icon, kept out of the PWA precache by vite.config.ts).
 
 type IconNode = Array<[tag: string, attributes: Record<string, string>]>;
-type IconModule = { __iconData?: { node?: IconNode } };
+type IconModule = { default?: LucideIcon; __iconData?: { node?: IconNode } };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const loaders = dynamicIconImports as unknown as Record<string, () => Promise<IconModule>>;
 
 /** True when `name` is a lucide icon name (kebab-case, as listed on lucide.dev). */
 export const hasFoliumIcon = (name: string): boolean => Object.hasOwn(loaders, name);
+
+/** The host React icon, loaded from the same per-icon chunks as `folium.ui.icon`. */
+export const loadFoliumIconComponent = async (name: string): Promise<LucideIcon | null> => (
+    typeof name === 'string' && hasFoliumIcon(name) ? (await loaders[name]()).default ?? null : null
+);
 
 const positive = (value: unknown, fallback: number) => (
     typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
