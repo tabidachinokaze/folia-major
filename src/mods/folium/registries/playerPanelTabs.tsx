@@ -6,6 +6,7 @@ import { toFoliumTheme } from '../dto';
 import { resolveFoliumLabel } from '../params';
 import { createFoliumRegistry, useFoliumRegistryEntries, type FoliumRegistryEntry } from '../registry';
 import { FoliumMountHost } from '../FoliumMountHost';
+import { normalizeFoliumIconPaths } from '../icons';
 
 // src/mods/folium/registries/playerPanelTabs.tsx
 // `folium.registries.playerPanelTabs`: extra tabs in the player panel. The host
@@ -35,6 +36,7 @@ export const useFoliumPanelTabs = () => {
             id: foliumPanelTabId(entry.id),
             label: resolveFoliumLabel(entry.def.label, i18n.language, entry.name),
             icon: typeof entry.def.icon === 'string' ? entry.def.icon : undefined,
+            iconPaths: normalizeFoliumIconPaths(entry.def.iconPaths),
         })), [entries, i18n.language]);
 };
 

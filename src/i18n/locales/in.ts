@@ -2310,6 +2310,13 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_15": {
+      "intro": "Gunakan bersama Music Party 0.3.10 untuk ikon mendengarkan bersama dan tata letak obrolan terbaru.",
+      "panelIcons": {
+        "title": "Ikon mendengarkan bersama",
+        "description": "Bilah sisi dan bilah pemutaran dapat memakai ikon garis khusus yang sama. Music Party menggunakan simbol dua orang dengan tanda suara di kedua sisi."
+      }
+    },
     "v0_7_14": {
       "intro": "Gunakan bersama Music Party 0.3.9 agar pintasan mendengarkan bersama lebih mudah dikenali.",
       "panelIcons": {

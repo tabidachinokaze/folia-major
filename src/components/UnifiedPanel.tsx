@@ -267,7 +267,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
     const supportsHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     const foliumTabs = useFoliumPanelTabs();
-    const tabs: { id: PanelTab; label: string; icon: React.ComponentType<{ size?: number }> | string }[] = [
+    const tabs: { id: PanelTab; label: string; icon: React.ComponentType<{ size?: number }> | string; iconPaths?: readonly string[] }[] = [
         { id: 'cover' as PanelTab, label: t('panel.cover'), icon: Disc },
         { id: 'controls' as PanelTab, label: t('panel.controls'), icon: SlidersHorizontal },
         isFmMode 
@@ -284,7 +284,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         tabs.splice(1, 0, { id: 'onlineLyrics' as PanelTab, label: t('localMusic.lyrics'), icon: FileText });
     }
 
-    foliumTabs.forEach((tab) => tabs.push({ id: tab.id, label: tab.label, icon: tab.icon ?? 'puzzle' }));
+    foliumTabs.forEach((tab) => tabs.push({ id: tab.id, label: tab.label, icon: tab.icon ?? 'puzzle', iconPaths: tab.iconPaths }));
 
     // A mod tab can vanish while open (mod disabled or reloaded): fall back to the cover tab.
     const currentTabExists = tabs.some((tab) => tab.id === currentTab);
@@ -769,7 +769,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                             style={{ color: 'var(--text-primary)' }}
                                         >
                                             {typeof tab.icon === 'string'
-                                                ? <FoliumPanelTabIcon name={tab.icon} size={16} />
+                                                ? <FoliumPanelTabIcon name={tab.icon} paths={tab.iconPaths} size={16} />
                                                 : <tab.icon size={16} />}
                                         </button>
                                     ))}

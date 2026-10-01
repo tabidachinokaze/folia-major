@@ -8,7 +8,7 @@ import { playerPanelTabsRegistry, useFoliumPanelTabs } from '@/mods/folium/regis
 
 // test/unit/mod-system/foliumPanelTabIcon.test.ts
 const load = vi.hoisted(() => vi.fn());
-vi.mock('@/mods/folium/icons', () => ({ loadFoliumIconComponent: load }));
+vi.mock('@/mods/folium/icons', async (original) => ({ ...await original<typeof import('@/mods/folium/icons')>(), loadFoliumIconComponent: load }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ i18n: { language: 'en' } }) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root | null = null;
@@ -19,16 +19,28 @@ afterEach(() => {
     load.mockReset();
     document.body.replaceChildren();
 });
-async function render(name?: string) {
+async function render(name?: string, paths?: readonly string[]) {
     if (!root) {
         const container = document.createElement('div');
         document.body.append(container);
         root = createRoot(container);
     }
-    await act(async () => { root!.render(React.createElement(FoliumPanelTabIcon, { name })); });
+    await act(async () => { root!.render(React.createElement(FoliumPanelTabIcon, { name, paths })); });
 }
 
 describe('mod player-panel icons', () => {
+    it('draws custom line paths with theme color and falls back for unsafe descriptors', async () => {
+        await render('users', ['M1 7.5v3', 'M23 7.5v3']);
+        const svg = document.querySelector('svg')!;
+        expect(svg.getAttribute('stroke')).toBe('currentColor');
+        expect(svg.getAttribute('viewBox')).toBe('0 0 24 24');
+        expect(svg.querySelectorAll('path')).toHaveLength(2);
+        expect(load).not.toHaveBeenCalled();
+        load.mockResolvedValue(Users);
+        await render('users', ['<svg onload="alert(1)">']);
+        expect(document.querySelector('svg.lucide-users')).not.toBeNull();
+        expect(document.querySelector('[onload]')).toBeNull();
+    });
     it('does not expose malformed JavaScript icon values as React components', async () => {
         playerPanelTabsRegistry.register('test-icons', { id: 'bad', label: { en: 'Bad' }, mount: () => {}, icon: 42 as unknown as string });
         playerPanelTabsRegistry.register('test-icons', { id: 'good', label: { en: 'Good' }, mount: () => {}, icon: 'users' });

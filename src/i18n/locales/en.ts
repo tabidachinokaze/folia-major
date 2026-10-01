@@ -2377,6 +2377,13 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_15": {
+      "intro": "Pair with Music Party 0.3.10 for the updated listen-together icon and chat layout.",
+      "panelIcons": {
+        "title": "A shared listening icon",
+        "description": "The sidebar and playback bar can share the same custom line icon. Music Party uses the two-person listening symbol, including sound marks on both sides."
+      }
+    },
     "v0_7_14": {
       "intro": "Pair with Music Party 0.3.9 for a clearer listen-together entry.",
       "panelIcons": {
