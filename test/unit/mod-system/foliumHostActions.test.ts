@@ -47,7 +47,7 @@ const appActions = (overrides: Partial<FoliumAppActions> = {}): FoliumAppActions
     sessionTransport: { stop: vi.fn(), seek: vi.fn() },
     play: vi.fn(), pause: vi.fn(), toggle: vi.fn(), seek: vi.fn(), seekToLyricTime: vi.fn(),
     next: vi.fn(), previous: vi.fn(), playSong: vi.fn(), enqueue: vi.fn(),
-    navigateToPlayer: vi.fn(), navigateToHome: vi.fn(),
+    navigateToPlayer: vi.fn(), navigateToHome: vi.fn(), navigateToCollection: vi.fn(),
     shuffleQueue: vi.fn(), toggleLike: vi.fn(), openVolume: vi.fn(),
     isLiked: false, controlsDisabled: false,
     ...overrides,

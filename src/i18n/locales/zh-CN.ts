@@ -2376,6 +2376,13 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_17": {
+      "intro": "配套 Music Party 0.3.11，在私信中查看完整资源卡片并打开专辑。",
+      "messageAlbums": {
+        "title": "从私信打开专辑",
+        "description": "点击私信里的专辑卡片即可进入播放器原生专辑页，返回后继续查看会话，音乐播放保持不变。"
+      }
+    },
     "v0_7_16": {
       "intro": "修复一起听与普通播放中暂停状态被延迟播放请求覆盖的问题。",
       "pauseState": {

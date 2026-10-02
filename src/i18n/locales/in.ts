@@ -2310,6 +2310,13 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_17": {
+      "intro": "Gunakan bersama Music Party 0.3.11 untuk kartu berbagi lengkap dan navigasi album dari pesan.",
+      "messageAlbums": {
+        "title": "Buka album dari pesan",
+        "description": "Kartu album membuka halaman album bawaan. Kembali ke percakapan setelahnya tanpa mengubah pemutaran musik."
+      }
+    },
     "v0_7_16": {
       "intro": "Pertahankan status jeda saat permintaan pemutaran sebelumnya selesai terlambat.",
       "pauseState": {

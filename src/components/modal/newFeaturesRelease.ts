@@ -1,4 +1,4 @@
-import { Pause } from 'lucide-react';
+import { Disc3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // src/components/modal/newFeaturesRelease.ts
@@ -17,8 +17,8 @@ type NewFeaturesRelease = {
 
 // Defines the current release's cards; their localized text lives under i18nKey in every locale.
 export const NEW_FEATURES_RELEASE: NewFeaturesRelease = {
-    i18nKey: 'releaseNotes.v0_7_16',
+    i18nKey: 'releaseNotes.v0_7_17',
     features: [
-        { id: 'pauseState', icon: Pause, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
+        { id: 'messageAlbums', icon: Disc3, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
     ],
 };

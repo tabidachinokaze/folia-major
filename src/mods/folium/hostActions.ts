@@ -20,6 +20,7 @@ import { resolveLikeAvailability } from '@/utils/playerLikeAvailability';
 import { resolveFoliumSongRef, toFoliumSong } from './dto';
 import { emitFoliumEvent } from './events';
 import { registerFoliumHostActions } from './services';
+import { createFoliumCatalogNavigation, type FoliumCollectionNavigation } from './catalogNavigation';
 
 // src/mods/folium/hostActions.ts
 // App registers the real host actions behind folium.playback / folium.ui here.
@@ -39,6 +40,7 @@ export interface FoliumAppActions {
     enqueue: (song: SongResult) => void;
     navigateToPlayer: () => void;
     navigateToHome: () => void;
+    navigateToCollection: FoliumCollectionNavigation;
     shuffleQueue: () => void;
     toggleLike: () => void | Promise<void>;
     openVolume: () => void;
@@ -67,6 +69,9 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
     ).disabled;
 
     useEffect(() => {
+        const catalogNavigation = createFoliumCatalogNavigation(
+            (collection, origin) => actionsRef.current.navigateToCollection(collection, origin),
+        );
         registerExternalPlaybackActions({
             play: async (song, request) => { await actionsRef.current.playSong(song, request); },
             stop: () => actionsRef.current.sessionTransport.stop(),
@@ -127,10 +132,15 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
                 actionsRef.current.navigateToHome();
                 useSearchNavigationStore.getState().setHomeModTab(tab);
             },
+            openAlbum: catalogNavigation.openAlbum,
             navigate: (target) => (target === 'player' ? actionsRef.current.navigateToPlayer() : actionsRef.current.navigateToHome()),
             openVolume: () => actionsRef.current.openVolume(),
         });
-        return () => { registerFoliumHostActions(null); registerExternalPlaybackActions(null); };
+        return () => {
+            catalogNavigation.dispose();
+            registerFoliumHostActions(null);
+            registerExternalPlaybackActions(null);
+        };
     }, []);
 
     // playback.likeChanged follows the value getState().liked reports, whatever changed it.

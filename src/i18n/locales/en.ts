@@ -2377,6 +2377,13 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_17": {
+      "intro": "Pair with Music Party 0.3.11 for complete shared cards and album navigation from messages.",
+      "messageAlbums": {
+        "title": "Open albums from messages",
+        "description": "Album cards open in the native album view. Return to your conversation afterward while playback continues unchanged."
+      }
+    },
     "v0_7_16": {
       "intro": "Keep your pause state when an earlier playback request finishes late.",
       "pauseState": {

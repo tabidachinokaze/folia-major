@@ -113,7 +113,7 @@ const fakeActions = () => ({
     playSongRef: vi.fn(async () => true), enqueueSongRef: vi.fn(() => true),
     shuffleQueue: vi.fn(() => true), toggleLike: vi.fn(() => false),
     toast: vi.fn(), openPlayerPanel: vi.fn(),
-    openHomeTab: vi.fn(), navigate: vi.fn(), openVolume: vi.fn(),
+    openHomeTab: vi.fn(), openAlbum: vi.fn(async () => true), navigate: vi.fn(), openVolume: vi.fn(),
 });
 
 describe('folium services', () => {
@@ -160,6 +160,18 @@ describe('folium services', () => {
         createFoliumUiService(mod(), 'main').openVolume();
         expect(actions.openVolume).toHaveBeenCalledTimes(1);
         expect(() => createFoliumUiService(mod(), 'export').openVolume()).toThrow('ui-unavailable-in-export-context');
+    });
+
+    it('opens albums through the host in the main window and validates catalog identity', async () => {
+        const actions = fakeActions();
+        registerFoliumHostActions(actions);
+        const ui = createFoliumUiService(mod(), 'main');
+        await expect(ui.openAlbum('netease', '123')).resolves.toBe(true);
+        expect(actions.openAlbum).toHaveBeenCalledWith('netease', '123');
+        await expect(ui.openAlbum('netease', '')).rejects.toThrow('requires a provider and album id');
+        await expect(ui.openAlbum('netease', 123 as never)).rejects.toThrow('requires a provider and album id');
+        await expect(createFoliumUiService(mod(), 'export').openAlbum('netease', '123')).rejects.toThrow('ui-unavailable-in-export-context');
+        expect(actions.openAlbum).toHaveBeenCalledTimes(1);
     });
 
     it('is unavailable outside the main window', () => {
