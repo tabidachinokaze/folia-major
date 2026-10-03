@@ -43,6 +43,9 @@ import { currentTime } from '@/stores/motionSignals';
 import { useLibraryPlaybackController } from '@/hooks/useLibraryPlaybackController';
 import { usePlaybackInteractionBridge } from '@/hooks/usePlaybackInteractionBridge';
 import { usePlaybackQueueController } from '@/hooks/usePlaybackQueueController';
+import { useMediaSessionBridge } from '@/hooks/useMediaSessionBridge';
+import { setExternalQueue, useExternalQueueStore } from '@/services/externalPlaybackQueue';
+import { createExternalQueueAdapter } from '@/mods/folium/externalQueueAdapter';
 import { getAudioFromLocalSong } from '@/services/localMusicService';
 import { getFromCacheWithMigration } from '@/services/db';
 import { createQueueMutations } from '@/components/app/player-panel/createQueueMutations';
@@ -91,6 +94,7 @@ afterEach(() => {
     });
     root = undefined;
     releaseAllExternalPlayback();
+    useExternalQueueStore.setState({ view: null });
     invalidatePlaybackRequest();
     document.body.replaceChildren();
 });
@@ -300,4 +304,55 @@ it('auditions playlist/album play actions but routes add-to-queue as recommendat
     expect(dispatch.mock.calls[2][0]).toEqual({ type: 'enqueue', songs: [selected, current] });
     expect(usePlaybackStore.getState()).toMatchObject({ currentSong: current, playQueue: [current], audioSrc: 'room-source' });
     expect(input.persistLastPlaybackCache).not.toHaveBeenCalled();
+});
+
+it('routes Space and native media pause/stop to audition Stop, while a normal room still pauses', () => {
+    const dispatch = vi.fn(), token = own(dispatch), adapter = createExternalQueueAdapter(token);
+    const stopAction = { id: 'stop-preview', icon: 'square' as const, label: { en: 'Stop audition' } };
+    const presentation = { entries: [], currentId: null, canNext: false, stopAction };
+    setExternalQueue(adapter(presentation));
+    usePlaybackStore.setState({ currentSong: song, audioSrc: 'preview-source', playerState: PlayerState.PLAYING });
+    useAppViewStore.setState({ view: 'player', isPanelOpen: false });
+    const pause = vi.fn(), resume = vi.fn(async () => {});
+    const handlers = new Map<string, MediaSessionActionHandler | null>();
+    const previous = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
+    Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: {
+        setActionHandler: (name: string, handler: MediaSessionActionHandler | null) => handlers.set(name, handler),
+        setPositionState: vi.fn(),
+    } });
+    const audio = { paused: false, ended: false } as HTMLAudioElement;
+    try {
+        mount(() => {
+            usePlaybackInteractionBridge({
+                stageActiveEntryKind: null, isNowPlayingStageActive: false, audioRef: ref(audio),
+                stageLyricsClockRef: ref({ startTimeSec: 0, endTimeSec: 0, baseTimeSec: 0, startedAtMs: null }),
+                cyclePlayerChromeVisibilityMode: vi.fn(), handleNextTrack: vi.fn(), handlePrevTrack: vi.fn(),
+                navigateBackFromPlayer: vi.fn(), pausePlayback: pause, resumePlayback: resume, syncStageLyricsClock: vi.fn(),
+            });
+            useMediaSessionBridge({
+                audioRef: ref(audio), audioSrc: null, currentSong: null, cachedCoverUrl: null,
+                playerState: PlayerState.PLAYING, isNowPlayingStageActive: false, unknownArtistLabel: '',
+                mediaSessionPlayRef: ref(resume), mediaSessionPauseRef: ref(pause),
+                mediaSessionPrevRef: ref(vi.fn()), mediaSessionNextRef: ref(vi.fn()), isNowPlayingControlDisabledRef: ref(false),
+            });
+            return null;
+        });
+        act(() => {
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
+            handlers.get('pause')?.({ action: 'pause' });
+            handlers.get('stop')?.({ action: 'stop' });
+        });
+        expect(dispatch).toHaveBeenCalledTimes(3);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'queue-action', entryId: null, actionId: 'stop-preview' });
+        expect(pause).not.toHaveBeenCalled();
+        expect(resume).not.toHaveBeenCalled();
+        act(() => setExternalQueue(adapter({ ...presentation, stopAction: undefined })));
+        handlers.get('pause')?.({ action: 'pause' });
+        expect(pause).toHaveBeenCalledOnce();
+    } finally {
+        // Unmount before restoring the host object, so cleanup removes the registered handlers.
+        act(() => root?.unmount()); root = undefined;
+        if (previous) Object.defineProperty(navigator, 'mediaSession', previous);
+        else Reflect.deleteProperty(navigator, 'mediaSession');
+    }
 });

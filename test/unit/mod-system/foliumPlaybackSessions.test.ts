@@ -1,4 +1,4 @@
-import { activateExternalQueueSong, invokeExternalQueueAction, useExternalQueueStore } from '@/services/externalPlaybackQueue';
+import { activateExternalQueueSong, invokeExternalQueueAction, stopExternalPlayback, useExternalQueueStore } from '@/services/externalPlaybackQueue';
 import { getPlaybackSongKey, getQueueSongKey } from '@/utils/appPlaybackGuards';
 import { buildLatticeTiles } from '@/components/app/lattice/latticeModel';
 // @vitest-environment jsdom
@@ -93,6 +93,23 @@ afterEach(async () => {
 });
 
 describe('experimental playback.sessions', () => {
+    it('keeps Stop out of toolbar actions and revalidates its availability before dispatch', () => {
+        const intent = vi.fn(), lease = createFoliumPlaybackSessions(mod()).acquire(options(intent));
+        const stopAction = { id: 'stop-preview', label: { en: 'Stop audition' }, icon: 'square' as const };
+        const queue = { entries: [], currentId: null, canNext: false, actions: [], stopAction };
+        lease.setQueue(queue);
+        expect(useExternalQueueStore.getState().view?.actions).toEqual([]);
+        expect(stopExternalPlayback()).toBe(true);
+        expect(intent).toHaveBeenLastCalledWith({ type: 'queue-action', entryId: null, actionId: 'stop-preview' });
+        intent.mockClear();
+        lease.setQueue({ ...queue, stopAction: { ...stopAction, disabled: true } });
+        expect(stopExternalPlayback()).toBe(true);
+        expect(intent).not.toHaveBeenCalled();
+        expect(() => lease.setQueue({ ...queue, actions: [stopAction] })).toThrow('duplicate-queue-stop-action');
+        lease.setQueue({ ...queue, stopAction: undefined });
+        expect(stopExternalPlayback()).toBe(false);
+        expect(invokeExternalQueueAction(null, 'stop-preview')).toBe(false);
+    });
     it('exposes opt-in audition DTOs and validates the advertised resume action', () => {
         const service = createFoliumPlaybackSessions(mod()), intent = vi.fn();
         expect(service.supportsAudition).toBe(true);

@@ -1,6 +1,7 @@
 import { ExternalQueueActions } from '../../shared/ExternalQueueActions';
 import { motionValue } from 'framer-motion';
-import { ArrowUpRight, Pause, Play } from 'lucide-react';
+import { ArrowUpRight, Pause, Play, Square } from 'lucide-react';
+import { useExternalStopControl } from '../../../hooks/useExternalStopControl';
 import { useTranslation } from 'react-i18next';
 import ProgressBar from '../../ProgressBar';
 import { PlayerState } from '../../../types';
@@ -34,12 +35,14 @@ export default function LatticePlaybackControls({
     onOpenPlayer,
 }: LatticePlaybackControlsProps) {
     const { t } = useTranslation();
+    const stopControl = useExternalStopControl();
     // Subscribed here rather than threaded through every poster: only this card reads transport state.
     const { currentSong, playerState, currentTime, playbackDuration, canTogglePlayback } = useLatticeTransport();
     const isCurrentSong = Boolean(
         currentSong && getQueueSongKey(currentSong) === getQueueSongKey(tile.song),
     );
-    const canControlCurrent = isCurrentSong && canTogglePlayback;
+    const canControlCurrent = isCurrentSong && (canTogglePlayback || Boolean(stopControl));
+    const stopCurrent = canControlCurrent ? stopControl : null;
     const isPlaying = canControlCurrent && playerState === PlayerState.PLAYING;
     const duration = canControlCurrent
         ? playbackDuration
@@ -57,11 +60,12 @@ export default function LatticePlaybackControls({
                 {(!tile.song.externalQueueEntryKey || canControlCurrent) && <button
                     type="button"
                     className="lattice-transport-button"
-                    onClick={() => canControlCurrent ? onTogglePlayback() : onPlay(tile)}
-                    aria-label={isPlaying ? t('player.pause') : t('player.play')}
-                    title={isPlaying ? t('player.pause') : t('player.play')}
+                    onClick={() => stopCurrent ? stopCurrent.stop() : canControlCurrent ? onTogglePlayback() : onPlay(tile)}
+                    disabled={stopCurrent?.disabled}
+                    aria-label={stopCurrent?.label ?? (isPlaying ? t('player.pause') : t('player.play'))}
+                    title={stopCurrent?.label ?? (isPlaying ? t('player.pause') : t('player.play'))}
                 >
-                    {isPlaying ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
+                    {stopCurrent ? <Square fill="currentColor" /> : isPlaying ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
                 </button>}
                 {tile.song.externalQueueEntryKey && <ExternalQueueActions entryKey={tile.song.externalQueueEntryKey} size={20} />}
                 <div className="lattice-chrome-details" inert={!revealed} aria-hidden={!revealed}>

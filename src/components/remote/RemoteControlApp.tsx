@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, Repeat, Repeat1, RepeatOff, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
+import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, Square, Repeat, Repeat1, RepeatOff, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
+import { resolveFoliumLabel } from '@/mods/folium/params';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerState } from '../../types';
 import RemoteVideoExportPanel from './RemoteVideoExportPanel';
@@ -108,7 +109,7 @@ const SWITCH_FACE_TRANSITION = { duration: 0.42, ease: [0.22, 1, 0.36, 1] } as c
 const SWITCH_TEXT_TRANSITION = { duration: 0.32, ease: [0.22, 1, 0.36, 1] } as const;
 
 const RemoteControlApp: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
         if (typeof window !== 'undefined') {
             const stored = window.localStorage.getItem(REMOTE_BACKGROUND_MODE_STORAGE_KEY);
@@ -228,6 +229,8 @@ const RemoteControlApp: React.FC = () => {
     const duration = Number.isFinite(snapshot.duration) && snapshot.duration > 0 ? snapshot.duration : 0;
     const progressValue = duration > 0 ? Math.max(0, Math.min(currentTime, duration)) : 0;
     const isPlaying = snapshot.playerState === PlayerState.PLAYING;
+    const stopAction = snapshot.playbackSession?.stop;
+    const stopLabel = stopAction ? resolveFoliumLabel(stopAction.label, i18n.language, stopAction.id) : null;
     const primaryDisabled = snapshot.controlsDisabled || !snapshot.hasTrack;
     const likeDisabled = primaryDisabled || snapshot.canLike === false;
     const likeUnavailableReason = snapshot.likeUnavailableProvider
@@ -802,15 +805,18 @@ const RemoteControlApp: React.FC = () => {
                                                                     </button>
                                                                     <button
                                                                         type="button"
-                                                                        title={isPlaying ? t('remote.pause') : t('remote.play')}
-                                                                        disabled={primaryDisabled}
-                                                                        onClick={() => sendCommand({ type: 'play-pause' })}
+                                                                        title={stopLabel ?? (isPlaying ? t('remote.pause') : t('remote.play'))}
+                                                                        aria-label={stopLabel ?? (isPlaying ? t('remote.pause') : t('remote.play'))}
+                                                                        disabled={stopAction ? stopAction.disabled : primaryDisabled}
+                                                                        onClick={() => stopAction && snapshot.playbackSession
+                                                                            ? sendCommand({ type: 'session-action', sessionId: snapshot.playbackSession.id, entryKey: stopAction.entryKey, actionId: stopAction.id })
+                                                                            : sendCommand({ type: 'play-pause' })}
                                                                         className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30 ${isDaylight
                                                                             ? 'bg-zinc-900 text-white hover:bg-zinc-800'
                                                                             : 'bg-white text-zinc-950 hover:bg-white/90'
                                                                             }`}
                                                                     >
-                                                                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
+                                                                        {stopAction ? <Square size={16} fill="currentColor" /> : isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
                                                                     </button>
                                                                     <button
                                                                         type="button"

@@ -36,6 +36,7 @@ exports[`command palette registry contract > keeps the registered command order 
   "playback-sound-preset-bass",
   "playback-sound-preset-custom1",
   "playback-sound-preset-custom2",
+  "playback-stop",
   "playback-play",
   "playback-pause",
   "playback-next",

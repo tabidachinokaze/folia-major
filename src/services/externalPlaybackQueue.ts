@@ -18,7 +18,8 @@ export function invokeExternalQueueAction(entryKey: string | null, actionId: str
     if (!view || !isExternalPlaybackOwner(view.owner)) return false;
     const item = entryKey ? view.items.get(entryKey) : null;
     if (entryKey && !item) return false;
-    const action = (item?.actions ?? view.actions).find(candidate => candidate.id === actionId);
+    const action = !entryKey && view.stopAction?.id === actionId ? view.stopAction
+        : (item?.actions ?? view.actions).find(candidate => candidate.id === actionId);
     if (!action || action.disabled) return false;
     return routeExternalPlayback({ type: 'queue-action', entryId: item?.id ?? null, actionId });
 }
@@ -33,4 +34,13 @@ export function activateExternalQueueSong(song: SongResult) {
 export function syncExternalQueue() {
     const view = useExternalQueueStore.getState().view;
     return view?.syncActionId ? invokeExternalQueueAction(null, view.syncActionId) : false;
+}
+
+/** User transport only. Internal pauses used to load a session source must remain literal pauses. */
+export function stopExternalPlayback() {
+    const view = useExternalQueueStore.getState().view;
+    if (!view?.stopAction || !isExternalPlaybackOwner(view.owner)) return false;
+    invokeExternalQueueAction(null, view.stopAction.id);
+    // Disabled stop also consumes the user command; it must not fall through to local pause/play.
+    return true;
 }

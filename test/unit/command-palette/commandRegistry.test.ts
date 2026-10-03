@@ -1032,6 +1032,17 @@ describe('transition performance command', () => {
 // outgoing deck is still sounding - given the raw state, Play called toggle (which during a blend
 // pauses) and Pause found no PLAYING to toggle, so both named the opposite of what they did.
 describe('play and pause commands', () => {
+    it('offers Stop instead of Play/Pause only while a session advertises temporary playback', () => {
+        const stopPlayback = vi.fn(() => true);
+        const context = createContext({ playback: { canStopPlayback: true, stopPlayback } });
+        const commands = getAvailableCommandPaletteCommands(context);
+        expect(commands.some(command => command.id === 'playback-pause')).toBe(false);
+        expect(commands.some(command => command.id === 'playback-play')).toBe(false);
+        commands.find(command => command.id === 'playback-stop')!.execute('', context);
+        expect(stopPlayback).toHaveBeenCalledOnce();
+        expect(context.playback.togglePlay).not.toHaveBeenCalled();
+        expect(getAvailableCommandPaletteCommands(createContext()).some(command => command.id === 'playback-stop')).toBe(false);
+    });
     const execute = (id: string, playerState: PlayerState) => {
         const context = createContext({ shared: { playerState } });
         COMMAND_PALETTE_COMMANDS.find(entry => entry.id === id)!.execute('', context);

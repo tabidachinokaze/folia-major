@@ -52,6 +52,20 @@ const actionCommand = (sessionId: string, action: RemoteSessionAction): Extract<
 });
 
 describe('remote controls for an external playback session', () => {
+    it('publishes Stop separately from toolbar controls and rejects it after audition ends', () => {
+        const { view, dispatch } = session();
+        const stopAction: ExternalQueueAction = { id: 'stop-preview', icon: 'square', label: { en: 'Stop audition' } };
+        setExternalQueue({ ...view, stopAction });
+        const snapshot = readRemotePlaybackSession()!;
+        expect(snapshot.vote).toBeUndefined();
+        expect(snapshot.resume).toBeUndefined();
+        expect(snapshot.stop).toMatchObject({ id: 'stop-preview', entryKey: null });
+        const command = actionCommand(snapshot.id, snapshot.stop!);
+        expect(invokeRemoteSessionAction(command)).toBe(true);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'queue-action', entryId: null, actionId: 'stop-preview' });
+        setExternalQueue(view);
+        expect(invokeRemoteSessionAction(command)).toBe(false);
+    });
     it('gets next availability from the room even when the private queue has one song', () => {
         usePlaybackStore.setState({ playQueue: [song('private')] });
         session({ canNext: true });

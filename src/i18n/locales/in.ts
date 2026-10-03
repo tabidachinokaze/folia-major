@@ -485,6 +485,7 @@ export default {
       "mods": { "title": "Mod (Eksperimental)", "description": "Eksperimental: kelola mod dan ekspor video lirik transparan" },
       "playback-play": { "title": "Putar", "description": "Mulai pemutaran saat jeda" },
       "playback-pause": { "title": "Jeda", "description": "Jeda pemutaran saat ini" },
+      "playback-stop": { "title": "Hentikan pratinjau", "description": "Hentikan pratinjau dan kembali ke sesi mendengarkan" },
       "playback-next": { "title": "Lagu berikutnya", "description": "Putar lagu berikutnya" },
       "playback-prev": { "title": "Lagu sebelumnya", "description": "Putar lagu sebelumnya" },
       "playback-loop": { "title": "Alihkan loop", "description": "Ubah mode loop" },
@@ -2310,6 +2311,21 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_19": {
+      "intro": "Gunakan bersama Music Party 0.3.13 untuk kontrol percobaan lagu yang konsisten dan ikon perintah mendengarkan bersama.",
+      "stopAudition": {
+        "title": "Hentikan percobaan dengan satu klik",
+        "description": "Saat mencoba lagu di ruang bersama, tombol Putar pada bilah pemutar dan kolase antrean berubah menjadi Hentikan percobaan. Klik untuk kembali ke lagu dan posisi pemutaran ruang saat ini."
+      },
+      "unifiedControls": {
+        "title": "Kontrol yang konsisten",
+        "description": "Jendela kendali, bilah alat pratinjau taskbar Windows, serta tindakan jeda atau berhenti dari kontrol media sistem dapat mengakhiri percobaan dan kembali ke ruang. Perintah ini juga tersedia di palet perintah."
+      },
+      "commandIcons": {
+        "title": "Pintasan Music Party mudah dikenali",
+        "description": "Pencarian perintah, Semua perintah, dan pintasan yang disematkan kini memakai ikon mendengarkan bersama dengan warna tema pemutar, sesuai dengan ikon di panel samping."
+      }
+    },
     "v0_7_18": {
       "intro": "Gunakan bersama Music Party 0.3.12 untuk mencoba lagu secara lokal, merekomendasikannya dengan jelas, dan membuka album dari pesan.",
       "roomAudition": {

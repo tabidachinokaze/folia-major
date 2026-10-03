@@ -25,8 +25,9 @@ export function readRemotePlaybackSession(): RemotePlaybackSession | null {
         canPrevious: view.canPrevious === true,
         canNext: view.canNext,
         // During an audition the visible track is not the room's current occurrence.
-        vote: view.resumeActionId ? undefined : project(current?.actions.find(action => action.icon === 'thumbs-up'), key ?? null),
+        vote: view.stopAction || view.resumeActionId ? undefined : project(current?.actions.find(action => action.icon === 'thumbs-up'), key ?? null),
         resume: project(view.actions.find(action => action.id === view.resumeActionId), null),
+        stop: project(view.stopAction, null),
     };
 }
 
@@ -34,7 +35,7 @@ export function readRemotePlaybackSession(): RemotePlaybackSession | null {
 export function invokeRemoteSessionAction(command: Extract<RemoteControlCommand, { type: 'session-action' }>) {
     const session = readRemotePlaybackSession();
     if (!session || command.sessionId !== session.id) return false;
-    const action = [session.vote, session.resume].find(item => item?.id === command.actionId && item.entryKey === command.entryKey);
+    const action = [session.vote, session.resume, session.stop].find(item => item?.id === command.actionId && item.entryKey === command.entryKey);
     return !!action && !action.disabled && invokeExternalQueueAction(action.entryKey, action.id);
 }
 

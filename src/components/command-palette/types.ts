@@ -141,6 +141,8 @@ export type CommandPalettePlaybackContext = {
     queue: SongResult[];
     queueCurrentSong?: SongResult | null;
     isExternalSession?: boolean;
+    canStopPlayback?: boolean;
+    stopPlayback?: () => boolean;
     syncQueue?: () => void;
     playSong: (song: SongResult, queue?: SongResult[]) => void | Promise<void>;
     shuffleQueue: () => void;

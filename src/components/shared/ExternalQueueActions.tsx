@@ -1,4 +1,4 @@
-import { ArrowUpToLine, RefreshCw, ThumbsUp, Trash2 } from 'lucide-react';
+import { ArrowUpToLine, RefreshCw, ThumbsUp, Trash2, Square } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTranslation } from 'react-i18next';
 import { invokeExternalQueueAction, useExternalQueueStore } from '@/services/externalPlaybackQueue';
@@ -6,7 +6,7 @@ import { resolveFoliumLabel } from '@/mods/folium/params';
 
 // src/components/shared/ExternalQueueActions.tsx
 // Shared by the native list, command results, collage and configured shuffle slot.
-const icons = { 'refresh-cw': RefreshCw, 'trash-2': Trash2, 'arrow-up-to-line': ArrowUpToLine, 'thumbs-up': ThumbsUp };
+const icons = { 'refresh-cw': RefreshCw, 'trash-2': Trash2, 'arrow-up-to-line': ArrowUpToLine, 'thumbs-up': ThumbsUp, square: Square };
 export function ExternalQueueActions({ entryKey = null, className = '', size = 14 }: {
     entryKey?: string | null; className?: string; size?: number;
 }) {

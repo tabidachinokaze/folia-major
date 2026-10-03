@@ -1,4 +1,4 @@
-import { Disc3, Headphones, LogOut, ThumbsUp } from 'lucide-react';
+import { Command, Monitor, Square } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // src/components/modal/newFeaturesRelease.ts
@@ -17,11 +17,10 @@ type NewFeaturesRelease = {
 
 // Defines the current release's cards; their localized text lives under i18nKey in every locale.
 export const NEW_FEATURES_RELEASE: NewFeaturesRelease = {
-    i18nKey: 'releaseNotes.v0_7_18',
+    i18nKey: 'releaseNotes.v0_7_19',
     features: [
-        { id: 'roomAudition', icon: Headphones, daylightIconClassName: 'text-blue-600', darkIconClassName: 'text-blue-400' },
-        { id: 'messageAlbums', icon: Disc3, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
-        { id: 'roomRemote', icon: ThumbsUp, daylightIconClassName: 'text-amber-600', darkIconClassName: 'text-amber-400' },
-        { id: 'roomLeave', icon: LogOut, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
+        { id: 'stopAudition', icon: Square, daylightIconClassName: 'text-blue-600', darkIconClassName: 'text-blue-400' },
+        { id: 'unifiedControls', icon: Monitor, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
+        { id: 'commandIcons', icon: Command, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
     ],
 };

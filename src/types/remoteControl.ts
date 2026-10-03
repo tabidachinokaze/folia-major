@@ -52,6 +52,7 @@ export interface RemotePlaybackSession {
     canNext: boolean;
     vote?: RemoteSessionAction;
     resume?: RemoteSessionAction;
+    stop?: RemoteSessionAction;
 }
 
 export interface RemoteControlSnapshot {

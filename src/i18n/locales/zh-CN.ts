@@ -486,6 +486,7 @@ export default {
       "mods": { "title": "模组（实验性）", "description": "实验性功能：管理模组并导出透明歌词视频" },
       "playback-play": { "title": "播放", "description": "暂停时开始播放" },
       "playback-pause": { "title": "暂停", "description": "暂停当前播放" },
+      "playback-stop": { "title": "停止试听", "description": "结束试听，返回一起听" },
       "playback-next": { "title": "下一首", "description": "播放下一首" },
       "playback-prev": { "title": "上一首", "description": "播放上一首" },
       "playback-loop": { "title": "切换循环", "description": "切换循环模式" },
@@ -2376,6 +2377,21 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_19": {
+      "intro": "配套 Music Party 0.3.13，统一停止试听操作，并补齐一起听命令入口图标。",
+      "stopAudition": {
+        "title": "一键停止试听",
+        "description": "一起听中试听歌曲时，播放栏和队列拼贴的播放按钮改为“停止试听”。点击即可回到房间当前歌曲与进度。"
+      },
+      "unifiedControls": {
+        "title": "各处控制保持一致",
+        "description": "遥控窗口、Windows 任务栏缩略工具栏，以及系统媒体的暂停或停止操作，都可结束试听并返回房间；命令面板也提供停止试听。"
+      },
+      "commandIcons": {
+        "title": "一起听入口更好认",
+        "description": "命令搜索、全部命令和底部固定入口现在使用一起听图标，跟随播放器主题色，与侧栏入口保持一致。"
+      }
+    },
     "v0_7_18": {
       "intro": "配套 Music Party 0.3.12，区分本机试听与房间推歌，并修复私信专辑打开。",
       "roomAudition": {

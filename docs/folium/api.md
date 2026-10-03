@@ -161,6 +161,8 @@ main entry through `folium.rpc`.
 | `id` | `string` | Local id. |
 | `label` | `FoliumLabel` | Command name. |
 | `description?` | `FoliumLabel` | Shown under the name. |
+| `icon?` | `string` | Optional command icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. |
+| `iconPaths?` | `readonly string[]` | Optional SVG path data for a custom line icon on a 24×24 canvas. Uses currentColor and a 2px rounded stroke; valid paths take precedence over `icon`. At most 32 paths, each up to 2048 characters. |
 | `keywords?` | `string[]` | Extra search terms for the command palette (label texts are always included). |
 | `params?` | `FoliumParam[]` | Shown in the mods panel and the command palette; a palette entry with params opens a form. |
 | `run()` | `(ctx: FoliumCommandContext): unknown \| Promise<unknown>` | Runs the command; the result is shown as a summary (a string, `{ outputPath }` or `{ message }`). |
@@ -661,7 +663,7 @@ A mod-owned queue action. Labels are localized by the host; each click is delive
 | --- | --- | --- |
 | `id` | `string` | Stable action id, returned in a queue-action intent. |
 | `label` | `FoliumLabel` | Accessible button label. |
-| `icon` | `'refresh-cw' \| 'trash-2' \| 'arrow-up-to-line' \| 'thumbs-up'` | Host icon, avoiding bundled icon/render dependencies in a mod. |
+| `icon` | `'refresh-cw' \| 'trash-2' \| 'arrow-up-to-line' \| 'thumbs-up' \| 'square'` | Host icon, avoiding bundled icon/render dependencies in a mod. |
 | `disabled?` | `boolean` | False by default; the mod owns permissions and pending-operation policy. |
 | `count?` | `number` | Optional nonnegative count, such as votes. It never implies a one-time toggle. |
 
@@ -691,6 +693,7 @@ Authoritative queue shown by native queue, command-palette and collage surfaces.
 | `actions?` | `readonly FoliumQueueAction[]` | Replaces the native shuffle/clear toolbar while this queue is shown. |
 | `syncActionId?` | `string` | Toolbar action used in place of a configured shuffle button. |
 | `resumeActionId?` | `string` | Toolbar action that resumes the owning session after a local audition. Omit outside audition. |
+| `stopAction?` | `FoliumQueueAction` | Replaces play/pause with Stop while temporary playback is active; separate from toolbar actions. |
 | `canSeek?` | `boolean` | Whether transport seeking is currently meaningful. Defaults to false. |
 | `canPrevious?` | `boolean` | Whether the previous transport command is currently meaningful. Defaults to false. |
 | `canNext` | `boolean` | Whether the session can accept a next-track request, independent of local queue length. |

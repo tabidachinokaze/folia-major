@@ -7,7 +7,7 @@ import { resolveFoliumSongRef, toFoliumSong } from './dto';
 // Keep media, occurrence, and action identity separate; unchanged media reuses the same view objects.
 let serial = 0;
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const icons = new Set(['refresh-cw', 'trash-2', 'arrow-up-to-line', 'thumbs-up']);
+const icons = new Set(['refresh-cw', 'trash-2', 'arrow-up-to-line', 'thumbs-up', 'square']);
 function actions(values: readonly FoliumQueueAction[] = []) {
     if (!Array.isArray(values)) throw new Error('invalid-queue-actions');
     const ids = new Set<string>();
@@ -56,6 +56,8 @@ export function createExternalQueueAdapter(owner: symbol) {
         });
         if (input.currentId !== null && !ids.has(input.currentId)) throw new Error('queue-current-entry-missing');
         const toolbar = actions(input.actions);
+        const stopAction = input.stopAction ? actions([input.stopAction])[0] : undefined;
+        if (stopAction && toolbar.some(action => action.id === stopAction.id)) throw new Error('duplicate-queue-stop-action');
         if (input.syncActionId && !toolbar.some(action => action.id === input.syncActionId)) throw new Error('invalid-queue-sync-action');
         if (input.resumeActionId && !toolbar.some(action => action.id === input.resumeActionId)) throw new Error('invalid-queue-resume-action');
         const stableQueue = previous && queue.length === previous.queue.length && queue.every((song, i) => song === previous!.queue[i])
@@ -65,6 +67,7 @@ export function createExternalQueueAdapter(owner: symbol) {
             actions: previous && equal(previous.actions, toolbar) ? previous.actions : toolbar,
             syncActionId: input.syncActionId, canNext: input.canNext === true,
             resumeActionId: input.resumeActionId, canSeek: input.canSeek === true, canPrevious: input.canPrevious === true,
+            stopAction: previous && equal(previous.stopAction, stopAction) ? previous.stopAction : stopAction,
             totalCount: Math.max(queue.length, Number.isSafeInteger(input.totalCount) ? input.totalCount! : queue.length), loading: input.loading === true,
         };
         previous = view;

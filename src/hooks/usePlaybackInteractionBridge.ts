@@ -1,4 +1,5 @@
 import { hasExternalPlayback } from '../services/externalPlaybackSession';
+import { stopExternalPlayback, useExternalQueueStore } from '../services/externalPlaybackQueue';
 import { routeExternalPlayback } from '../services/externalPlaybackSession';
 import { useCallback, useEffect } from 'react';
 import type React from 'react';
@@ -134,6 +135,7 @@ export function usePlaybackInteractionBridge({
 
     const togglePlay = useCallback((event?: React.MouseEvent | KeyboardEvent) => {
         event?.stopPropagation();
+        if (stopExternalPlayback()) return;
 
         if (isNowPlayingStageActive) {
             return;
@@ -246,7 +248,7 @@ export function usePlaybackInteractionBridge({
                     break;
                 }
                 case 'Space':
-                    if (currentSong && (audioSrc || isNowPlayingStageActive || (activePlaybackContext === 'stage' && stageActiveEntryKind === 'lyrics'))) {
+                    if (useExternalQueueStore.getState().view?.stopAction || (currentSong && (audioSrc || isNowPlayingStageActive || (activePlaybackContext === 'stage' && stageActiveEntryKind === 'lyrics')))) {
                         event.preventDefault();
                         if (isNowPlayingStageActive) {
                             return;

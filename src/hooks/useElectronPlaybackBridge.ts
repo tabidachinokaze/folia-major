@@ -29,7 +29,7 @@ import { useAppChromeStore } from '../stores/useAppChromeStore';
 import { useThemeSettingsStore } from '../stores/useThemeSettingsStore';
 import { usePlayerChromeSettingsStore } from '../stores/usePlayerChromeSettingsStore';
 import { currentTime } from '../stores/motionSignals';
-import { useExternalQueueStore } from '../services/externalPlaybackQueue';
+import { useExternalQueueStore, stopExternalPlayback } from '../services/externalPlaybackQueue';
 import { readRemotePlaybackSession, invokeRemoteSessionAction, isRemoteSessionTransportBlocked } from '../services/externalPlaybackRemote';
 
 // Bridges Electron-specific shell features without coupling to UI components.
@@ -405,6 +405,7 @@ export const useElectronPlaybackBridge = ({
         }
 
         return window.electron.onTaskbarControl((action) => {
+            if (action === 'play-pause' && stopExternalPlayback()) return;
             if (isNowPlayingControlDisabledRef.current || !audioRef.current || !taskbarHasTrackRef.current) {
                 return;
             }
@@ -432,13 +433,16 @@ export const useElectronPlaybackBridge = ({
             return;
         }
 
-        void window.electron.updateTaskbarControls(
-            buildTaskbarControlsFromPlaybackSyncBridge(buildPlaybackSyncBridgeModelFromCurrentState())
-        ).catch((error) => {
+        const model = buildTaskbarControlsFromPlaybackSyncBridge(buildPlaybackSyncBridgeModelFromCurrentState());
+        void window.electron.updateTaskbarControls({
+            ...model,
+            hasActiveTrack: model.hasActiveTrack || Boolean(externalQueue?.stopAction),
+            canStop: Boolean(externalQueue?.stopAction),
+        }).catch((error) => {
             console.warn('[Electron] Failed to update Windows taskbar controls', error);
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentSong, effectiveLoopMode, isFmMode, isNowPlayingStageActive, playQueue, playerState]);
+    }, [currentSong, effectiveLoopMode, isFmMode, isNowPlayingStageActive, playQueue, playerState, externalQueue?.stopAction]);
 
     // System/IME voice input pauses playback and resumes it afterwards. Resume only
     // fires when this bridge caused the pause and the track is still paused, so a
@@ -567,9 +571,10 @@ export const useElectronPlaybackBridge = ({
 
         const runCommand = (command: RemoteControlCommand) => {
             if (command.type === 'session-action') {
-                if (!isNowPlayingControlDisabledRef.current) invokeRemoteSessionAction(command);
+                if (!isNowPlayingControlDisabledRef.current || readRemotePlaybackSession()?.stop?.id === command.actionId) invokeRemoteSessionAction(command);
                 return;
             }
+            if ((command.type === 'pause' || command.type === 'play-pause') && stopExternalPlayback()) return;
             if (isRemoteSessionTransportBlocked(command)) return;
             if (onRemoteExportCommand?.(command)) {
                 return;
@@ -694,7 +699,7 @@ export const useElectronPlaybackBridge = ({
                 }
 
                 if (request.action === 'pause') {
-                    mediaSessionPauseRef.current();
+                    if (!stopExternalPlayback()) mediaSessionPauseRef.current();
                     complete(request.requestId, true);
                     return;
                 }

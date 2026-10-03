@@ -1,5 +1,5 @@
 import { useExternalQueuePresentation } from './useExternalQueuePresentation';
-import { syncExternalQueue } from '../services/externalPlaybackQueue';
+import { syncExternalQueue, stopExternalPlayback, useExternalQueueStore } from '../services/externalPlaybackQueue';
 import { useLatticeControlsStore } from '../stores/useLatticeControlsStore';
 import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -75,6 +75,7 @@ export const useCommandPaletteContext = (
     const currentSong = usePlaybackStore(state => state.currentSong);
     const personalQueue = usePlaybackStore(state => state.playQueue);
     const external = useExternalQueuePresentation();
+    const canStopPlayback = useExternalQueueStore(state => Boolean(state.view?.stopAction));
     const queue = external.queue ?? personalQueue;
     const isFmMode = usePlaybackStore(state => state.isFmMode);
     const setHomeViewTab = useSearchNavigationStore(state => state.setHomeViewTab);
@@ -192,7 +193,8 @@ export const useCommandPaletteContext = (
             search: buildSearchCommandContext(stableDeps),
             playback: { ...buildPlaybackCommandContext(stableDeps),
                 queueCurrentSong: external.active ? external.currentSong ?? null : currentSong,
-                isExternalSession: external.active, syncQueue: syncExternalQueue },
+                isExternalSession: external.active, syncQueue: syncExternalQueue,
+                canStopPlayback, stopPlayback: stopExternalPlayback },
             navigation: buildNavigationCommandContext(stableDeps),
             panel: buildPanelCommandContext(stableDeps),
             settings: buildSettingsCommandContext(stableDeps),
@@ -201,7 +203,7 @@ export const useCommandPaletteContext = (
     // eslint-disable-next-line react-hooks/exhaustive-deps -- value list is derived, shape is fixed
     }, [
         ...valueDeps,
-        external.active, external.currentSong, currentSong,
+        external.active, external.currentSong, currentSong, canStopPlayback,
         ambient,
         settingsSignals, chromeSignals, desktopSignals, automixSignals,
         sleepTimerSignals, latticeSignals, audioSignals, visualizerSignals,

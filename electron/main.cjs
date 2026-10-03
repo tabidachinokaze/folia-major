@@ -1820,6 +1820,7 @@ const THUMBAR_BUTTON_ICONS = process.platform === 'win32'
     previous: loadThumbarIcon('previous.png'),
     play: loadThumbarIcon('play.png'),
     pause: loadThumbarIcon('pause.png'),
+    stop: loadThumbarIcon('stop.png'),
     next: loadThumbarIcon('next.png'),
   }
   : null;
@@ -2147,6 +2148,7 @@ function updateWindowThumbarButtons(state = {}) {
     canGoPrevious = false,
     canGoNext = false,
     isPlaying = false,
+    canStop = false,
   } = state;
 
   if (!hasActiveTrack) {
@@ -2167,8 +2169,8 @@ function updateWindowThumbarButtons(state = {}) {
         click: () => sendThumbarAction('previous'),
       },
       {
-        tooltip: isPlaying ? 'Pause' : 'Play',
-        icon: isPlaying ? THUMBAR_BUTTON_ICONS.pause : THUMBAR_BUTTON_ICONS.play,
+        tooltip: canStop ? 'Stop audition' : isPlaying ? 'Pause' : 'Play',
+        icon: canStop ? THUMBAR_BUTTON_ICONS.stop : isPlaying ? THUMBAR_BUTTON_ICONS.pause : THUMBAR_BUTTON_ICONS.play,
         click: () => sendThumbarAction('play-pause'),
       },
       {
@@ -6319,6 +6321,7 @@ ipcMain.handle('thumbar-update-buttons', (event, state) => {
     canGoPrevious: Boolean(state?.canGoPrevious),
     canGoNext: Boolean(state?.canGoNext),
     isPlaying: Boolean(state?.isPlaying),
+    canStop: Boolean(state?.canStop),
   });
 });
 

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { stopExternalPlayback } from '../services/externalPlaybackQueue';
 import type { RefObject } from 'react';
 import { PlayerState } from '../types';
 import type { SongResult } from '../types';
@@ -79,11 +80,15 @@ export const useMediaSessionBridge = ({
             }
         });
         setActionHandlerSafely('pause', () => {
+            if (stopExternalPlayback()) return;
             if (isNowPlayingControlDisabledRef.current || !audioRef.current) {
                 return;
             }
 
             mediaSessionPauseRef.current();
+        });
+        setActionHandlerSafely('stop', () => {
+            if (!stopExternalPlayback()) mediaSessionPauseRef.current();
         });
         setActionHandlerSafely('previoustrack', () => {
             if (isNowPlayingControlDisabledRef.current) {
@@ -101,6 +106,7 @@ export const useMediaSessionBridge = ({
         return () => {
             setActionHandlerSafely('play', null);
             setActionHandlerSafely('pause', null);
+            setActionHandlerSafely('stop', null);
             setActionHandlerSafely('previoustrack', null);
             setActionHandlerSafely('nexttrack', null);
         };

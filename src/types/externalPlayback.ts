@@ -27,7 +27,7 @@ export interface PlaybackRequest {
 export interface ExternalQueueAction {
     id: string;
     label: Record<string, string | undefined>;
-    icon: 'refresh-cw' | 'trash-2' | 'arrow-up-to-line' | 'thumbs-up';
+    icon: 'refresh-cw' | 'trash-2' | 'arrow-up-to-line' | 'thumbs-up' | 'square';
     disabled?: boolean;
     count?: number;
 }
@@ -45,6 +45,7 @@ export interface ExternalQueueView {
     actions: readonly ExternalQueueAction[];
     syncActionId?: string;
     resumeActionId?: string;
+    stopAction?: ExternalQueueAction;
     canSeek?: boolean;
     canPrevious?: boolean;
     canNext: boolean;

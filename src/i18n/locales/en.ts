@@ -486,6 +486,7 @@ export default {
       "mods": { "title": "Mods (Experimental)", "description": "Experimental: manage mods and export transparent lyric videos" },
       "playback-play": { "title": "Play", "description": "Start playback when paused" },
       "playback-pause": { "title": "Pause", "description": "Pause current playback" },
+      "playback-stop": { "title": "Stop audition", "description": "Stop auditioning and resume the listening session" },
       "playback-next": { "title": "Next track", "description": "Play the next track" },
       "playback-prev": { "title": "Previous track", "description": "Play the previous track" },
       "playback-loop": { "title": "Toggle loop", "description": "Change loop mode" },
@@ -2377,6 +2378,21 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_19": {
+      "intro": "Pair with Music Party 0.3.13 for consistent audition controls and recognizable listen-together command icons.",
+      "stopAudition": {
+        "title": "Stop an audition in one click",
+        "description": "While previewing a song in a room, the player bar and queue collage show Stop audition in place of Play. Click it to return to the room’s current song and position."
+      },
+      "unifiedControls": {
+        "title": "Consistent controls everywhere",
+        "description": "The remote window, Windows taskbar thumbnail toolbar, and system media pause or stop actions can end an audition and return to the room. Stop audition is also available in the command palette."
+      },
+      "commandIcons": {
+        "title": "Recognizable Music Party shortcuts",
+        "description": "Command search, All commands, and pinned shortcuts now show the listen-together icon in the player’s theme color, matching the sidebar entry."
+      }
+    },
     "v0_7_18": {
       "intro": "Pair with Music Party 0.3.12 to preview locally, recommend deliberately, and open shared albums reliably.",
       "roomAudition": {
