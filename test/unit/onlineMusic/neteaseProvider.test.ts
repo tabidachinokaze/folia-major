@@ -19,6 +19,7 @@ vi.mock('@/services/netease', () => ({
         getArtistAlbums: vi.fn(),
         getPersonalizedPlaylists: vi.fn(),
         getLikedSongs: vi.fn(),
+        likeSong: vi.fn(),
         checkQr: vi.fn(),
         scrobbleV1: vi.fn(),
     },
@@ -39,6 +40,26 @@ const song: UnifiedSong = {
 
 describe('neteaseProvider', () => {
     beforeEach(() => vi.clearAllMocks());
+
+    it.each([true, false])('accepts a confirmed personal favourite change (%s)', async liked => {
+        vi.mocked(neteaseApi.likeSong).mockResolvedValue({ code: 200 } as any);
+        await expect(neteaseProvider.mutations!.likeSong!(song, liked)).resolves.toBeUndefined();
+        expect(neteaseApi.likeSong).toHaveBeenCalledExactlyOnceWith(42, liked);
+    });
+
+    it.each([
+        [{ code: 500, message: 'Rejected' }, 'unavailable'],
+        [{ code: 301 }, 'auth-required'],
+        [{ code: 302 }, 'auth-required'],
+        [{ code: 401 }, 'auth-required'],
+        [{ code: 403 }, 'auth-required'],
+        [{}, 'unavailable'],
+        [null, 'unavailable'],
+    ])('rejects unconfirmed personal favourite responses (%j)', async (response, code) => {
+        vi.mocked(neteaseApi.likeSong).mockResolvedValue(response as any);
+        await expect(neteaseProvider.mutations!.likeSong!(song, true)).rejects.toMatchObject({ code, providerId: 'netease' });
+        expect(neteaseApi.likeSong).toHaveBeenCalledOnce();
+    });
 
     it('maps semantic high quality to the NetEase exhigh value', async () => {
         vi.mocked(neteaseApi.getSongUrl).mockResolvedValue({ data: [{ url: 'http://music.test/song.mp3' }] } as any);

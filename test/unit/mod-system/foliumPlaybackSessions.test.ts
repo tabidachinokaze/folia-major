@@ -35,6 +35,7 @@ import type { FoliumPlaybackSessionIntent } from '@/mods/folium/contract';
 import type { PlaybackRequest } from '@/types/externalPlayback';
 import { PlayerState, type SongResult } from '@/types';
 import { currentTime } from '@/stores/motionSignals';
+import { captureExternalPlaybackFavorite } from '@/services/externalPlaybackFavorite';
 import type { UnifiedSong } from '@/types';
 import type { ModRuntimeInfo } from '@/mods/types';
 
@@ -93,6 +94,20 @@ afterEach(async () => {
 });
 
 describe('experimental playback.sessions', () => {
+    it('exposes confirmed favourite DTOs without adding a playback intent', () => {
+        const service = createFoliumPlaybackSessions(mod()), onFavoriteChanged = vi.fn(), intent = vi.fn();
+        expect(service.supportsFavoriteEvents).toBe(true);
+        const lease = service.acquire({ ...options(intent), onFavoriteChanged });
+        lease.setQueue({ entries: [{ id: 'occurrence', track: { id: '99', source: 'netease', title: 'Test', artist: '' }, actions: [] }],
+            currentId: 'occurrence', canNext: true });
+        const media = song();
+        usePlaybackStore.setState({ currentSong: media, audioSrc: 'room-source' });
+        captureExternalPlaybackFavorite(media)?.(true);
+        expect(onFavoriteChanged).toHaveBeenCalledExactlyOnceWith({ song: toFoliumSong(media), entryId: 'occurrence', liked: true });
+        expect(intent).not.toHaveBeenCalled();
+        lease.release();
+        expect(() => service.acquire({ ...options(), onFavoriteChanged: true } as any)).toThrow('invalid-playback-session-options');
+    });
     it('keeps Stop out of toolbar actions and revalidates its availability before dispatch', () => {
         const intent = vi.fn(), lease = createFoliumPlaybackSessions(mod()).acquire(options(intent));
         const stopAction = { id: 'stop-preview', label: { en: 'Stop audition' }, icon: 'square' as const };

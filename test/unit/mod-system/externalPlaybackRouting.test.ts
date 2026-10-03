@@ -50,6 +50,7 @@ import { getAudioFromLocalSong } from '@/services/localMusicService';
 import { getFromCacheWithMigration } from '@/services/db';
 import { createQueueMutations } from '@/components/app/player-panel/createQueueMutations';
 import { createSessionTransport } from '@/components/app/playback/createSessionTransport';
+import { omni } from '@/services/onlineMusic/omni';
 import { PlayerState, type LocalSong, type SongResult } from '@/types';
 import type { NavidromeSong } from '@/types/navidrome';
 
@@ -97,6 +98,46 @@ afterEach(() => {
     useExternalQueueStore.setState({ view: null });
     invalidatePlaybackRequest();
     document.body.replaceChildren();
+    vi.restoreAllMocks();
+});
+
+it.each([true, false])('only notifies after the personal favourite request and UI state succeed (%s)', async liked => {
+    const input = params();
+    const favoriteChanged = vi.fn(() => expect(input.setLikedSongIds).toHaveBeenCalledOnce());
+    const owner = acquireExternalPlayback({ modId: 'test', dispatch: vi.fn(), cleanup: vi.fn(), report: vi.fn(), favoriteChanged });
+    setExternalQueue(createExternalQueueAdapter(owner)({ entries: [{ id: 'now', track: { id: '99', source: 'netease', title: 'Room', artist: '' }, actions: [] }],
+        currentId: 'now', canNext: true }));
+    usePlaybackStore.setState({ currentSong: song, audioSrc: 'room-source' });
+    vi.spyOn(omni, 'canLikeSong').mockReturnValue(true);
+    let complete!: (value: boolean) => void;
+    const personal = vi.spyOn(omni, 'toggleSongLike').mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+    let library!: ReturnType<typeof useLibraryPlaybackController>;
+    mount(() => { library = useLibraryPlaybackController(input); return null; });
+    let pending!: Promise<void>;
+    act(() => { pending = library.handleLike(); });
+    expect(favoriteChanged).not.toHaveBeenCalled();
+    await act(async () => { complete(liked); await pending; });
+    expect(personal).toHaveBeenCalledExactlyOnceWith(song, input.likedSongIds);
+    expect(favoriteChanged).toHaveBeenCalledExactlyOnceWith({ song, entryId: 'now', liked });
+    const update = input.setLikedSongIds.mock.calls[0][0];
+    expect(update(new Set([99])).has('99')).toBe(liked);
+});
+
+it('never notifies the session or changes liked state when the personal favourite request fails', async () => {
+    const input = params(), favoriteChanged = vi.fn();
+    const owner = acquireExternalPlayback({ modId: 'test', dispatch: vi.fn(), cleanup: vi.fn(), report: vi.fn(), favoriteChanged });
+    setExternalQueue(createExternalQueueAdapter(owner)({ entries: [{ id: 'now', track: { id: '99', source: 'netease', title: 'Room', artist: '' }, actions: [] }],
+        currentId: 'now', canNext: true }));
+    usePlaybackStore.setState({ currentSong: song, audioSrc: 'room-source' });
+    vi.spyOn(omni, 'canLikeSong').mockReturnValue(true);
+    vi.spyOn(omni, 'toggleSongLike').mockRejectedValueOnce(new Error('Personal favourite rejected'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let library!: ReturnType<typeof useLibraryPlaybackController>;
+    mount(() => { library = useLibraryPlaybackController(input); return null; });
+    await act(async () => { await library.handleLike(); });
+    expect(favoriteChanged).not.toHaveBeenCalled();
+    expect(input.setLikedSongIds).not.toHaveBeenCalled();
+    expect(usePlaybackStore.getState().audioSrc).toBe('room-source');
 });
 
 it('routes arrow-key seek with pause-preserving semantics instead of changing the element', () => {

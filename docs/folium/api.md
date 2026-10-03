@@ -13,7 +13,7 @@
 - **客户端入口**：[FoliumContextKind](#foliumcontextkind) · [FoliumHostInfo](#foliumhostinfo) · [FoliumStorage](#foliumstorage) · [FoliumRpc](#foliumrpc) · [FoliumLogger](#foliumlogger) · [FoliumClientApi](#foliumclientapi) · [FoliumClientModule](#foliumclientmodule)
 - **注册表与条目**：[FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandContext](#foliumcommandcontext) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundContext](#foliumbackgroundcontext) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageSlot](#foliumstageslot) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumProgressContext](#foliumprogresscontext) · [FoliumControlSlot](#foliumcontrolslot) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRegistryHandle](#foliumregistryhandle) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumRegistry](#foliumregistry) · [FoliumRegistries](#foliumregistries)
 - **宿主容器与上下文**：[FoliumMount](#foliummount) · [FoliumPanelContext](#foliumpanelcontext) · [FoliumSettingsPanelContext](#foliumsettingspanelcontext) · [FoliumClock](#foliumclock) · [FoliumSurface](#foliumsurface) · [FoliumAudioBands](#foliumaudiobands) · [FoliumAudio](#foliumaudio) · [FoliumDisplay](#foliumdisplay) · [FoliumStageContext](#foliumstagecontext)
-- **事件**：[FoliumEventPriority](#foliumeventpriority) · [FoliumNotificationEvents](#foliumnotificationevents) · [FoliumLyricsTransformEvent](#foliumlyricstransformevent) · [FoliumBeforePlayEvent](#foliumbeforeplayevent) · [FoliumOmniLyricsEvent](#foliumomnilyricsevent) · [FoliumOmniAudioEvent](#foliumomniaudioevent) · [FoliumHookEvents](#foliumhookevents) · [FoliumEventMap](#foliumeventmap) · [FoliumEvents](#foliumevents) · [FoliumPlaybackSessionIntent](#foliumplaybacksessionintent) · [FoliumQueueAction](#foliumqueueaction) · [FoliumQueueEntry](#foliumqueueentry) · [FoliumPlaybackQueue](#foliumplaybackqueue) · [FoliumPlaybackStartResult](#foliumplaybackstartresult) · [FoliumPlaybackSession](#foliumplaybacksession) · [FoliumPlaybackSessions](#foliumplaybacksessions) · [FoliumExperimentalServices](#foliumexperimentalservices)
+- **事件**：[FoliumEventPriority](#foliumeventpriority) · [FoliumNotificationEvents](#foliumnotificationevents) · [FoliumLyricsTransformEvent](#foliumlyricstransformevent) · [FoliumBeforePlayEvent](#foliumbeforeplayevent) · [FoliumOmniLyricsEvent](#foliumomnilyricsevent) · [FoliumOmniAudioEvent](#foliumomniaudioevent) · [FoliumHookEvents](#foliumhookevents) · [FoliumEventMap](#foliumeventmap) · [FoliumEvents](#foliumevents) · [FoliumPlaybackSessionIntent](#foliumplaybacksessionintent) · [FoliumQueueAction](#foliumqueueaction) · [FoliumQueueEntry](#foliumqueueentry) · [FoliumPlaybackQueue](#foliumplaybackqueue) · [FoliumPlaybackStartResult](#foliumplaybackstartresult) · [FoliumPlaybackSession](#foliumplaybacksession) · [FoliumPlaybackFavoriteChange](#foliumplaybackfavoritechange) · [FoliumPlaybackSessions](#foliumplaybacksessions) · [FoliumExperimentalServices](#foliumexperimentalservices)
 - **服务**：[FoliumPlaybackService](#foliumplaybackservice) · [FoliumFileHandle](#foliumfilehandle) · [FoliumIconOptions](#foliumiconoptions) · [FoliumUiService](#foliumuiservice) · [FoliumFetchInit](#foliumfetchinit) · [FoliumFetchResponse](#foliumfetchresponse) · [FoliumNetService](#foliumnetservice)
 - **共享工具**：[FoliumWordSegment](#foliumwordsegment) · [FoliumWordColorRange](#foliumwordcolorrange) · [FoliumLyricsHelpers](#foliumlyricshelpers) · [FoliumThemeHelpers](#foliumthemehelpers)
 - **参数 schema**：[FoliumParamType](#foliumparamtype) · [FoliumParamOption](#foliumparamoption) · [FoliumParam](#foliumparam) · [FoliumParamValues](#foliumparamvalues) · [FoliumParamAccess](#foliumparamaccess)
@@ -725,6 +725,18 @@ An exclusive session, released automatically on mod disable or failed activation
 
 相关：[FoliumPlaybackQueue](#foliumplaybackqueue) · [FoliumSong](#foliumsong) · [FoliumPlaybackStartResult](#foliumplaybackstartresult)
 
+### FoliumPlaybackFavoriteChange
+
+A confirmed personal favourite change for the still-current session queue occurrence.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `song` | `FoliumSong` | The host song whose personal favourite mutation succeeded. |
+| `entryId` | `string` | The mod's queue entry id, not the song's media id or host presentation key. |
+| `liked` | `boolean` | The confirmed personal favourite state; false means the favourite was removed. |
+
+相关：[FoliumSong](#foliumsong)
+
 ### FoliumPlaybackSessions
 
 EXPERIMENTAL: requires manifest `playback.sessions` and permission `playback.control`. Main window only.
@@ -734,10 +746,11 @@ EXPERIMENTAL: requires manifest `playback.sessions` and permission `playback.con
 | `readonly version` | `2` | Experimental service contract version. |
 | `readonly supportsHandoff?` | `boolean` | Whether sessions can hand the current source back to ordinary playback without stopping it. |
 | `readonly supportsAudition?` | `boolean` | Whether owners may opt in to separate local auditions from queue/recommend actions. |
+| `readonly supportsFavoriteEvents?` | `true` | Whether owners may observe confirmed personal favourite changes for their current queue entry. |
 | `resolveSong()` | `(provider: string, id: string): Promise<FoliumSong>` | Resolve an online provider's opaque media ID through Omni, returning a host song ref. |
-| `acquire()` | `(options: { onIntent: (intent: FoliumPlaybackSessionIntent) => void \| Promise<void>; /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */ restore: 'queue-stopped'; /** Receive audition intents for play actions; retain room state and implement local audition/return. */ audition?: boolean; }): FoliumPlaybackSession` | FM, Stage, video recording, active transitions and another session are rejected before changing playback. |
+| `acquire()` | `(options: { onIntent: (intent: FoliumPlaybackSessionIntent) => void \| Promise<void>; /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */ restore: 'queue-stopped'; /** Receive audition intents for play actions; retain room state and implement local audition/return. */ audition?: boolean; /** Observe successful personal favourite changes only while the captured owner and current queue occurrence still match. Auditions are excluded. Rejections are reported without releasing playback or undoing the personal favourite. */ onFavoriteChanged?: (event: FoliumPlaybackFavoriteChange) => void \| Promise<void>; }): FoliumPlaybackSession` | FM, Stage, video recording, active transitions and another session are rejected before changing playback. |
 
-相关：[FoliumSong](#foliumsong) · [FoliumPlaybackSessionIntent](#foliumplaybacksessionintent) · [FoliumPlaybackSession](#foliumplaybacksession)
+相关：[FoliumSong](#foliumsong) · [FoliumPlaybackSessionIntent](#foliumplaybacksessionintent) · [FoliumPlaybackFavoriteChange](#foliumplaybackfavoritechange) · [FoliumPlaybackSession](#foliumplaybacksession)
 
 ### FoliumExperimentalServices
 

@@ -9,6 +9,12 @@ export type ExternalPlaybackIntent =
     | { type: 'seek'; seconds: number; resume: boolean }
     | { type: 'queue-action'; entryId: string | null; actionId: string };
 
+export interface ExternalPlaybackFavoriteChange {
+    song: SongResult;
+    entryId: string;
+    liked: boolean;
+}
+
 export type PlaybackStartResult = {
     status: 'source-committed' | 'cancelled' | 'superseded' | 'unavailable' | 'failed';
 };

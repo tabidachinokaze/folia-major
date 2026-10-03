@@ -2377,6 +2377,13 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_7_20": {
+      "intro": "配套 Music Party 0.3.16，红心收藏与多人房间动态联动。",
+      "roomHearts": {
+        "title": "把喜欢分享到房间",
+        "description": "跟随房间播放时，点击红心成功收藏歌曲后，同步发送房间红心动态。播放器、侧栏和独立遥控窗口行为一致；取消收藏和本机试听保留个人收藏操作。"
+      }
+    },
     "v0_7_19": {
       "intro": "配套 Music Party 0.3.13，统一停止试听操作，并补齐一起听命令入口图标。",
       "stopAudition": {

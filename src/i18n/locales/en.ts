@@ -2378,6 +2378,13 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_20": {
+      "intro": "Pair with Music Party 0.3.16 to share track favorites with your listening room.",
+      "roomHearts": {
+        "title": "Share your favorites with the room",
+        "description": "When following room playback, successfully adding the current track to favorites also sends a room heart event. Player, sidebar and remote controls behave consistently. Removing a favorite and liking auditioned tracks remain personal actions."
+      }
+    },
     "v0_7_19": {
       "intro": "Pair with Music Party 0.3.13 for consistent audition controls and recognizable listen-together command icons.",
       "stopAudition": {

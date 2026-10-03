@@ -1,4 +1,4 @@
-import type { ExternalPlaybackIntent } from '../types/externalPlayback';
+import type { ExternalPlaybackFavoriteChange, ExternalPlaybackIntent } from '../types/externalPlayback';
 import { configurePlaybackRequestGuard, invalidatePlaybackRequest } from './playbackRequest';
 
 // src/services/externalPlaybackSession.ts
@@ -10,6 +10,7 @@ interface Owner {
     cleanup(): void;
     report(error: unknown): void;
     audition?: boolean;
+    favoriteChanged?(event: ExternalPlaybackFavoriteChange): void | Promise<void>;
 }
 const report = (target: Owner, error: unknown) => {
     try {
@@ -42,6 +43,21 @@ export const subscribeExternalPlayback = (fn: () => void) => {
 };
 export const hasExternalPlayback = () => owner !== null;
 export const isExternalPlaybackOwner = (token: symbol) => owner?.token === token;
+
+/** Capture an optional observer, separate from intents: its failure cannot release playback. */
+export function captureExternalFavoriteNotifier(token: symbol) {
+    const target = owner;
+    const observer = target?.token === token ? target.favoriteChanged : undefined;
+    if (!target || !observer) return;
+    return (event: ExternalPlaybackFavoriteChange) => {
+        if (owner !== target) return;
+        try {
+            Promise.resolve(observer(event)).catch(error => report(target, error));
+        } catch (error) {
+            report(target, error);
+        }
+    };
+}
 
 /** Explicit auditions never fall through to the owner's ordinary play/recommend intent. */
 export function routeExternalAudition(song: Extract<ExternalPlaybackIntent, { type: 'play' }>['song']) {

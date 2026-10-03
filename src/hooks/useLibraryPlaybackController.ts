@@ -1,5 +1,6 @@
 import { beginPlaybackRequest } from '../services/playbackRequest';
 import { captureExternalPlaybackBoundary, routeExternalPlayback } from '../services/externalPlaybackSession';
+import { captureExternalPlaybackFavorite } from '../services/externalPlaybackFavorite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { MotionValue } from 'framer-motion';
@@ -1414,6 +1415,7 @@ export function useLibraryPlaybackController({
             return;
         }
         try {
+            const notifyFavorite = captureExternalPlaybackFavorite(currentSong);
             const nextLiked = await omni.toggleSongLike(currentSong, likedSongIds);
             if (sourceRef.providerId === 'netease') {
                 setLikedSongIds(prev => {
@@ -1426,6 +1428,7 @@ export function useLibraryPlaybackController({
                 });
             }
             setStatusMsg({ type: 'success', text: nextLiked ? t('status.liked') : t('status.unliked') || 'Removed from Liked' });
+            notifyFavorite?.(nextLiked);
         } catch (error) {
             console.error('Like failed', error);
             setStatusMsg({ type: 'error', text: t('status.likeFailed') });

@@ -2311,6 +2311,13 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_20": {
+      "intro": "Pasangkan dengan Music Party 0.3.16 untuk membagikan lagu favorit ke ruang mendengarkan bersama.",
+      "roomHearts": {
+        "title": "Bagikan favorit ke ruang",
+        "description": "Saat mengikuti pemutaran ruang, menambahkan lagu saat ini ke favorit juga mengirim aktivitas hati ke ruang setelah berhasil. Pemutar, panel samping, dan kontrol jarak jauh berperilaku sama. Menghapus favorit dan menyukai lagu yang sedang dicoba tetap menjadi tindakan pribadi."
+      }
+    },
     "v0_7_19": {
       "intro": "Gunakan bersama Music Party 0.3.13 untuk kontrol percobaan lagu yang konsisten dan ikon perintah mendengarkan bersama.",
       "stopAudition": {

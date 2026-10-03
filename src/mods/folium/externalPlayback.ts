@@ -49,6 +49,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
         version: 2,
         supportsHandoff: true,
         supportsAudition: true,
+        supportsFavoriteEvents: true,
         async resolveSong(provider, id) {
             requireAccess();
             if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
@@ -58,9 +59,10 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
             if (!song) throw new Error('song-unavailable');
             return toFoliumSong(song)!;
         },
-        acquire({ onIntent, restore, audition }) {
+        acquire({ onIntent, restore, audition, onFavoriteChanged }) {
             requireAccess();
-            if (restore !== 'queue-stopped' || typeof onIntent !== 'function')
+            if (restore !== 'queue-stopped' || typeof onIntent !== 'function'
+                || (onFavoriteChanged !== undefined && typeof onFavoriteChanged !== 'function'))
                 throw new Error('invalid-playback-session-options');
             if (!actions) throw new Error('playback-unavailable');
             const host = actions;
@@ -80,6 +82,9 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                 modId: mod.id,
                 audition: audition === true,
                 report,
+                favoriteChanged: onFavoriteChanged
+                    ? event => onFavoriteChanged({ ...event, song: toFoliumSong(event.song)! })
+                    : undefined,
                 dispatch: (intent) => {
                     const dto: FoliumPlaybackSessionIntent =
                         intent.type === 'play' || intent.type === 'audition'
