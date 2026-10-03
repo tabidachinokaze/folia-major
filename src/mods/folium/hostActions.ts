@@ -1,4 +1,4 @@
-import { hasExternalPlayback } from '@/services/externalPlaybackSession';
+import { hasExternalPlayback, routeExternalAudition } from '@/services/externalPlaybackSession';
 import { homeTabsRegistry } from './registries/homeTabs';
 import { useSearchNavigationStore } from '@/stores/useSearchNavigationStore';
 import type { PlaybackRequest } from '@/types/externalPlayback';
@@ -102,6 +102,13 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
             playSongRef: async (ref) => {
                 const song = resolveFoliumSongRef(ref);
                 if (!song) return false;
+                await actionsRef.current.playSong(song);
+                return true;
+            },
+            auditionSongRef: async (ref) => {
+                const song = resolveFoliumSongRef(ref);
+                if (!song) return false;
+                if (hasExternalPlayback()) return routeExternalAudition(song);
                 await actionsRef.current.playSong(song);
                 return true;
             },

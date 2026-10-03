@@ -57,12 +57,14 @@ export function createExternalQueueAdapter(owner: symbol) {
         if (input.currentId !== null && !ids.has(input.currentId)) throw new Error('queue-current-entry-missing');
         const toolbar = actions(input.actions);
         if (input.syncActionId && !toolbar.some(action => action.id === input.syncActionId)) throw new Error('invalid-queue-sync-action');
+        if (input.resumeActionId && !toolbar.some(action => action.id === input.resumeActionId)) throw new Error('invalid-queue-resume-action');
         const stableQueue = previous && queue.length === previous.queue.length && queue.every((song, i) => song === previous!.queue[i])
             ? previous.queue : queue;
         const view: ExternalQueueView = {
             owner, items, queue: stableQueue, currentSong: input.currentId === null ? null : items.get(prefix + input.currentId)!.song,
             actions: previous && equal(previous.actions, toolbar) ? previous.actions : toolbar,
             syncActionId: input.syncActionId, canNext: input.canNext === true,
+            resumeActionId: input.resumeActionId, canSeek: input.canSeek === true, canPrevious: input.canPrevious === true,
             totalCount: Math.max(queue.length, Number.isSafeInteger(input.totalCount) ? input.totalCount! : queue.length), loading: input.loading === true,
         };
         previous = view;

@@ -29,6 +29,8 @@ import { useAppChromeStore } from '../stores/useAppChromeStore';
 import { useThemeSettingsStore } from '../stores/useThemeSettingsStore';
 import { usePlayerChromeSettingsStore } from '../stores/usePlayerChromeSettingsStore';
 import { currentTime } from '../stores/motionSignals';
+import { useExternalQueueStore } from '../services/externalPlaybackQueue';
+import { readRemotePlaybackSession, invokeRemoteSessionAction, isRemoteSessionTransportBlocked } from '../services/externalPlaybackRemote';
 
 // Bridges Electron-specific shell features without coupling to UI components.
 const DISCORD_PRESENCE_SNAPSHOT_INTERVAL_MS = 1000;
@@ -131,6 +133,7 @@ export const useElectronPlaybackBridge = ({
     const audioSrc = usePlaybackStore(state => state.audioSrc);
     const cachedCoverUrl = usePlaybackStore(state => state.cachedCoverUrl);
     const playQueue = usePlaybackStore(state => state.playQueue);
+    const externalQueue = useExternalQueueStore(state => state.view);
     const isFmMode = usePlaybackStore(state => state.isFmMode);
     // The HELD picture and its clock, so the remote, Discord and the taskbar switch song when a
     // blend settles rather than when it arms - the same thing useMediaSessionBridge publishes.
@@ -275,6 +278,7 @@ export const useElectronPlaybackBridge = ({
     };
 
     const buildRemoteSnapshot = (options: { includeLyrics?: boolean } = {}): RemoteControlSnapshot => {
+        const playbackSession = readRemotePlaybackSession();
         return {
             ...buildRemoteControlSnapshotFromPlaybackSyncBridge(
             buildPlaybackSyncBridgeModelFromCurrentState(),
@@ -289,6 +293,13 @@ export const useElectronPlaybackBridge = ({
             ),
             canLike: canLikeCurrentSong,
             likeUnavailableProvider,
+            playbackSession,
+            ...(playbackSession ? {
+                canGoPrevious: playbackSession.canPrevious,
+                canGoNext: playbackSession.canNext,
+                prevTrackKey: null, prevTrackTitle: null, prevTrackArtist: null, prevTrackCoverUrl: null,
+                nextTrackKey: null, nextTrackTitle: null, nextTrackArtist: null, nextTrackCoverUrl: null,
+            } : {}),
         };
     };
 
@@ -516,7 +527,7 @@ export const useElectronPlaybackBridge = ({
             window.removeEventListener('resize', handleResize);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cachedCoverUrl, coverUrl, currentSong, duration, effectiveLoopMode, exportState, isDaylight, isFmMode, isNowPlayingStageActive, isPlayerChromeHidden, playerChromeVisibilityMode, lyrics, lyricTimelineOffsetMs, mainWindowClickThroughEnabled, playbackSyncBridgeStatus, playQueue, playerState, showTransparentWindowBorder, transparentPlayerBackground, isLiked]);
+    }, [cachedCoverUrl, coverUrl, currentSong, duration, effectiveLoopMode, exportState, isDaylight, isFmMode, isNowPlayingStageActive, isPlayerChromeHidden, playerChromeVisibilityMode, lyrics, lyricTimelineOffsetMs, mainWindowClickThroughEnabled, playbackSyncBridgeStatus, playQueue, playerState, showTransparentWindowBorder, transparentPlayerBackground, isLiked, externalQueue]);
 
     useEffect(() => {
         if (!playbackSyncBridgeStatus.discordPresenceEnabled || !window.electron?.publishDiscordPresenceSnapshot) {
@@ -555,6 +566,11 @@ export const useElectronPlaybackBridge = ({
         }
 
         const runCommand = (command: RemoteControlCommand) => {
+            if (command.type === 'session-action') {
+                if (!isNowPlayingControlDisabledRef.current) invokeRemoteSessionAction(command);
+                return;
+            }
+            if (isRemoteSessionTransportBlocked(command)) return;
             if (onRemoteExportCommand?.(command)) {
                 return;
             }
@@ -635,6 +651,7 @@ export const useElectronPlaybackBridge = ({
                 return;
             }
 
+            if (command.type !== 'play-pause') return;
             if (taskbarPlayerStateRef.current === PlayerState.PLAYING) {
                 mediaSessionPauseRef.current();
             } else {

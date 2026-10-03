@@ -648,7 +648,7 @@ The event bus, as `folium.events`.
 EXPERIMENTAL (`playback.sessions`): user intent while a mod owns the player.
 
 ```ts
-type FoliumPlaybackSessionIntent = | { type: 'play'; song: FoliumSong } | { type: 'enqueue'; songs: readonly FoliumSong[] } | { type: 'next' | 'previous' | 'ended' | 'playback-error' } | { type: 'seek'; seconds: number; resume: boolean } | { type: 'queue-action'; entryId: string | null; actionId: string }
+type FoliumPlaybackSessionIntent = | { type: 'play'; song: FoliumSong } | { type: 'audition'; song: FoliumSong } | { type: 'enqueue'; songs: readonly FoliumSong[] } | { type: 'next' | 'previous' | 'ended' | 'playback-error' } | { type: 'seek'; seconds: number; resume: boolean } | { type: 'queue-action'; entryId: string | null; actionId: string }
 ```
 
 相关：[FoliumSong](#foliumsong)
@@ -690,6 +690,9 @@ Authoritative queue shown by native queue, command-palette and collage surfaces.
 | `currentId` | `string \| null` | Current occurrence id, or null while waiting. |
 | `actions?` | `readonly FoliumQueueAction[]` | Replaces the native shuffle/clear toolbar while this queue is shown. |
 | `syncActionId?` | `string` | Toolbar action used in place of a configured shuffle button. |
+| `resumeActionId?` | `string` | Toolbar action that resumes the owning session after a local audition. Omit outside audition. |
+| `canSeek?` | `boolean` | Whether transport seeking is currently meaningful. Defaults to false. |
+| `canPrevious?` | `boolean` | Whether the previous transport command is currently meaningful. Defaults to false. |
 | `canNext` | `boolean` | Whether the session can accept a next-track request, independent of local queue length. |
 | `totalCount?` | `number` | Total entries expected while loading; defaults to entries.length. |
 | `loading?` | `boolean` | Queue refresh indicator. |
@@ -727,8 +730,9 @@ EXPERIMENTAL: requires manifest `playback.sessions` and permission `playback.con
 | --- | --- | --- |
 | `readonly version` | `2` | Experimental service contract version. |
 | `readonly supportsHandoff?` | `boolean` | Whether sessions can hand the current source back to ordinary playback without stopping it. |
+| `readonly supportsAudition?` | `boolean` | Whether owners may opt in to separate local auditions from queue/recommend actions. |
 | `resolveSong()` | `(provider: string, id: string): Promise<FoliumSong>` | Resolve an online provider's opaque media ID through Omni, returning a host song ref. |
-| `acquire()` | `(options: { onIntent: (intent: FoliumPlaybackSessionIntent) => void \| Promise<void>; /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */ restore: 'queue-stopped'; }): FoliumPlaybackSession` | FM, Stage, video recording, active transitions and another session are rejected before changing playback. |
+| `acquire()` | `(options: { onIntent: (intent: FoliumPlaybackSessionIntent) => void \| Promise<void>; /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */ restore: 'queue-stopped'; /** Receive audition intents for play actions; retain room state and implement local audition/return. */ audition?: boolean; }): FoliumPlaybackSession` | FM, Stage, video recording, active transitions and another session are rejected before changing playback. |
 
 相关：[FoliumSong](#foliumsong) · [FoliumPlaybackSessionIntent](#foliumplaybacksessionintent) · [FoliumPlaybackSession](#foliumplaybacksession)
 
@@ -763,6 +767,7 @@ permission. All of it is unavailable in the export window.
 | `next()` | `(): void` | Next track. Needs `playback.control`. |
 | `previous()` | `(): void` | Previous track. Needs `playback.control`. |
 | `playSong()` | `(song: FoliumSong): Promise<boolean>` | Plays a song by its host `ref`. Resolves false when the ref is unknown. Needs `playback.control`. |
+| `auditionSong()` | `(song: FoliumSong): Promise<boolean>` | Audition a host-ref song locally; false if an active owner does not support audition. Never enqueues. Needs `playback.control`. |
 | `enqueue()` | `(song: FoliumSong): boolean` | Appends a song (by `ref`) to the queue. Needs `playback.control`. |
 | `shuffleQueue()` | `(): boolean` | Folium 1.3: shuffles the play queue, keeping the current song first. False when there is nothing to shuffle (Personal FM, a queue of one, external Stage playback). Needs `playback.control`. |
 | `toggleLike()` | `(): boolean` | Folium 1.3: likes or unlikes the displayed song, like the host's like button, which also reports the result. False when `canLike` is false. Needs `playback.control`. |

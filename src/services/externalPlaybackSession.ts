@@ -9,6 +9,7 @@ interface Owner {
     dispatch(intent: ExternalPlaybackIntent): void | Promise<void>;
     cleanup(): void;
     report(error: unknown): void;
+    audition?: boolean;
 }
 const report = (target: Owner, error: unknown) => {
     try {
@@ -41,6 +42,18 @@ export const subscribeExternalPlayback = (fn: () => void) => {
 };
 export const hasExternalPlayback = () => owner !== null;
 export const isExternalPlaybackOwner = (token: symbol) => owner?.token === token;
+
+/** Explicit auditions never fall through to the owner's ordinary play/recommend intent. */
+export function routeExternalAudition(song: Extract<ExternalPlaybackIntent, { type: 'play' }>['song']) {
+    return owner?.audition === true && routeExternalPlayback({ type: 'audition', song });
+}
+
+/** Opted-in owners distinguish local audition from enqueue; legacy session contracts stay intact. */
+export function routeExternalPlay(song: Extract<ExternalPlaybackIntent, { type: 'play' }>['song']) {
+    return owner?.audition === true
+        ? routeExternalAudition(song)
+        : routeExternalPlayback({ type: 'play', song });
+}
 
 export function acquireExternalPlayback(options: Omit<Owner, 'token'>) {
     if (owner) throw new Error('external-playback-busy');

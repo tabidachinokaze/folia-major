@@ -2377,6 +2377,25 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_7_18": {
+      "intro": "Pair with Music Party 0.3.12 to preview locally, recommend deliberately, and open shared albums reliably.",
+      "roomAudition": {
+        "title": "Preview before recommending",
+        "description": "In a room, Play previews a song locally; Add to queue recommends it to everyone. Shared songs offer both choices, and a finished preview returns to room playback."
+      },
+      "messageAlbums": {
+        "title": "Shared albums open correctly",
+        "description": "Fixes NetEase album cards that reported they could not be opened. Albums use the native view, and returning to the conversation keeps playback unchanged."
+      },
+      "roomRemote": {
+        "title": "Control the room remotely",
+        "description": "The remote window adds separate room likes and Return to room controls. Next follows the room queue, the heart still saves favorites, and previews allow seeking."
+      },
+      "roomLeave": {
+        "title": "Leave an existing room directly",
+        "description": "The Continue listening together card can leave the detected room without first taking over playback. The card disappears on success while your local music stays unchanged."
+      }
+    },
     "v0_7_17": {
       "intro": "Pair with Music Party 0.3.11 for complete shared cards and album navigation from messages.",
       "messageAlbums": {

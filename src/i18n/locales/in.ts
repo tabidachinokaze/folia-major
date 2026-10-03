@@ -2310,6 +2310,25 @@ export default {
     "temperaPoolExportFailed": "Ekspor gagal"
   },
   "releaseNotes": {
+    "v0_7_18": {
+      "intro": "Gunakan bersama Music Party 0.3.12 untuk mencoba lagu secara lokal, merekomendasikannya dengan jelas, dan membuka album dari pesan.",
+      "roomAudition": {
+        "title": "Coba lagu sebelum merekomendasikan",
+        "description": "Di ruang bersama, Putar mencoba lagu hanya di perangkat Anda; Tambahkan ke antrean merekomendasikannya ke ruang. Lagu dari pesan menawarkan kedua pilihan, lalu kembali ke pemutaran ruang saat selesai."
+      },
+      "messageAlbums": {
+        "title": "Album dari pesan dapat dibuka",
+        "description": "Memperbaiki kartu album NetEase yang sebelumnya gagal dibuka. Album ditampilkan di halaman bawaan, dan kembali ke percakapan tidak mengubah pemutaran musik."
+      },
+      "roomRemote": {
+        "title": "Kendalikan ruang dari jarak jauh",
+        "description": "Jendela kendali menambahkan tombol suka untuk ruang dan kembali ke ruang. Lagu berikutnya mengikuti antrean ruang; ikon hati tetap menyimpan favorit, dan posisi lagu percobaan dapat diubah."
+      },
+      "roomLeave": {
+        "title": "Langsung keluar dari ruang yang ada",
+        "description": "Kartu Lanjutkan mendengarkan bersama dapat keluar dari ruang yang terdeteksi tanpa mengambil alih pemutaran. Kartu hilang setelah berhasil, sementara musik lokal tetap berlanjut."
+      }
+    },
     "v0_7_17": {
       "intro": "Gunakan bersama Music Party 0.3.11 untuk kartu berbagi lengkap dan navigasi album dari pesan.",
       "messageAlbums": {

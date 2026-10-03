@@ -15,6 +15,7 @@ export interface RemoteTrackTransition {
 }
 
 export type RemoteControlCommand =
+    | { type: 'session-action'; sessionId: string; entryKey: string | null; actionId: string }
     | { type: 'play-pause' }
     | { type: 'play' }
     | { type: 'pause' }
@@ -35,7 +36,26 @@ export type RemoteControlCommand =
     | { type: 'cancel-export' }
     | { type: 'toggle-like' };
 
+/** Serializable actions from the active playback owner; never exposes provider credentials. */
+export interface RemoteSessionAction {
+    id: string;
+    entryKey: string | null;
+    label: Record<string, string | undefined>;
+    disabled?: boolean;
+    count?: number;
+}
+
+export interface RemotePlaybackSession {
+    id: string;
+    canSeek: boolean;
+    canPrevious: boolean;
+    canNext: boolean;
+    vote?: RemoteSessionAction;
+    resume?: RemoteSessionAction;
+}
+
 export interface RemoteControlSnapshot {
+    playbackSession?: RemotePlaybackSession | null;
     hasTrack: boolean;
     /** 当前曲目标识，遥控窗口据此判断"换歌了"并触发过渡 */
     trackKey: string | null;

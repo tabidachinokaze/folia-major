@@ -26,6 +26,8 @@ import { addFoliumEventHandler, removeFoliumEventHandlers } from '@/mods/folium/
 import { useFoliumHostActions, type FoliumAppActions } from '@/mods/folium/hostActions';
 import { createFoliumPlaybackService } from '@/mods/folium/services';
 import type { ModRuntimeInfo } from '@/mods/types';
+import { acquireExternalPlayback, releaseAllExternalPlayback } from '@/services/externalPlaybackSession';
+import { toFoliumSong } from '@/mods/folium/dto';
 
 // test/unit/mod-system/foliumHostActions.test.ts
 // The App side of folium.playback's Folium 1.3 additions: shuffle and like
@@ -73,6 +75,7 @@ beforeEach(() => {
     usePlaybackStore.setState(initialPlayback, true);
 });
 afterEach(() => {
+    releaseAllExternalPlayback();
     act(() => root?.unmount());
     root = null;
     removeFoliumEventHandlers('mod-a');
@@ -80,6 +83,26 @@ afterEach(() => {
 });
 
 describe('folium host actions', () => {
+    it('auditions a resolved host song without falling through to a legacy owner or enqueue', async () => {
+        const actions = appActions(), dispatch = vi.fn();
+        render(actions);
+        const playback = createFoliumPlaybackService(mod, 'main');
+        const media = { ...song(1), artists: [], album: { id: 'a', name: '' }, sourceRef: { kind: 'online' as const, providerId: 'netease', mediaId: '1' } };
+        const dto = toFoliumSong(media)!;
+        expect(await playback.auditionSong(dto)).toBe(true);
+        expect(actions.playSong).toHaveBeenLastCalledWith(media);
+        vi.mocked(actions.playSong).mockClear();
+        acquireExternalPlayback({ modId: 'owner', dispatch, cleanup: vi.fn(), report: vi.fn() });
+        expect(await playback.auditionSong(dto)).toBe(false);
+        expect(dispatch).not.toHaveBeenCalled();
+        expect(actions.playSong).not.toHaveBeenCalled();
+        releaseAllExternalPlayback();
+        acquireExternalPlayback({ modId: 'owner', audition: true, dispatch, cleanup: vi.fn(), report: vi.fn() });
+        expect(await playback.auditionSong(dto)).toBe(true);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'audition', song: media });
+        expect(actions.playSong).not.toHaveBeenCalled();
+        expect(actions.enqueue).not.toHaveBeenCalled();
+    });
     it('opens namespaced home tabs and clears selection on built-in navigation or unload', () => {
         const actions = appActions();
         render(actions);

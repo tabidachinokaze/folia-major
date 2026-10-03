@@ -18,6 +18,7 @@ import type { VideoExportPresetValues, VideoExportStartMode } from '../../types/
 import { useRemoteCoverArt } from './useRemoteCoverArt';
 import { useRemoteTrackHandoff } from './useRemoteTrackHandoff';
 import { useTranslation } from 'react-i18next';
+import { RemoteSessionControls } from './RemoteSessionControls';
 
 // src/components/remote/RemoteControlApp.tsx
 // Electron-only companion window for controlling the single real player instance.
@@ -734,7 +735,7 @@ const RemoteControlApp: React.FC = () => {
                                                         max={duration || 1}
                                                         step={0.1}
                                                         value={progressValue}
-                                                        disabled={primaryDisabled || duration <= 0}
+                                                        disabled={primaryDisabled || duration <= 0 || snapshot.playbackSession?.canSeek === false}
                                                         onChange={(event) => setPendingSeek(Number(event.currentTarget.value))}
                                                         onPointerDown={() => {
                                                             isDraggingRef.current = true;
@@ -785,9 +786,9 @@ const RemoteControlApp: React.FC = () => {
                                                             </div>
 
                                                             {/* Playback Actions */}
-                                                            <div className="flex w-full items-center justify-between">
+                                                            <div className="flex w-full flex-wrap items-center justify-between gap-y-1">
                                                                 {/* Playback domain: transport with loop mode trailing it */}
-                                                                <div className="flex items-center gap-0.5">
+                                                                <div className="flex shrink-0 items-center gap-0.5">
                                                                     <button
                                                                         type="button"
                                                                         title={t('remote.previous')}
@@ -826,7 +827,7 @@ const RemoteControlApp: React.FC = () => {
                                                                         type="button"
                                                                         title={snapshot.loopMode === 'off' ? t('remote.loopOff') : snapshot.loopMode === 'one' ? t('remote.loopOne') : t('remote.loopAll')}
                                                                         aria-pressed={snapshot.loopMode !== 'off'}
-                                                                        disabled={primaryDisabled}
+                                                                        disabled={primaryDisabled || !!snapshot.playbackSession}
                                                                         onClick={() => sendCommand({ type: 'cycle-loop-mode' })}
                                                                         className={`${secondaryButtonBase} ml-2 ${snapshot.loopMode !== 'off' ? secondaryActiveClass : secondaryIdleClass}`}
                                                                     >
@@ -835,7 +836,9 @@ const RemoteControlApp: React.FC = () => {
                                                                 </div>
 
                                                                 {/* Track reaction, then window tools */}
-                                                                <div className="flex items-center gap-0.5">
+                                                                <div className="flex shrink-0 items-center gap-0.5">
+                                                                    <RemoteSessionControls session={snapshot.playbackSession} disabled={snapshot.controlsDisabled}
+                                                                        className={`${secondaryButtonBase} ${secondaryIdleClass}`} send={sendCommand} />
                                                                     <span className="flex" title={likeUnavailableReason || (snapshot.isLiked ? t('remote.unlike') : t('remote.like'))}>
                                                                         <button
                                                                             type="button"

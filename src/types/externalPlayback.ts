@@ -3,6 +3,7 @@ import type { SongResult } from '../types';
 // src/types/externalPlayback.ts
 export type ExternalPlaybackIntent =
     | { type: 'play'; song: SongResult }
+    | { type: 'audition'; song: SongResult }
     | { type: 'enqueue'; songs: readonly SongResult[] }
     | { type: 'next' | 'previous' | 'ended' | 'playback-error' }
     | { type: 'seek'; seconds: number; resume: boolean }
@@ -43,6 +44,9 @@ export interface ExternalQueueView {
     currentSong: SongResult | null;
     actions: readonly ExternalQueueAction[];
     syncActionId?: string;
+    resumeActionId?: string;
+    canSeek?: boolean;
+    canPrevious?: boolean;
     canNext: boolean;
     totalCount: number;
     loading: boolean;

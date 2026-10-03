@@ -28,6 +28,7 @@ import {
     hasExternalPlayback,
     releaseAllExternalPlayback,
     routeExternalPlayback,
+    routeExternalPlay,
 } from '@/services/externalPlaybackSession';
 import { toFoliumSong } from '@/mods/folium/dto';
 import type { FoliumPlaybackSessionIntent } from '@/mods/folium/contract';
@@ -92,6 +93,23 @@ afterEach(async () => {
 });
 
 describe('experimental playback.sessions', () => {
+    it('exposes opt-in audition DTOs and validates the advertised resume action', () => {
+        const service = createFoliumPlaybackSessions(mod()), intent = vi.fn();
+        expect(service.supportsAudition).toBe(true);
+        const lease = service.acquire({ ...options(intent), audition: true });
+        const media = song();
+        routeExternalPlay(media);
+        expect(intent).toHaveBeenLastCalledWith({ type: 'audition', song: toFoliumSong(media) });
+        const queue = { entries: [], currentId: null, canNext: true, canSeek: true, canPrevious: true,
+            resumeActionId: 'return', actions: [{ id: 'return', label: { en: 'Return' }, icon: 'refresh-cw' as const }] };
+        lease.setQueue(queue);
+        expect(useExternalQueueStore.getState().view).toMatchObject({ resumeActionId: 'return', canSeek: true, canPrevious: true });
+        expect(invokeExternalQueueAction(null, 'return')).toBe(true);
+        expect(intent).toHaveBeenLastCalledWith({ type: 'queue-action', entryId: null, actionId: 'return' });
+        expect(() => lease.setQueue({ ...queue, actions: [] })).toThrow('invalid-queue-resume-action');
+        lease.setQueue({ entries: [], currentId: null, canNext: false });
+        expect(useExternalQueueStore.getState().view).toMatchObject({ canSeek: false, canPrevious: false });
+    });
     it.each([PlayerState.PLAYING, PlayerState.PAUSED])('hands off committed audio without resetting time or state (%s)', (playerState) => {
         const originalQueue = [song('netease', '1')], current = song('netease', '2');
         usePlaybackStore.setState({ playQueue: originalQueue });

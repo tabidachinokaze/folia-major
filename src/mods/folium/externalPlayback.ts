@@ -48,6 +48,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
     return Object.freeze<FoliumPlaybackSessions>({
         version: 2,
         supportsHandoff: true,
+        supportsAudition: true,
         async resolveSong(provider, id) {
             requireAccess();
             if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
@@ -57,7 +58,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
             if (!song) throw new Error('song-unavailable');
             return toFoliumSong(song)!;
         },
-        acquire({ onIntent, restore }) {
+        acquire({ onIntent, restore, audition }) {
             requireAccess();
             if (restore !== 'queue-stopped' || typeof onIntent !== 'function')
                 throw new Error('invalid-playback-session-options');
@@ -77,11 +78,12 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
             const report = (error: unknown) => reportFoliumIssue(mod.id, 'playback session', error);
             const token = acquireExternalPlayback({
                 modId: mod.id,
+                audition: audition === true,
                 report,
                 dispatch: (intent) => {
                     const dto: FoliumPlaybackSessionIntent =
-                        intent.type === 'play'
-                            ? { type: 'play', song: toFoliumSong(intent.song)! }
+                        intent.type === 'play' || intent.type === 'audition'
+                            ? { type: intent.type, song: toFoliumSong(intent.song)! }
                             : intent.type === 'enqueue'
                               ? { type: 'enqueue', songs: intent.songs.map((song) => toFoliumSong(song)!) }
                               : intent;

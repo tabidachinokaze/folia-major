@@ -42,6 +42,7 @@ import { useAppViewStore } from '@/stores/useAppViewStore';
 import { currentTime } from '@/stores/motionSignals';
 import { useLibraryPlaybackController } from '@/hooks/useLibraryPlaybackController';
 import { usePlaybackInteractionBridge } from '@/hooks/usePlaybackInteractionBridge';
+import { usePlaybackQueueController } from '@/hooks/usePlaybackQueueController';
 import { getAudioFromLocalSong } from '@/services/localMusicService';
 import { getFromCacheWithMigration } from '@/services/db';
 import { createQueueMutations } from '@/components/app/player-panel/createQueueMutations';
@@ -269,4 +270,34 @@ it('lease transport seek preserves pause and stop disarms autoplay even if pause
     expect(refs.currentSongRef.current).toBeNull();
     expect(refs.pendingResumeTimeRef.current).toBeNull();
     expect(usePlaybackStore.getState().audioSrc).toBeNull();
+});
+
+it('auditions playlist/album play actions but routes add-to-queue as recommendations', async () => {
+    const dispatch = vi.fn();
+    acquireExternalPlayback({ modId: 'test', audition: true, dispatch, cleanup: vi.fn(), report: vi.fn() });
+    const current = { ...song, sourceRef: { kind: 'online' as const, providerId: 'netease', mediaId: '99' } };
+    const selected = { ...current, id: 100, sourceRef: { ...current.sourceRef, mediaId: '100' } };
+    usePlaybackStore.setState({ currentSong: current, playQueue: [current], audioSrc: 'room-source' });
+    const input: Parameters<typeof usePlaybackQueueController>[0] = {
+        ...params(),
+        isNowPlayingStageActive: false, shouldNavigateToPlayerOnTrackChange: false,
+        localSongs: [], localLibraryCatalog: { entities: [], assignments: [] },
+        navigateToSearch: vi.fn(), onPlayLocalSong: vi.fn(async () => {}), onPlayNavidromeSong: vi.fn(async () => {}),
+        onAddLocalSongToQueue: vi.fn(), onAddNavidromeSongsToQueue: vi.fn(),
+        searchDeps: { submitSearch: vi.fn(async () => false), loadMoreSearchResults: vi.fn(async () => {}) },
+        audioRef: ref(null), mainPlaybackSnapshotRef: ref(null), playbackAutoSkipCountRef: ref(0),
+        pendingResumeTimeRef: ref(null), lastAudioRecoverySourceRef: ref(null),
+    };
+    let controller!: ReturnType<typeof usePlaybackQueueController>;
+    mount(() => { controller = usePlaybackQueueController(input); return null; });
+    await act(async () => {
+        controller.playOnlineQueueFromStart([selected, current]);
+        controller.handleQueueAddAndPlay(selected);
+        controller.addOnlineSongsToQueue([selected, current]);
+    });
+    expect(dispatch.mock.calls.map(([event]) => event.type)).toEqual(['audition', 'audition', 'enqueue']);
+    expect(dispatch.mock.calls[0][0]).toEqual({ type: 'audition', song: selected });
+    expect(dispatch.mock.calls[2][0]).toEqual({ type: 'enqueue', songs: [selected, current] });
+    expect(usePlaybackStore.getState()).toMatchObject({ currentSong: current, playQueue: [current], audioSrc: 'room-source' });
+    expect(input.persistLastPlaybackCache).not.toHaveBeenCalled();
 });

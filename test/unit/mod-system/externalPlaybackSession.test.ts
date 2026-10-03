@@ -5,11 +5,14 @@ import {
     releaseExternalPlayback,
     releaseExternalPlaybackForMod,
     routeExternalPlayback,
+    routeExternalAudition,
+    routeExternalPlay,
     hasExternalPlayback,
     captureExternalPlaybackBoundary,
     subscribeExternalPlayback,
 } from '@/services/externalPlaybackSession';
 import { beginPlaybackRequest, invalidatePlaybackRequest } from '@/services/playbackRequest';
+import type { SongResult } from '@/types';
 
 // test/unit/mod-system/externalPlaybackSession.test.ts
 const acquire = (overrides: Partial<Parameters<typeof acquireExternalPlayback>[0]> = {}) =>
@@ -20,6 +23,22 @@ afterEach(() => {
 });
 
 describe('external playback ownership', () => {
+    it('opts into audition for play commands while keeping enqueue and legacy play distinct', () => {
+        const song = { id: 1 } as SongResult, dispatch = vi.fn();
+        expect(routeExternalAudition(song)).toBe(false);
+        const legacy = acquire({ dispatch });
+        expect(routeExternalAudition(song)).toBe(false);
+        expect(dispatch).not.toHaveBeenCalled();
+        expect(routeExternalPlay(song)).toBe(true);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'play', song });
+        releaseExternalPlayback(legacy);
+        acquire({ audition: true, dispatch });
+        expect(routeExternalPlay(song)).toBe(true);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'audition', song });
+        routeExternalPlayback({ type: 'enqueue', songs: [song] });
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'enqueue', songs: [song] });
+        expect(hasExternalPlayback()).toBe(true);
+    });
     it('separates natural end, next and queue intent and prevents a second owner', () => {
         const dispatch = vi.fn();
         acquire({ dispatch });

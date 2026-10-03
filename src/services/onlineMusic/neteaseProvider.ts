@@ -70,7 +70,14 @@ const normalizeStringList = (value: unknown): string[] => (
         : []
 );
 
-const normalizeCollection = (raw: any, type = 'playlist'): ProviderCollection => {
+const cachedCollectionKinds = new Set(['playlist', 'album', 'artist', 'radio', 'cloud']);
+
+const normalizeCollection = (raw: any, type?: string): ProviderCollection => {
+    // NetEase uses raw.type for release formats ("专辑", "EP/Single") and numeric
+    // playlist categories. Catalog routing needs the operation's collection kind;
+    // only a cached canonical kind may supply it when no operation was specified.
+    const collectionKind = type ?? (raw?.specialType === 'cloud'
+        ? 'cloud' : cachedCollectionKinds.has(raw?.type) ? raw.type : 'playlist');
     const artists = (Array.isArray(raw?.artists)
         ? raw.artists
         : raw?.artist
@@ -88,7 +95,7 @@ const normalizeCollection = (raw: any, type = 'playlist'): ProviderCollection =>
         providerId: 'netease',
         id: raw?.id ?? 0,
         name: raw?.name || '',
-        type: raw?.type || (raw?.specialType === 'cloud' ? 'cloud' : type),
+        type: collectionKind,
         coverUrl: raw?.coverUrl || raw?.coverImgUrl || raw?.picUrl,
         description: raw?.description || raw?.briefDesc || raw?.briefDescription || raw?.copywriter,
         trackCount: raw?.trackCount ?? raw?.size,
