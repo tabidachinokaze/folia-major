@@ -2766,6 +2766,10 @@ export default {
     }
   },
   "export": {
+    "nextSongRequiresSession": "“下一首”录制仅在一起听期间可用。",
+    "nextSongRequiresRoomPlayback": "请先结束试听，再录制房间下一首。",
+    "nextSongPreparationChanged": "准备录制时房间已切歌，请重新开始下一首录制。",
+    "playbackChanged": "播放内容已变化，请重新开始录制。",
     "noRecordableContent": "当前没有可录制的播放内容。",
     "windowRecordingUnsupported": "当前运行环境不支持窗口录制。",
     "noExportCodec": "当前系统不支持可用的视频导出编码。",
@@ -3172,6 +3176,10 @@ export default {
     }
   },
   "remote": {
+    "exportNextSong": "下一首",
+    "exportNextSongHint": "等待房间下一首歌曲自动开始录制，不会切换歌曲。",
+    "recordNextSong": "等待下一首并录制",
+    "waitingNextSong": "正在等待房间下一首，开始后自动录制…",
     "backgroundDefault": "默认背景",
     "backgroundCover": "封面色彩",
     "backgroundTransparent": "透明背景",

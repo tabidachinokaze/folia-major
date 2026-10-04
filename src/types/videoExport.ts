@@ -3,6 +3,7 @@
 export type VideoExportStatus =
     | 'idle'
     | 'preparing'
+    | 'waiting'
     | 'countdown'
     | 'recording'
     | 'finalizing'
@@ -35,7 +36,7 @@ export interface VideoExportState {
     error: string | null;
 }
 
-export type VideoExportStartMode = 'from-start' | 'current';
+export type VideoExportStartMode = 'from-start' | 'current' | 'next';
 
 export const DEFAULT_VIDEO_EXPORT_PRESET_VALUES: VideoExportPresetValues = [
     { width: 1280, height: 720 },

@@ -11,6 +11,8 @@ type RemoteVideoExportPanelProps = {
     selectedPreset: VideoExportPreset;
     startMode: VideoExportStartMode;
     primaryDisabled: boolean;
+    isExternalSession?: boolean;
+    isAudition?: boolean;
     onOpenPresetSelector: () => void;
     onStartModeChange: (mode: VideoExportStartMode) => void;
     sendCommand: (command: RemoteControlCommand) => void;
@@ -18,6 +20,7 @@ type RemoteVideoExportPanelProps = {
 };
 
 const isExportBusy = (status: VideoExportState['status']) => (
+    status === 'waiting' ||
     status === 'preparing' ||
     status === 'countdown' ||
     status === 'recording' ||
@@ -57,6 +60,8 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
     selectedPreset,
     startMode,
     primaryDisabled,
+    isExternalSession = false,
+    isAudition = false,
     onOpenPresetSelector,
     onStartModeChange,
     sendCommand,
@@ -65,6 +70,9 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
     const { t } = useTranslation();
     const exportBusy = isExportBusy(exportState.status);
     const statusLabel = getExportStatusLabel(exportState);
+    const firstStartMode = isExternalSession ? 'next' : 'from-start';
+    const nextUnavailable = isExternalSession && isAudition;
+    const effectiveStartMode = startMode === 'current' || nextUnavailable ? 'current' : firstStartMode;
 
     return (
         <div className="flex flex-col gap-2.5 w-full">
@@ -73,22 +81,25 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
                 <div className={`flex h-8 rounded-xl p-0.5 transition-colors ${isDaylight ? 'bg-black/5' : 'bg-white/5'}`}>
                     <button
                         type="button"
-                        disabled={exportBusy}
-                        onClick={() => onStartModeChange('from-start')}
+                        disabled={exportBusy || nextUnavailable}
+                        title={nextUnavailable ? t('export.nextSongRequiresRoomPlayback') : isExternalSession ? t('remote.exportNextSongHint') : undefined}
+                        aria-pressed={effectiveStartMode === firstStartMode}
+                        onClick={() => onStartModeChange(firstStartMode)}
                         className={`flex-1 flex items-center justify-center rounded-lg text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                            startMode === 'from-start'
+                            effectiveStartMode === firstStartMode
                                 ? (isDaylight ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm')
                                 : (isDaylight ? 'text-black/70 hover:bg-black/5 hover:text-black' : 'text-white/70 hover:bg-white/5 hover:text-white')
                         }`}
                     >
-                        {t('remote.exportFullSong')}
+                        {t(isExternalSession ? 'remote.exportNextSong' : 'remote.exportFullSong')}
                     </button>
                     <button
                         type="button"
                         disabled={exportBusy}
+                        aria-pressed={effectiveStartMode === 'current'}
                         onClick={() => onStartModeChange('current')}
                         className={`flex-1 flex items-center justify-center rounded-lg text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                            startMode === 'current'
+                            effectiveStartMode === 'current'
                                 ? (isDaylight ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm')
                                 : (isDaylight ? 'text-black/70 hover:bg-black/5 hover:text-black' : 'text-white/70 hover:bg-white/5 hover:text-white')
                         }`}
@@ -121,7 +132,13 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
                     {exportState.error}
                 </div>
             )}
-            {exportState.status === 'countdown' && (
+            {exportState.status === 'waiting' && (
+                <div role="status" className={`text-[10px] font-semibold flex items-center gap-1.5 -mt-1 ${isDaylight ? 'text-blue-600' : 'text-blue-400'}`}>
+                    <span className={`w-1.5 h-1.5 shrink-0 rounded-full animate-pulse ${isDaylight ? 'bg-blue-600' : 'bg-blue-400'}`} />
+                    {t('remote.waitingNextSong')}
+                </div>
+            )}
+            {exportState.status === 'countdown' && !isExternalSession && (
                 <div className={`text-[10px] font-semibold flex items-center gap-1.5 animate-pulse -mt-1 ${isDaylight ? 'text-blue-600' : 'text-blue-400'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isDaylight ? 'bg-blue-600' : 'bg-blue-400'}`} />
                     {t('remote.recordingCountdown', { countdown: exportState.countdown })}
@@ -149,25 +166,27 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
             <div className="flex gap-2">
                 {exportBusy ? (
                     <>
-                        <button
-                            key="btn-stop"
-                            type="button"
-                            disabled={exportState.status !== 'recording'}
-                            onClick={() => sendCommand({ type: 'stop-export' })}
-                            className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl px-4 text-[12px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                                isDaylight
-                                    ? 'bg-zinc-900 text-white hover:bg-zinc-800'
-                                    : 'bg-white text-zinc-950 hover:bg-white/90'
-                            }`}
-                        >
-                            <Square size={10} fill="currentColor" />
-                            {t('remote.stopAndSave')}
-                        </button>
+                        {exportState.status !== 'waiting' && (
+                            <button
+                                key="btn-stop"
+                                type="button"
+                                disabled={exportState.status !== 'recording'}
+                                onClick={() => sendCommand({ type: 'stop-export' })}
+                                className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl px-4 text-[12px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                                    isDaylight
+                                        ? 'bg-zinc-900 text-white hover:bg-zinc-800'
+                                        : 'bg-white text-zinc-950 hover:bg-white/90'
+                                }`}
+                            >
+                                <Square size={10} fill="currentColor" />
+                                {t('remote.stopAndSave')}
+                            </button>
+                        )}
                         <button
                             key="btn-cancel"
                             type="button"
                             onClick={() => sendCommand({ type: 'cancel-export' })}
-                            className={`h-8 rounded-xl px-4 text-[12px] font-bold transition ${
+                            className={`h-8 rounded-xl px-4 text-[12px] font-bold transition ${exportState.status === 'waiting' ? 'flex-1' : ''} ${
                                 isDaylight
                                     ? 'bg-black/10 text-black hover:bg-black/15'
                                     : 'bg-white/10 text-white hover:bg-white/15'
@@ -181,14 +200,14 @@ const RemoteVideoExportPanel: React.FC<RemoteVideoExportPanelProps> = ({
                         key="btn-start"
                         type="button"
                         disabled={primaryDisabled}
-                        onClick={() => sendCommand({ type: 'start-export', preset: selectedPreset, startMode })}
+                        onClick={() => sendCommand({ type: 'start-export', preset: selectedPreset, startMode: effectiveStartMode })}
                         className={`h-8 w-full rounded-xl px-4 text-[12px] font-bold transition disabled:cursor-not-allowed disabled:opacity-35 ${
                             isDaylight
                                 ? 'bg-zinc-900 text-white hover:bg-zinc-800'
                                 : 'bg-white text-zinc-950 hover:bg-white/90'
                         }`}
                     >
-                        {statusLabel === 'Ready' ? t('remote.startRecording') : (statusLabel === 'Saved' ? t('remote.saved') : (statusLabel === 'Error' ? t('remote.error') : (statusLabel === 'Saving' ? t('remote.saving') : (statusLabel === 'Preparing' ? t('remote.preparing') : statusLabel))))}
+                        {statusLabel === 'Ready' ? t(effectiveStartMode === 'next' ? 'remote.recordNextSong' : 'remote.startRecording') : (statusLabel === 'Saved' ? t('remote.saved') : (statusLabel === 'Error' ? t('remote.error') : (statusLabel === 'Saving' ? t('remote.saving') : (statusLabel === 'Preparing' ? t('remote.preparing') : statusLabel))))}
                     </button>
                 )}
             </div>

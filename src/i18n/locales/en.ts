@@ -2767,6 +2767,10 @@ export default {
     }
   },
   "export": {
+    "nextSongRequiresSession": "Next Song recording is only available while listening together.",
+    "nextSongRequiresRoomPlayback": "End the preview before recording the room’s next song.",
+    "nextSongPreparationChanged": "The room changed songs during setup. Please start Next Song recording again.",
+    "playbackChanged": "Playback changed. Please start recording again.",
     "noRecordableContent": "No recordable playback content.",
     "windowRecordingUnsupported": "Window recording is not supported in this environment.",
     "noExportCodec": "No available video export codec on this system.",
@@ -3173,6 +3177,10 @@ export default {
     }
   },
   "remote": {
+    "exportNextSong": "Next Song",
+    "exportNextSongHint": "Record when the room starts its next song. This does not skip the current song.",
+    "recordNextSong": "Record Next Song",
+    "waitingNextSong": "Waiting for the room’s next song to start recording…",
     "backgroundDefault": "Default Background",
     "backgroundCover": "Cover Colors",
     "backgroundTransparent": "Transparent",

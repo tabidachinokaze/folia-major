@@ -56,7 +56,9 @@ Only one session can own the player. Acquisition rejects FM, Stage, active video
 
 `queue-stopped` is the supported restoration policy. The current source is stopped at acquisition. Release restores a copy of the previous queue, clears the current song/audio/lyrics, and keeps playback stopped. Volume and the user's loop/transition preferences remain intact. Looping and automix are temporarily disabled while a session owns the player.
 
-Pause, resume and volume remain local controls. Play, enqueue, next, previous and seek intents go to the owning mod. Native personal-queue reordering/clearing and Stage queue-edit requests are unavailable while a session owns the queue; a mod publishes its remote queue and available actions with `session.setQueue`. Stage entry and recording the main player window are rejected until the session is released.
+Pause, resume and volume remain local controls. Play, enqueue, next, previous and seek intents go to the owning mod. Native personal-queue reordering/clearing and Stage queue-edit requests are unavailable while a session owns the queue; a mod publishes its remote queue and available actions with `session.setQueue`. Stage entry is rejected until the session is released.
+
+Video recording observes session playback without pausing, seeking or resuming it. The remote controls offer recording from the current position or waiting for the next queue occurrence; recording the next song is unavailable during a local audition. Session recording has no countdown and finishes when the captured source, occurrence or session changes. The save dialog appears after capture so it does not delay playback.
 
 Normal release, mod disable/reload, failed activation and host teardown all release ownership and invalidate in-flight source loads. The host cleans up even if the mod's disposer throws. Retained service objects cannot reacquire ownership after disposal. A synchronous or asynchronous `onIntent` failure is reported through Folium diagnostics and releases the session; mods should catch recoverable network/business errors themselves.
 

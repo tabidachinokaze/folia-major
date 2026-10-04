@@ -2654,6 +2654,10 @@ export default {
     }
   },
   "export": {
+    "nextSongRequiresSession": "Perekaman Lagu Berikutnya hanya tersedia saat mendengarkan bersama.",
+    "nextSongRequiresRoomPlayback": "Akhiri pratinjau sebelum merekam lagu berikutnya di ruang.",
+    "nextSongPreparationChanged": "Lagu di ruang berubah selama persiapan. Silakan mulai lagi perekaman Lagu Berikutnya.",
+    "playbackChanged": "Pemutaran berubah. Silakan mulai merekam lagi.",
     "noRecordableContent": "Tidak ada konten pemutaran yang dapat direkam.",
     "windowRecordingUnsupported": "Perekaman jendela tidak didukung di lingkungan ini.",
     "noExportCodec": "Tidak ada codec ekspor video yang tersedia di sistem ini.",
@@ -3058,6 +3062,10 @@ export default {
     }
   },
   "remote": {
+    "exportNextSong": "Lagu Berikutnya",
+    "exportNextSongHint": "Rekam saat lagu berikutnya di ruang mulai diputar. Lagu saat ini tidak akan dilewati.",
+    "recordNextSong": "Rekam Lagu Berikutnya",
+    "waitingNextSong": "Menunggu lagu berikutnya di ruang untuk mulai merekam…",
     "backgroundDefault": "Latar Belakang Bawaan",
     "backgroundCover": "Warna Sampul",
     "backgroundTransparent": "Transparan",

@@ -1,11 +1,11 @@
-import { hasExternalPlayback } from '../services/externalPlaybackSession';
+import { captureExternalPlaybackBoundary, hasExternalPlayback, subscribeExternalPlayback } from '../services/externalPlaybackSession';
+import { useExternalQueueStore } from '../services/externalPlaybackQueue';
+import { getVideoExportRoomOccurrence, waitForNextVideoExportTrack } from '../services/videoExportNextTrack';
+import { captureVideoExportPlayback } from '../services/videoExportPlayback';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type React from 'react';
 import type { RefObject } from 'react';
-import type { MotionValue } from 'framer-motion';
-import type { SongResult } from '../types';
 import type { RemoteControlCommand } from '../types/remoteControl';
-import type { VideoExportPreset, VideoExportState } from '../types/videoExport';
+import type { VideoExportPreset, VideoExportState, VideoExportStartMode } from '../types/videoExport';
 import { idleVideoExportState } from '../types/videoExport';
 import {
     buildDefaultVideoExportFileName,
@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '../stores/usePlaybackStore';
 import { useAppChromeStore } from '../stores/useAppChromeStore';
 import { setIsPanelOpen } from '../stores/useAppViewStore';
-import { currentTime } from '../stores/motionSignals';
+import { getPlaybackSongKey } from '../utils/appPlaybackGuards';
 
 // src/hooks/useElectronVideoExportController.ts
 // Records the real player window so audio.currentTime remains the single animation clock.
@@ -48,28 +48,41 @@ export const useElectronVideoExportController = ({
     // Read here rather than passed in: store fields, a module-level motion signal, or i18n.
     const { t } = useTranslation();
     const currentSong = usePlaybackStore(state => state.currentSong);
-    const duration = usePlaybackStore(state => state.duration);
     const setIsPlayerChromeHidden = useAppChromeStore(state => state.setIsPlayerChromeHidden);
 
     const [exportState, setExportState] = useState<VideoExportState>(idleVideoExportState);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const cancelRequestedRef = useRef(false);
     const runningRef = useRef(false);
+    const abortRef = useRef<AbortController | null>(null);
 
     const stopActiveExport = useCallback((discard: boolean) => {
-        cancelRequestedRef.current = discard;
         const recorder = recorderRef.current;
+        cancelRequestedRef.current = discard || !recorder;
+        if (!recorder || discard) abortRef.current?.abort();
         if (recorder && recorder.state !== 'inactive') {
             recorder.stop();
         }
     }, []);
 
-    const startExport = useCallback(async (preset: VideoExportPreset, startMode: 'from-start' | 'current') => {
-        if (hasExternalPlayback()) {
-            setExportState({ ...idleVideoExportState(), status: 'error', presetId: preset.id, error: t('status.externalPlaybackActive') });
+    const startExport = useCallback(async (preset: VideoExportPreset, requestedMode: VideoExportStartMode) => {
+        if (!isElectronWindow || runningRef.current) {
             return;
         }
-        if (!isElectronWindow || runningRef.current) {
+        const passive = hasExternalPlayback();
+        // Older remote selections must never rewind a synchronized room.
+        const startMode = passive && requestedMode === 'from-start' ? 'next' : requestedMode;
+        if (startMode === 'next' && !passive) {
+            setExportState({ ...idleVideoExportState(), status: 'error', presetId: preset.id, error: t('export.nextSongRequiresSession') });
+            return;
+        }
+        const isAudition = () => {
+            const view = useExternalQueueStore.getState().view;
+            return Boolean(view?.stopAction || view?.resumeActionId);
+        };
+        if (startMode === 'next' && isAudition()) {
+            setExportState({ ...idleVideoExportState(), status: 'error', presetId: preset.id,
+                error: t('export.nextSongRequiresRoomPlayback') });
             return;
         }
 
@@ -104,64 +117,73 @@ export const useElectronVideoExportController = ({
         let endedListener: (() => void) | null = null;
         let removeCursorGuard: (() => void) | null = null;
         let canvasCropCleanup: (() => void) | null = null;
-        const wasPaused = audioElement.paused;
-        const previousLoop = audioElement.loop;
-        const previousTime = audioElement.currentTime;
+        const abort = new AbortController();
+        abortRef.current = abort;
+        const sameSession = captureExternalPlaybackBoundary(), initialOccurrence = getVideoExportRoomOccurrence();
+        let waitingForNext = false;
+        let playback = startMode === 'next' ? null
+            : captureVideoExportPlayback(audioElement, () => audioRef.current, pausePlayback, resumePlayback);
+        const onPlaybackChanged = () => {
+            const recorder = recorderRef.current;
+            if (recorder && recorder.state !== 'inactive') recorder.stop();
+            else abort.abort(new Error(t('export.playbackChanged')));
+        };
+        const checkPreparation = () => {
+            if (!sameSession() || audioRef.current !== audioElement) onPlaybackChanged();
+            else if (startMode === 'next' && !playback && isAudition())
+                abort.abort(new Error(t('export.nextSongRequiresRoomPlayback')));
+            else if (startMode === 'next' && !waitingForNext && getVideoExportRoomOccurrence() !== initialOccurrence)
+                abort.abort(new Error(t('export.nextSongPreparationChanged')));
+        };
+        let stopObserving = playback?.subscribe(onPlaybackChanged);
+        const stopSession = subscribeExternalPlayback(checkPreparation);
+        const stopQueue = useExternalQueueStore.subscribe(checkPreparation);
+        const assertCurrent = () => {
+            if (cancelRequestedRef.current) throw new Error(t('export.recordingCancelled'));
+            if (abort.signal.aborted) throw abort.signal.reason;
+            if (!sameSession() || audioRef.current !== audioElement || (playback && !playback.isCurrent()))
+                throw new Error(t('export.playbackChanged'));
+        };
 
         try {
+            assertCurrent();
             const exportFormat = getSupportedVideoExportFormat();
             if (!exportFormat) {
                 throw new Error(t('export.noExportCodec'));
             }
 
-            const saveResult = await electron.chooseVideoExportPath(
-                buildDefaultVideoExportFileName(currentSong, preset, exportFormat.extension),
-                exportFormat.extension,
-                exportFormat.displayName,
+            let recordedSong = currentSong;
+            const choosePath = () => electron.chooseVideoExportPath(
+                buildDefaultVideoExportFileName(recordedSong, preset, exportFormat.extension),
+                exportFormat.extension, exportFormat.displayName,
             );
-            if (saveResult.canceled || !saveResult.filePath) {
+            // Synchronized playback cannot wait for a save dialog. Select after
+            // capture, using the title of the song actually recorded.
+            let saveResult = passive ? null : await choosePath();
+            if (saveResult && (saveResult.canceled || !saveResult.filePath)) {
                 setExportState(idleVideoExportState());
                 return;
             }
-
-            const exportStartTime = startMode === 'from-start' ? 0 : Math.max(0, audioElement.currentTime);
-            const safeDuration = Number.isFinite(duration) && duration > 0
-                ? duration
-                : audioElement.duration;
-            const exportDuration = Number.isFinite(safeDuration) && safeDuration > exportStartTime
-                ? safeDuration - exportStartTime
-                : 0;
-
-            setExportState({
-                status: 'preparing',
-                presetId: preset.id,
-                progress: 0,
-                elapsed: 0,
-                duration: exportDuration,
-                countdown: null,
-                filePath: saveResult.filePath,
-                error: null,
-            });
+            assertCurrent();
+            let exportStartTime = 0, exportDuration = 0;
+            setExportState({ ...idleVideoExportState(), status: 'preparing', presetId: preset.id,
+                filePath: saveResult?.filePath ?? null });
 
             navigateToPlayer();
             setIsPanelOpen(false);
             setIsPlayerChromeHidden(true);
             removeCursorGuard = installVideoExportCursorGuard();
-            pausePlayback();
-            audioElement.pause();
-            audioElement.loop = false;
-
-            if (startMode === 'from-start') {
-                audioElement.currentTime = 0;
-                currentTime.set(0);
-            }
+            playback?.prepare(startMode);
 
             const prepared = await electron.prepareVideoExportWindow({ width: preset.width, height: preset.height });
             if (prepared === false || !prepared.success) {
                 throw new Error(t('export.windowResizeFailed'));
             }
-            await wait(300);
+            assertCurrent();
+            if (!passive) await wait(300);
+            assertCurrent();
             videoStream = await getMainWindowVideoCaptureStream(preset);
+            assertCurrent();
 
             // Canvas post-processing: pure integer crop to exact preset resolution.
             // The snap strategy in main.cjs ensures contentPhys >= preset + margin,
@@ -171,23 +193,46 @@ export const useElectronVideoExportController = ({
             videoStream = cropped.stream;
             canvasCropCleanup = cropped.cleanup;
 
+            if (startMode === 'next') {
+                assertCurrent();
+                waitingForNext = true;
+                setExportState(prev => ({ ...prev, status: 'waiting' }));
+                const next = await waitForNextVideoExportTrack(audioElement,
+                    () => sameSession() && audioRef.current === audioElement, abort.signal, initialOccurrence,
+                    new Error(t('export.playbackChanged')));
+                assertCurrent();
+                const current = usePlaybackStore.getState();
+                if (getVideoExportRoomOccurrence() !== next.occurrence || current.audioSrc !== next.source ||
+                    !current.currentSong || getPlaybackSongKey(current.currentSong) !== getPlaybackSongKey(next.song))
+                    throw new Error(t('export.playbackChanged'));
+                playback = captureVideoExportPlayback(audioElement, () => audioRef.current, pausePlayback, resumePlayback);
+                stopObserving = playback.subscribe(onPlaybackChanged);
+                recordedSong = next.song;
+            }
+            assertCurrent();
+            // Acquire the new audio track after loading: captureStream tracks from
+            // the outgoing source can end when its source is replaced.
             audioStream = getAudioElementCaptureStream(audioElement);
             combinedStream = new MediaStream([
                 ...videoStream.getVideoTracks(),
                 ...audioStream.getAudioTracks(),
             ]);
 
-            for (let remaining = COUNTDOWN_SECONDS; remaining > 0; remaining -= 1) {
-                setExportState(prev => ({
-                    ...prev,
-                    status: 'countdown',
-                    countdown: remaining,
-                }));
-                await wait(1000);
-                if (cancelRequestedRef.current) {
-                    throw new Error(t('export.recordingCancelled'));
+            if (!passive) {
+                for (let remaining = COUNTDOWN_SECONDS; remaining > 0; remaining -= 1) {
+                    setExportState(prev => ({ ...prev, status: 'countdown', countdown: remaining }));
+                    await wait(1000);
+                    assertCurrent();
                 }
             }
+
+            // Passive capture observes the actual start time without seeking,
+            // pausing or resuming the externally owned playback session.
+            exportStartTime = startMode === 'from-start' ? 0 : Math.max(0, audioElement.currentTime);
+            const duration = usePlaybackStore.getState().duration;
+            const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : audioElement.duration;
+            exportDuration = Number.isFinite(safeDuration) && safeDuration > exportStartTime
+                ? safeDuration - exportStartTime : 0;
 
             const chunks: Blob[] = [];
             const recorder = new MediaRecorder(combinedStream, getVideoExportRecorderOptions(preset, exportFormat));
@@ -214,10 +259,12 @@ export const useElectronVideoExportController = ({
                 ...prev,
                 status: 'recording',
                 countdown: null,
+                duration: exportDuration,
             }));
-            await resumePlayback();
+            await playback!.resume();
 
             progressIntervalId = window.setInterval(() => {
+                if (!playback!.isCurrent()) { requestStop(); return; }
                 const elapsed = Math.max(0, audioElement.currentTime - exportStartTime);
                 const progress = exportDuration > 0 ? Math.min(1, elapsed / exportDuration) : 0;
                 setExportState(prev => ({
@@ -250,6 +297,11 @@ export const useElectronVideoExportController = ({
                 progress: 1,
                 elapsed: exportDuration,
             }));
+            if (!saveResult) saveResult = await choosePath();
+            if (cancelRequestedRef.current || saveResult.canceled || !saveResult.filePath) {
+                setExportState(idleVideoExportState());
+                return;
+            }
             const blob = new Blob(chunks, { type: exportFormat.mimeType });
             await electron.writeVideoExportFile(saveResult.filePath, await toArrayBuffer(blob));
             setExportState(prev => ({
@@ -274,16 +326,17 @@ export const useElectronVideoExportController = ({
             if (endedListener) {
                 audioElement.removeEventListener('ended', endedListener);
             }
+            stopObserving?.();
+            stopSession();
+            stopQueue();
+            abort.abort();
+            if (abortRef.current === abort) abortRef.current = null;
+            if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
             recorderRef.current = null;
             stopMediaStream(videoStream);
             stopMediaStream(audioStream);
             stopMediaStream(combinedStream);
-            audioElement.loop = previousLoop;
-            if (wasPaused) {
-                audioElement.pause();
-                audioElement.currentTime = previousTime;
-                currentTime.set(previousTime);
-            }
+            playback?.restore();
             setIsPlayerChromeHidden(false);
             removeCursorGuard?.();
             canvasCropCleanup?.();
@@ -291,7 +344,7 @@ export const useElectronVideoExportController = ({
             runningRef.current = false;
             cancelRequestedRef.current = false;
         }
-    }, [audioRef, currentSong, currentTime, duration, isElectronWindow, navigateToPlayer, pausePlayback, resumePlayback, setIsPanelOpen, setIsPlayerChromeHidden]);
+    }, [audioRef, currentSong, isElectronWindow, navigateToPlayer, pausePlayback, resumePlayback, setIsPanelOpen, setIsPlayerChromeHidden]);
 
     const handleExportCommand = useCallback((command: RemoteControlCommand) => {
         if (command.type === 'start-export') {

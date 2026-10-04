@@ -136,16 +136,9 @@ declare global {
 
   type ElectronRemoteControlCommand = import('./types/remoteControl').RemoteControlCommand;
 
-  type ElectronVideoExportStatus =
-    | 'idle'
-    | 'preparing'
-    | 'countdown'
-    | 'recording'
-    | 'finalizing'
-    | 'done'
-    | 'error';
+  type ElectronVideoExportStatus = import('./types/videoExport').VideoExportStatus;
 
-  type ElectronVideoExportStartMode = 'from-start' | 'current';
+  type ElectronVideoExportStartMode = import('./types/videoExport').VideoExportStartMode;
 
   interface ElectronVideoExportPreset {
     id: string;

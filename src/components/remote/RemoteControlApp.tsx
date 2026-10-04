@@ -347,12 +347,14 @@ const RemoteControlApp: React.FC = () => {
         : 'text-red-400/90 hover:bg-white/10 hover:text-red-400';
 
     const lastStatusRef = React.useRef(exportState.status);
+    const exportBusy = ['waiting', 'preparing', 'countdown', 'recording', 'finalizing'].includes(exportState.status);
     useEffect(() => {
         if (exportState.status !== 'idle' && lastStatusRef.current === 'idle') {
             setActivePanel('export');
         }
         lastStatusRef.current = exportState.status;
-    }, [exportState.status]);
+        if (exportBusy) setPresetSelectorOpen(false);
+    }, [exportState.status, exportBusy]);
 
     const noDragStyle = { WebkitAppRegion: 'no-drag' } as React.CSSProperties;
     const dragStyle = { WebkitAppRegion: 'drag' } as React.CSSProperties;
@@ -366,6 +368,7 @@ const RemoteControlApp: React.FC = () => {
     }, [presetValues]);
 
     const handleSelectExportPreset = (presetId: string) => {
+        if (exportBusy) return;
         const nextPreset = exportPresets.find(item => item.id === presetId);
         if (!nextPreset) {
             return;
@@ -376,6 +379,7 @@ const RemoteControlApp: React.FC = () => {
     };
 
     const handleApplyCustomPresetValues = () => {
+        if (exportBusy) return;
         const w = Number(draftWidth);
         const h = Number(draftHeight);
         if (!Number.isFinite(w) || !Number.isFinite(h)) {
@@ -630,7 +634,7 @@ const RemoteControlApp: React.FC = () => {
                                 </button>
                             )}
                             <AnimatePresence mode="popLayout">
-                                {exportState.status === 'countdown' && (
+                                {exportState.status === 'countdown' && !snapshot.playbackSession && (
                                     <motion.div
                                         key={`countdown-${exportState.countdown}`}
                                         initial={{ opacity: 0, scale: 0.3 }}
@@ -945,8 +949,10 @@ const RemoteControlApp: React.FC = () => {
                                                 selectedPreset={selectedPreset}
                                                 startMode={startMode}
                                                 primaryDisabled={primaryDisabled}
+                                                isExternalSession={!!snapshot.playbackSession}
+                                                isAudition={!!(snapshot.playbackSession?.stop || snapshot.playbackSession?.resume)}
                                                 isDaylight={isDaylight}
-                                                onOpenPresetSelector={() => setPresetSelectorOpen(true)}
+                                                onOpenPresetSelector={() => { if (!exportBusy) setPresetSelectorOpen(true); }}
                                                 onStartModeChange={setStartMode}
                                                 sendCommand={sendCommand}
                                             />
