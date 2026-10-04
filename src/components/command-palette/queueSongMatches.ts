@@ -51,7 +51,7 @@ export const getQueueSongMatchesFromEvaluation = (
 
 export const getQueueSongMatches = (query: string, context: CommandPaletteContext): CommandPaletteMatch[] => (
     getQueueSongMatchesFromEvaluation(
-        evaluateQueueSearch(buildQueueSearchIndex(context.playback.queue), context.shared.currentSong, query),
+        evaluateQueueSearch(buildQueueSearchIndex(context.playback.queue), context.playback.isExternalSession ? context.playback.queueCurrentSong ?? null : context.shared.currentSong, query),
         query,
         context,
     )

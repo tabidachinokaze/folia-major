@@ -1,3 +1,4 @@
+import { routeExternalPlayback } from '../services/externalPlaybackSession';
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { RefObject } from 'react';
@@ -28,6 +29,8 @@ import { useAppChromeStore } from '../stores/useAppChromeStore';
 import { useThemeSettingsStore } from '../stores/useThemeSettingsStore';
 import { usePlayerChromeSettingsStore } from '../stores/usePlayerChromeSettingsStore';
 import { currentTime } from '../stores/motionSignals';
+import { useExternalQueueStore, stopExternalPlayback } from '../services/externalPlaybackQueue';
+import { readRemotePlaybackSession, invokeRemoteSessionAction, isRemoteSessionTransportBlocked } from '../services/externalPlaybackRemote';
 
 // Bridges Electron-specific shell features without coupling to UI components.
 const DISCORD_PRESENCE_SNAPSHOT_INTERVAL_MS = 1000;
@@ -130,6 +133,7 @@ export const useElectronPlaybackBridge = ({
     const audioSrc = usePlaybackStore(state => state.audioSrc);
     const cachedCoverUrl = usePlaybackStore(state => state.cachedCoverUrl);
     const playQueue = usePlaybackStore(state => state.playQueue);
+    const externalQueue = useExternalQueueStore(state => state.view);
     const isFmMode = usePlaybackStore(state => state.isFmMode);
     // The HELD picture and its clock, so the remote, Discord and the taskbar switch song when a
     // blend settles rather than when it arms - the same thing useMediaSessionBridge publishes.
@@ -274,6 +278,7 @@ export const useElectronPlaybackBridge = ({
     };
 
     const buildRemoteSnapshot = (options: { includeLyrics?: boolean } = {}): RemoteControlSnapshot => {
+        const playbackSession = readRemotePlaybackSession();
         return {
             ...buildRemoteControlSnapshotFromPlaybackSyncBridge(
             buildPlaybackSyncBridgeModelFromCurrentState(),
@@ -288,6 +293,13 @@ export const useElectronPlaybackBridge = ({
             ),
             canLike: canLikeCurrentSong,
             likeUnavailableProvider,
+            playbackSession,
+            ...(playbackSession ? {
+                canGoPrevious: playbackSession.canPrevious,
+                canGoNext: playbackSession.canNext,
+                prevTrackKey: null, prevTrackTitle: null, prevTrackArtist: null, prevTrackCoverUrl: null,
+                nextTrackKey: null, nextTrackTitle: null, nextTrackArtist: null, nextTrackCoverUrl: null,
+            } : {}),
         };
     };
 
@@ -393,6 +405,7 @@ export const useElectronPlaybackBridge = ({
         }
 
         return window.electron.onTaskbarControl((action) => {
+            if (action === 'play-pause' && stopExternalPlayback()) return;
             if (isNowPlayingControlDisabledRef.current || !audioRef.current || !taskbarHasTrackRef.current) {
                 return;
             }
@@ -420,13 +433,16 @@ export const useElectronPlaybackBridge = ({
             return;
         }
 
-        void window.electron.updateTaskbarControls(
-            buildTaskbarControlsFromPlaybackSyncBridge(buildPlaybackSyncBridgeModelFromCurrentState())
-        ).catch((error) => {
+        const model = buildTaskbarControlsFromPlaybackSyncBridge(buildPlaybackSyncBridgeModelFromCurrentState());
+        void window.electron.updateTaskbarControls({
+            ...model,
+            hasActiveTrack: model.hasActiveTrack || Boolean(externalQueue?.stopAction),
+            canStop: Boolean(externalQueue?.stopAction),
+        }).catch((error) => {
             console.warn('[Electron] Failed to update Windows taskbar controls', error);
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentSong, effectiveLoopMode, isFmMode, isNowPlayingStageActive, playQueue, playerState]);
+    }, [currentSong, effectiveLoopMode, isFmMode, isNowPlayingStageActive, playQueue, playerState, externalQueue?.stopAction]);
 
     // System/IME voice input pauses playback and resumes it afterwards. Resume only
     // fires when this bridge caused the pause and the track is still paused, so a
@@ -515,7 +531,7 @@ export const useElectronPlaybackBridge = ({
             window.removeEventListener('resize', handleResize);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cachedCoverUrl, coverUrl, currentSong, duration, effectiveLoopMode, exportState, isDaylight, isFmMode, isNowPlayingStageActive, isPlayerChromeHidden, playerChromeVisibilityMode, lyrics, lyricTimelineOffsetMs, mainWindowClickThroughEnabled, playbackSyncBridgeStatus, playQueue, playerState, showTransparentWindowBorder, transparentPlayerBackground, isLiked]);
+    }, [cachedCoverUrl, coverUrl, currentSong, duration, effectiveLoopMode, exportState, isDaylight, isFmMode, isNowPlayingStageActive, isPlayerChromeHidden, playerChromeVisibilityMode, lyrics, lyricTimelineOffsetMs, mainWindowClickThroughEnabled, playbackSyncBridgeStatus, playQueue, playerState, showTransparentWindowBorder, transparentPlayerBackground, isLiked, externalQueue]);
 
     useEffect(() => {
         if (!playbackSyncBridgeStatus.discordPresenceEnabled || !window.electron?.publishDiscordPresenceSnapshot) {
@@ -554,6 +570,12 @@ export const useElectronPlaybackBridge = ({
         }
 
         const runCommand = (command: RemoteControlCommand) => {
+            if (command.type === 'session-action') {
+                if (!isNowPlayingControlDisabledRef.current || readRemotePlaybackSession()?.stop?.id === command.actionId) invokeRemoteSessionAction(command);
+                return;
+            }
+            if ((command.type === 'pause' || command.type === 'play-pause') && stopExternalPlayback()) return;
+            if (isRemoteSessionTransportBlocked(command)) return;
             if (onRemoteExportCommand?.(command)) {
                 return;
             }
@@ -617,6 +639,7 @@ export const useElectronPlaybackBridge = ({
                     ? safeDuration
                     : command.time;
                 const nextTime = Math.max(0, Math.min(command.time, upperBound));
+                if (routeExternalPlayback({ type: 'seek', seconds: nextTime, resume: false })) return;
                 // During a blend the visible track is the outgoing one; route through the same
                 // cancel-and-resume the window's bar uses instead of moving the hidden incoming deck.
                 if (onRemoteTransitionSeek?.(nextTime)) {
@@ -633,6 +656,7 @@ export const useElectronPlaybackBridge = ({
                 return;
             }
 
+            if (command.type !== 'play-pause') return;
             if (taskbarPlayerStateRef.current === PlayerState.PLAYING) {
                 mediaSessionPauseRef.current();
             } else {
@@ -675,7 +699,7 @@ export const useElectronPlaybackBridge = ({
                 }
 
                 if (request.action === 'pause') {
-                    mediaSessionPauseRef.current();
+                    if (!stopExternalPlayback()) mediaSessionPauseRef.current();
                     complete(request.requestId, true);
                     return;
                 }
@@ -687,6 +711,11 @@ export const useElectronPlaybackBridge = ({
 
                 if (request.action === 'seek') {
                     const nextTime = Math.max(0, (request.positionMs ?? 0) / 1000);
+                    if (routeExternalPlayback({ type: 'seek', seconds: nextTime, resume: false })) {
+                        // The owning mod receives the intent and controls the resulting position.
+                        complete(request.requestId, true);
+                        return;
+                    }
                     // Same order as the remote's own seek above: mid-blend `audioRef` names the
                     // INCOMING deck, silent and holding a different track, so moving it moves
                     // nothing the listener can hear. The transition-aware path cancels the blend

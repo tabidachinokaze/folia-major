@@ -133,6 +133,7 @@ function mountHello(folium, container, ctx) {
 | 给内置模式加调参项 | `registries.tunings` | — | [FoliumTuningDef](api.md#foliumtuningdef)，`k3panel` |
 | 模组自己的设置 | `registries.settingsSections` | — | [FoliumSettingsSectionDef](api.md#foliumsettingssectiondef) |
 | 命令（模组面板与命令面板） | `registries.commands` | — | [FoliumCommandDef](api.md#foliumcommanddef) |
+| 首页顶部导航入口 | `registries.homeTabs` | — | [FoliumPlayerPanelTabDef](api.md#foliumplayerpaneltabdef) |
 | 播放器面板里的标签页 | `registries.playerPanelTabs` | — | [FoliumPlayerPanelTabDef](api.md#foliumplayerpaneltabdef) |
 | 进度条旁的按钮、轨道上的标记 | `registries.controlButtons` / `progressLayers` | — | [FoliumProgressContext](api.md#foliumprogresscontext)，`sample-progress-bar` |
 | 改宿主外观 | `registries.styles`（只针对公开 part） | — | [FoliumStyleDef](api.md#foliumstyledef)，规范里的「styles 与公开 part」 |
@@ -188,7 +189,7 @@ function mountHello(folium, container, ctx) {
 ### 兼容与版本
 
 - 用 `folium.host.folium.minor` 做功能探测，例如 `if (folium.host.folium.minor >= 4)` 再使用 1.4 新增的接口（如 `folium.lyrics.parse`）。
-- 实验接口（`omni.providers`、`omni.hooks`、`ponder.targets`）需要在清单的 `experimental` 里选用，任何 minor 版本都可能变化。
+- 实验接口（`omni.providers`、`omni.hooks`、`ponder.targets`、`playback.sessions`）需要在清单的 `experimental` 里选用，任何 minor 版本都可能变化。
 - `folium.internals` 没有兼容承诺，使用时必须在清单里用 `folia` 固定宿主版本范围；社区模组应尽量不用。
 - 模组更新时提升 `mod.json` 的 `version`（`MAJOR.MINOR.PATCH`）。
 

@@ -122,6 +122,7 @@ export default {
     "aiThemeGeneratedCustomPreferred": "AI 主题已生成，但当前仍优先使用自定义主题",
   },
   "status": {
+    "externalPlaybackActive": "外部播放会话正在运行，请使用该会话的控制界面，或先退出会话。",
     "playerChromeAlwaysHidden": "UI 将始终隐藏",
     "playerChromeAlwaysVisible": "UI 将始终显示",
     "playerChromeAutoHide": "UI 将自动隐藏",
@@ -498,6 +499,7 @@ export default {
       "mods": { "title": "模组（实验性）", "description": "实验性功能：管理模组并导出透明歌词视频" },
       "playback-play": { "title": "播放", "description": "暂停时开始播放" },
       "playback-pause": { "title": "暂停", "description": "暂停当前播放" },
+      "playback-stop": { "title": "停止试听", "description": "结束试听，返回一起听" },
       "playback-next": { "title": "下一首", "description": "播放下一首" },
       "queue-keep-open": { "title": "队列切歌后保持打开", "description": "切换选择队列歌曲后是否保持命令面板打开" },
       "playback-prev": { "title": "上一首", "description": "播放上一首" },
@@ -506,6 +508,7 @@ export default {
       "playback-add-to-playlist": { "title": "添加到歌单", "description": "把当前歌曲放进你的某个歌单" },
       "playback-mute": { "title": "静音", "description": "静音，或恢复声音" },
       "playback-shuffle": { "title": "打乱队列", "description": "打乱当前播放队列" },
+      "playback-sync-queue": { "title": "同步队列", "description": "刷新当前会话的播放队列" },
       "playback-clear-queue": { "title": "清空队列", "description": "移除当前播放队列中的所有歌曲" },
       "theme-generate-current": { "title": "生成 AI 主题", "description": "为当前歌曲生成 AI 主题" },
       "theme-quick-editor": { "title": "快速主题编辑器", "description": "快速编辑当前歌曲的 AI 主题" },

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, Repeat, Repeat1, RepeatOff, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
+import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, Square, Repeat, Repeat1, RepeatOff, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
+import { resolveFoliumLabel } from '@/mods/folium/params';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerState } from '../../types';
 import RemoteVideoExportPanel from './RemoteVideoExportPanel';
@@ -18,6 +19,7 @@ import type { VideoExportPresetValues, VideoExportStartMode } from '../../types/
 import { useRemoteCoverArt } from './useRemoteCoverArt';
 import { useRemoteTrackHandoff } from './useRemoteTrackHandoff';
 import { useTranslation } from 'react-i18next';
+import { RemoteSessionControls } from './RemoteSessionControls';
 import {
     DEFAULT_REMOTE_WINDOW_PRESENTATION,
     shouldRevealRemoteTitlebar,
@@ -111,7 +113,7 @@ const SWITCH_FACE_TRANSITION = { duration: 0.42, ease: [0.22, 1, 0.36, 1] } as c
 const SWITCH_TEXT_TRANSITION = { duration: 0.32, ease: [0.22, 1, 0.36, 1] } as const;
 
 const RemoteControlApp: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
         if (typeof window !== 'undefined') {
             const stored = window.localStorage.getItem(REMOTE_BACKGROUND_MODE_STORAGE_KEY);
@@ -263,6 +265,8 @@ const RemoteControlApp: React.FC = () => {
     const duration = Number.isFinite(snapshot.duration) && snapshot.duration > 0 ? snapshot.duration : 0;
     const progressValue = duration > 0 ? Math.max(0, Math.min(currentTime, duration)) : 0;
     const isPlaying = snapshot.playerState === PlayerState.PLAYING;
+    const stopAction = snapshot.playbackSession?.stop;
+    const stopLabel = stopAction ? resolveFoliumLabel(stopAction.label, i18n.language, stopAction.id) : null;
     const primaryDisabled = snapshot.controlsDisabled || !snapshot.hasTrack;
     const likeDisabled = primaryDisabled || snapshot.canLike === false;
     const likeUnavailableReason = snapshot.likeUnavailableProvider
@@ -770,7 +774,7 @@ const RemoteControlApp: React.FC = () => {
                                                         max={duration || 1}
                                                         step={0.1}
                                                         value={progressValue}
-                                                        disabled={primaryDisabled || duration <= 0}
+                                                        disabled={primaryDisabled || duration <= 0 || snapshot.playbackSession?.canSeek === false}
                                                         onChange={(event) => setPendingSeek(Number(event.currentTarget.value))}
                                                         onPointerDown={() => {
                                                             isDraggingRef.current = true;
@@ -821,9 +825,9 @@ const RemoteControlApp: React.FC = () => {
                                                             </div>
 
                                                             {/* Playback Actions */}
-                                                            <div className="flex w-full items-center justify-between">
+                                                            <div className="flex w-full flex-wrap items-center justify-between gap-y-1">
                                                                 {/* Playback domain: transport with loop mode trailing it */}
-                                                                <div className="flex items-center gap-0.5">
+                                                                <div className="flex shrink-0 items-center gap-0.5">
                                                                     <button
                                                                         type="button"
                                                                         title={t('remote.previous')}
@@ -837,15 +841,18 @@ const RemoteControlApp: React.FC = () => {
                                                                     </button>
                                                                     <button
                                                                         type="button"
-                                                                        title={isPlaying ? t('remote.pause') : t('remote.play')}
-                                                                        disabled={primaryDisabled}
-                                                                        onClick={() => sendCommand({ type: 'play-pause' })}
+                                                                        title={stopLabel ?? (isPlaying ? t('remote.pause') : t('remote.play'))}
+                                                                        aria-label={stopLabel ?? (isPlaying ? t('remote.pause') : t('remote.play'))}
+                                                                        disabled={stopAction ? stopAction.disabled : primaryDisabled}
+                                                                        onClick={() => stopAction && snapshot.playbackSession
+                                                                            ? sendCommand({ type: 'session-action', sessionId: snapshot.playbackSession.id, entryKey: stopAction.entryKey, actionId: stopAction.id })
+                                                                            : sendCommand({ type: 'play-pause' })}
                                                                         className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30 ${isDaylight
                                                                             ? 'bg-zinc-900 text-white hover:bg-zinc-800'
                                                                             : 'bg-white text-zinc-950 hover:bg-white/90'
                                                                             }`}
                                                                     >
-                                                                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
+                                                                        {stopAction ? <Square size={16} fill="currentColor" /> : isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
                                                                     </button>
                                                                     <button
                                                                         type="button"
@@ -862,7 +869,7 @@ const RemoteControlApp: React.FC = () => {
                                                                         type="button"
                                                                         title={snapshot.loopMode === 'off' ? t('remote.loopOff') : snapshot.loopMode === 'one' ? t('remote.loopOne') : t('remote.loopAll')}
                                                                         aria-pressed={snapshot.loopMode !== 'off'}
-                                                                        disabled={primaryDisabled}
+                                                                        disabled={primaryDisabled || !!snapshot.playbackSession}
                                                                         onClick={() => sendCommand({ type: 'cycle-loop-mode' })}
                                                                         className={`${secondaryButtonBase} ml-2 ${snapshot.loopMode !== 'off' ? secondaryActiveClass : secondaryIdleClass}`}
                                                                     >
@@ -871,7 +878,9 @@ const RemoteControlApp: React.FC = () => {
                                                                 </div>
 
                                                                 {/* Track reaction, then window tools */}
-                                                                <div className="flex items-center gap-0.5">
+                                                                <div className="flex shrink-0 items-center gap-0.5">
+                                                                    <RemoteSessionControls session={snapshot.playbackSession} disabled={snapshot.controlsDisabled}
+                                                                        className={`${secondaryButtonBase} ${secondaryIdleClass}`} send={sendCommand} />
                                                                     <span className="flex" title={likeUnavailableReason || (snapshot.isLiked ? t('remote.unlike') : t('remote.like'))}>
                                                                         <button
                                                                             type="button"

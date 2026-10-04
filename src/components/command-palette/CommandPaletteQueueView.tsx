@@ -1,3 +1,4 @@
+import { ExternalQueueActions } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { AtSign, CornerDownLeft, ListEnd, ListPlus, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import type { QueueBatchAction, QueueFacetKind } from './queueQuery';
 
 type CommandPaletteQueueViewProps = CommandPaletteQueueListProps & {
     evaluation: QueueSearchEvaluation;
+    externalSession?: boolean;
     accentColor: string;
     keepOpenOnSongChange: boolean;
     onKeepOpenOnSongChange: (enable: boolean) => void;
@@ -38,6 +40,7 @@ const facetLabelKey: Record<QueueFacetKind, string> = {
 
 const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
     evaluation,
+    externalSession = false,
     accentColor,
     keepOpenOnSongChange,
     onKeepOpenOnSongChange,
@@ -64,9 +67,10 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-2" data-testid="command-palette-queue-view">
+            {externalSession && <ExternalQueueActions />}
             <div className="flex shrink-0 items-start justify-between gap-3 px-3 py-1 text-[11px]">
                 <div className="min-w-0 flex-1 opacity-40" data-testid="command-palette-queue-syntax-hint">
-                    {!parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text
+                    {!externalSession && !parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text
                         ? t('commandPalette.queueSyntaxHint')
                         : null}
                 </div>
@@ -85,7 +89,7 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
                     />
                 </label>
             </div>
-            {(parsed.action || parsed.actionDraft !== null || parsed.facetDraft !== null) && (
+            {!externalSession && (parsed.action || parsed.actionDraft !== null || parsed.facetDraft !== null) && (
                 <div className="flex flex-wrap items-center gap-1.5 px-1">
                     {parsed.action && ActionIcon && (
                         <button
@@ -150,7 +154,7 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
                 </div>
             )}
 
-            {parsed.action && (
+            {!externalSession && parsed.action && (
                 <div
                     className={`flex shrink-0 items-center gap-3 rounded-2xl border px-3 py-2.5 ${chipClass}`}
                     data-testid="command-palette-queue-batch-preview"

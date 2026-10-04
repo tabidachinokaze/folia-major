@@ -10,16 +10,18 @@
 /**
  * 事件目标是不是正在接收文本输入。是的话，所有裸字母快捷键都必须让路。
  */
-export const isTextEntryTarget = (target: EventTarget | null) => {
+export const isTextEntryTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) {
         return false;
     }
 
+    // Composed keyboard events are retargeted to a mod's shadow host.
+    if (target.shadowRoot?.activeElement) return isTextEntryTarget(target.shadowRoot.activeElement);
     const tagName = target.tagName.toLowerCase();
     return tagName === 'input'
         || tagName === 'textarea'
         || tagName === 'select'
-        || target.isContentEditable;
+        || target.isContentEditable === true;
 };
 
 /**

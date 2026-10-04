@@ -1,3 +1,4 @@
+import { isTextEntryTarget } from '@/utils/keyboardTargets';
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +23,8 @@ import { addFoliumEventHandler, removeFoliumEventHandlers } from '@/mods/folium/
 import { useFoliumHostActions, type FoliumAppActions } from '@/mods/folium/hostActions';
 import { createFoliumPlaybackService } from '@/mods/folium/services';
 import type { ModRuntimeInfo } from '@/mods/types';
+import { acquireExternalPlayback, releaseAllExternalPlayback } from '@/services/externalPlaybackSession';
+import { toFoliumSong } from '@/mods/folium/dto';
 
 // test/unit/mod-system/foliumHostActions.test.ts
 // The App side of folium.playback's Folium 1.3 additions: shuffle and like
@@ -40,6 +43,7 @@ const mod: ModRuntimeInfo = {
 const song = (id: number) => ({ id, name: `song ${id}` }) as unknown as SongResult;
 
 const appActions = (overrides: Partial<FoliumAppActions> = {}): FoliumAppActions => ({
+    sessionTransport: { stop: vi.fn(), seek: vi.fn() },
     play: vi.fn(), pause: vi.fn(), toggle: vi.fn(), seek: vi.fn(), seekToLyricTime: vi.fn(),
     next: vi.fn(), previous: vi.fn(), playSong: vi.fn(), enqueue: vi.fn(),
     navigateToPlayer: vi.fn(), navigateToHome: vi.fn(),
@@ -68,6 +72,7 @@ beforeEach(() => {
     usePlaybackStore.setState(initialPlayback, true);
 });
 afterEach(() => {
+    releaseAllExternalPlayback();
     act(() => root?.unmount());
     root = null;
     removeFoliumEventHandlers('mod-a');
@@ -75,6 +80,38 @@ afterEach(() => {
 });
 
 describe('folium host actions', () => {
+    it('auditions a resolved host song without falling through to a legacy owner or enqueue', async () => {
+        const actions = appActions(), dispatch = vi.fn();
+        render(actions);
+        const playback = createFoliumPlaybackService(mod, 'main');
+        const media = { ...song(1), artists: [], album: { id: 'a', name: '' }, sourceRef: { kind: 'online' as const, providerId: 'netease', mediaId: '1' } };
+        const dto = toFoliumSong(media)!;
+        expect(await playback.auditionSong(dto)).toBe(true);
+        expect(actions.playSong).toHaveBeenLastCalledWith(media);
+        vi.mocked(actions.playSong).mockClear();
+        acquireExternalPlayback({ modId: 'owner', dispatch, cleanup: vi.fn(), report: vi.fn() });
+        expect(await playback.auditionSong(dto)).toBe(false);
+        expect(dispatch).not.toHaveBeenCalled();
+        expect(actions.playSong).not.toHaveBeenCalled();
+        releaseAllExternalPlayback();
+        acquireExternalPlayback({ modId: 'owner', audition: true, dispatch, cleanup: vi.fn(), report: vi.fn() });
+        expect(await playback.auditionSong(dto)).toBe(true);
+        expect(dispatch).toHaveBeenLastCalledWith({ type: 'audition', song: media });
+        expect(actions.playSong).not.toHaveBeenCalled();
+        expect(actions.enqueue).not.toHaveBeenCalled();
+    });
+    it('recognizes typing inside nested mod shadow roots', () => {
+        const host = document.createElement('div'), inner = document.createElement('div');
+        document.body.append(host);
+        host.attachShadow({ mode: 'open' }).append(inner);
+        const input = document.createElement('textarea');
+        inner.attachShadow({ mode: 'open' }).append(input);
+        input.focus();
+        expect(isTextEntryTarget(host)).toBe(true);
+        input.blur();
+        expect(isTextEntryTarget(host)).toBe(false);
+    });
+
     it('shuffles only a queue the player bar could shuffle', () => {
         const actions = appActions();
         render(actions);

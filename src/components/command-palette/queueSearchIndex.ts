@@ -1,7 +1,7 @@
 import type { SongResult } from '../../types';
 import { getProviderSongMetadata } from '../../services/onlineMusic/songMetadata';
 import type { ProviderSongMetadata } from '../../types/onlineMusic';
-import { getPlaybackSongKey, getPlaybackSourceRef } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey, getPlaybackSourceRef } from '../../utils/appPlaybackGuards';
 import type { QueueFacetKind } from './queueQuery';
 import { normalizeSearchText } from './search/normalize';
 
@@ -85,6 +85,6 @@ export const getCurrentQueueIndex = (index: QueueSearchEntry[], currentSong: Son
     if (!currentSong) return -1;
     const exactIndex = index.findIndex(entry => entry.song === currentSong);
     if (exactIndex >= 0) return index[exactIndex].queueIndex;
-    const currentKey = getPlaybackSongKey(currentSong);
-    return index.find(entry => getPlaybackSongKey(entry.song) === currentKey)?.queueIndex ?? -1;
+    const currentKey = getQueueSongKey(currentSong);
+    return index.find(entry => getQueueSongKey(entry.song) === currentKey)?.queueIndex ?? -1;
 };

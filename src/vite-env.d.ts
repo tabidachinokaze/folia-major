@@ -129,30 +129,12 @@ declare global {
     canGoPrevious: boolean;
     canGoNext: boolean;
     isPlaying: boolean;
+    canStop?: boolean;
   }
 
   type ElectronTaskbarControlAction = 'previous' | 'play-pause' | 'next';
 
-  type ElectronRemoteControlCommand =
-    | { type: 'play-pause' }
-    | { type: 'play' }
-    | { type: 'pause' }
-    | { type: 'previous' }
-    | { type: 'next' }
-    | { type: 'seek'; time: number }
-    | { type: 'cycle-loop-mode' }
-    | { type: 'resize-main-window'; width: number; height: number }
-    | { type: 'set-main-window-border-visible'; visible: boolean }
-    | { type: 'set-main-window-click-through'; enabled: boolean }
-    | { type: 'set-main-window-always-on-top'; enabled: boolean }
-    | { type: 'set-transparent-mode-enabled'; enabled: boolean }
-    | { type: 'disable-transparent-mode' }
-    | { type: 'cycle-player-chrome-visibility-mode' }
-    | { type: 'open-export' }
-    | { type: 'start-export'; preset: ElectronVideoExportPreset; startMode: ElectronVideoExportStartMode }
-    | { type: 'stop-export' }
-    | { type: 'cancel-export' }
-    | { type: 'toggle-like' };
+  type ElectronRemoteControlCommand = import('./types/remoteControl').RemoteControlCommand;
 
   type ElectronVideoExportStatus =
     | 'idle'
@@ -195,6 +177,7 @@ declare global {
   }
 
   interface ElectronRemoteControlSnapshot {
+    playbackSession?: import('./types/remoteControl').RemotePlaybackSession | null;
     hasTrack: boolean;
     trackKey: string | null;
     title: string | null;

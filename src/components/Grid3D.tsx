@@ -1,3 +1,4 @@
+import { useExternalQueuePresentation } from '../hooks/useExternalQueuePresentation';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Loader2, Settings, PanelsTopLeft } from 'lucide-react';
@@ -200,6 +201,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         submitSearch: state.submitSearch,
     })));
 
+    const externalQueue = useExternalQueuePresentation();
     const isOnlineTab = homeViewTab === 'playlist' || homeViewTab === 'albums' || homeViewTab === 'radio';
     const activeProviderId = onlineProviderPlatform?.activeProviderId || 'netease';
     const activeProviderSummary = onlineProviderPlatform?.activeProvider;
@@ -847,7 +849,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                     而不是标题旁的工具图标。没有在播歌曲时队列也是空的，直接不出现。
                                     平时只占一个图标的宽度，指针悬停或键盘聚焦时才展开文字——这一排
                                     已经有五个内容 tab，多一个常驻文字就把胶囊撑得太长。点击始终直达。 */}
-                                {onOpenLattice && currentTrack && (
+                                {onOpenLattice && (currentTrack || externalQueue.active) && (
                                     <button
                                         onClick={onOpenLattice}
                                         data-testid="home-lattice-pill"

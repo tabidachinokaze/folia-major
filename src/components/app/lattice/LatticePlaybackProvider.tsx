@@ -1,3 +1,4 @@
+import { useExternalQueuePresentation } from '../../../hooks/useExternalQueuePresentation';
 import { createContext, lazy, Suspense, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { MotionValue } from 'framer-motion';
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export default function LatticePlaybackProvider({ actions, currentSong, queue, lyrics, currentTime, duration, onSeek, isDaylight, children }: Props) {
+    const external = useExternalQueuePresentation();
     const [timelineOpen, setTimelineOpen] = useState(false);
     const context = useMemo<PlayerControlSlotContext>(() => {
         const neighbors = resolvePlaybackNeighbors({ playQueue: queue, currentSong, loopMode: actions.loopMode,
@@ -47,10 +49,10 @@ export default function LatticePlaybackProvider({ actions, currentSong, queue, l
             onToggleLoop: actions.playback.toggleLoop,
             onPrev: actions.playback.prev,
             onNext: actions.playback.next,
-            canPrev: neighbors.prev.canGo && !actions.disabled,
-            canNext: neighbors.next.canGo && !actions.disabled,
+            canPrev: !external.active && neighbors.prev.canGo && !actions.disabled,
+            canNext: external.active ? external.canNext : neighbors.next.canGo && !actions.disabled,
             onShuffle: actions.playback.shuffleQueue,
-            canShuffle: queue.length > 1 && !actions.playback.isFmMode && !actions.isStageActive,
+            canShuffle: !external.active && queue.length > 1 && !actions.playback.isFmMode && !actions.isStageActive,
             onLike: () => { void actions.playback.toggleSongLike(); },
             isLiked: actions.playback.isSongLiked,
             likeDisabled: resolveLikeAvailability(currentSong, Boolean(actions.disabled), Boolean(actions.isStageActive)).disabled,
@@ -59,7 +61,7 @@ export default function LatticePlaybackProvider({ actions, currentSong, queue, l
             invokeCommandById: actions.invokeCommandById,
             canInvokeCommandById: actions.canInvokeCommandById,
         };
-    }, [actions, currentSong, lyrics, queue]);
+    }, [actions, currentSong, lyrics, queue, external.active, external.canNext]);
     return <PlaybackContext.Provider value={context}>
         {children}
         {timelineOpen && createPortal(<Suspense fallback={null}>

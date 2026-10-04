@@ -122,6 +122,7 @@ export default {
     "aiThemeGeneratedCustomPreferred": "AI theme generated, but custom theme is still preferred",
   },
   "status": {
+    "externalPlaybackActive": "An external playback session is active. Use its controls or leave the session first.",
     "playerChromeAlwaysHidden": "UI will remain hidden",
     "playerChromeAlwaysVisible": "UI will remain visible",
     "playerChromeAutoHide": "UI will auto-hide",
@@ -498,6 +499,7 @@ export default {
       "mods": { "title": "Mods (Experimental)", "description": "Experimental: manage mods and export transparent lyric videos" },
       "playback-play": { "title": "Play", "description": "Start playback when paused" },
       "playback-pause": { "title": "Pause", "description": "Pause current playback" },
+      "playback-stop": { "title": "Stop audition", "description": "Stop auditioning and resume the listening session" },
       "playback-next": { "title": "Next track", "description": "Play the next track" },
       "queue-keep-open": { "title": "Keep queue palette open", "description": "Toggle keeping the command palette open after choosing a queue song" },
       "playback-prev": { "title": "Previous track", "description": "Play the previous track" },
@@ -506,6 +508,7 @@ export default {
       "playback-add-to-playlist": { "title": "Add to a playlist", "description": "Put the current song in one of your playlists" },
       "playback-mute": { "title": "Mute", "description": "Silence playback, or bring the sound back" },
       "playback-shuffle": { "title": "Shuffle queue", "description": "Shuffle current play queue" },
+      "playback-sync-queue": { "title": "Sync queue", "description": "Refresh the current session queue" },
       "playback-clear-queue": { "title": "Clear queue", "description": "Remove all songs from the current play queue" },
       "theme-generate-current": { "title": "Generate AI theme", "description": "Generate an AI theme for the current song" },
       "theme-quick-editor": { "title": "Quick theme editor", "description": "Quickly edit AI theme for the current song" },

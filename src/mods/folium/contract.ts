@@ -901,6 +901,131 @@ export interface FoliumEvents {
     ): FoliumDisposer;
 }
 
+/** EXPERIMENTAL (`playback.sessions`): user intent while a mod owns the player. */
+export type FoliumPlaybackSessionIntent =
+    | { type: 'play'; song: FoliumSong }
+    | { type: 'audition'; song: FoliumSong }
+    | { type: 'enqueue'; songs: readonly FoliumSong[] }
+    | { type: 'next' | 'previous' | 'ended' | 'playback-error' }
+    | { type: 'seek'; seconds: number; resume: boolean }
+    | { type: 'queue-action'; entryId: string | null; actionId: string };
+
+/** A mod-owned queue action. Labels are localized by the host; each click is delivered separately. */
+export interface FoliumQueueAction {
+    /** Stable action id, returned in a queue-action intent. */
+    id: string;
+    /** Accessible button label. */
+    label: FoliumLabel;
+    /** Host icon, avoiding bundled icon/render dependencies in a mod. */
+    icon: 'refresh-cw' | 'trash-2' | 'arrow-up-to-line' | 'thumbs-up' | 'square';
+    /** False by default; the mod owns permissions and pending-operation policy. */
+    disabled?: boolean;
+    /** Optional nonnegative count, such as votes. It never implies a one-time toggle. */
+    count?: number;
+}
+
+/** A queue occurrence. Its identity is separate from its media id, so repeated tracks remain distinct. */
+export interface FoliumQueueEntry {
+    /** Unique id within the session, never the list index. */
+    id: string;
+    /** Presentation metadata; duration is in seconds. An optional host ref supplies richer metadata. */
+    track: { id: string; source: string; title: string; artist: string; album?: string | null; coverUrl?: string; duration?: number; ref?: string | null };
+    /** Replaces native remove/reorder buttons for this occurrence. */
+    actions: readonly FoliumQueueAction[];
+    /** Optional row activation action. Without it, selecting the row does not start local playback. */
+    defaultAction?: string;
+}
+
+/** Authoritative queue shown by native queue, command-palette and collage surfaces. */
+export interface FoliumPlaybackQueue {
+    /** Ordered entries, including the current occurrence when one exists. */
+    entries: readonly FoliumQueueEntry[];
+    /** Current occurrence id, or null while waiting. */
+    currentId: string | null;
+    /** Replaces the native shuffle/clear toolbar while this queue is shown. */
+    actions?: readonly FoliumQueueAction[];
+    /** Toolbar action used in place of a configured shuffle button. */
+    syncActionId?: string;
+    /** Toolbar action that resumes the owning session after a local audition. Omit outside audition. */
+    resumeActionId?: string;
+    /** Replaces play/pause with Stop while temporary playback is active; separate from toolbar actions. */
+    stopAction?: FoliumQueueAction;
+    /** Whether transport seeking is currently meaningful. Defaults to false. */
+    canSeek?: boolean;
+    /** Whether the previous transport command is currently meaningful. Defaults to false. */
+    canPrevious?: boolean;
+    /** Whether the session can accept a next-track request, independent of local queue length. */
+    canNext: boolean;
+    /** Total entries expected while loading; defaults to entries.length. */
+    totalCount?: number;
+    /** Queue refresh indicator. */
+    loading?: boolean;
+}
+
+/** Source assignment, not an assertion that decoding or audible playback succeeded. */
+export interface FoliumPlaybackStartResult {
+    /** Whether the source committed, the request ended early, or the source was unavailable. */
+    status: 'source-committed' | 'cancelled' | 'superseded' | 'unavailable' | 'failed';
+}
+
+/** An exclusive session, released automatically on mod disable or failed activation. */
+export interface FoliumPlaybackSession {
+    /** Publish queue presentation and actions without fetching streams or mutating the private queue. */
+    setQueue(queue: FoliumPlaybackQueue): void;
+    /** Cancel loading and clear the current source, retaining session ownership and queue presentation. */
+    stop(): void;
+    /** Load a host-ref song without autoplay. Resolves at source assignment, cancellation or failure. */
+    play(song: FoliumSong): Promise<FoliumPlaybackStartResult>;
+    /** Set local audio time in seconds, preserving the current pause state. */
+    seek(seconds: number): void;
+    /** Release control while preserving the committed audio, position and pause state; restore the private queue with the current track if absent. Available when supportsHandoff is true. */
+    handoff?(): void;
+    /** Idempotent. Restore the previous queue stopped; clear current audio, song and lyrics. */
+    release(): void;
+}
+
+/** A confirmed personal favourite change for the still-current session queue occurrence. */
+export interface FoliumPlaybackFavoriteChange {
+    /** The host song whose personal favourite mutation succeeded. */
+    song: FoliumSong;
+    /** The mod's queue entry id, not the song's media id or host presentation key. */
+    entryId: string;
+    /** The confirmed personal favourite state; false means the favourite was removed. */
+    liked: boolean;
+}
+
+/** EXPERIMENTAL: requires manifest `playback.sessions` and permission `playback.control`. Main window only. */
+export interface FoliumPlaybackSessions {
+    /** Experimental service contract version. */
+    readonly version: 2;
+    /** Whether sessions can hand the current source back to ordinary playback without stopping it. */
+    readonly supportsHandoff?: boolean;
+    /** Whether owners may opt in to separate local auditions from queue/recommend actions. */
+    readonly supportsAudition?: boolean;
+    /** Whether owners may observe confirmed personal favourite changes for their current queue entry. */
+    readonly supportsFavoriteEvents?: true;
+    /** Resolve an online provider's opaque media ID through Omni, returning a host song ref. */
+    resolveSong(provider: string, id: string): Promise<FoliumSong>;
+    /** FM, Stage, video recording, active transitions and another session are rejected before changing playback. */
+    acquire(options: {
+        onIntent: (intent: FoliumPlaybackSessionIntent) => void | Promise<void>;
+        /** Explicit restoration policy: queue restored, current source cleared, no automatic playback. */
+        restore: 'queue-stopped';
+        /** Receive audition intents for play actions; retain room state and implement local audition/return. */
+        audition?: boolean;
+        /** Observe successful personal favourite changes only while the captured owner and current queue occurrence still match. Auditions are excluded. Rejections are reported without releasing playback or undoing the personal favourite. */
+        onFavoriteChanged?: (event: FoliumPlaybackFavoriteChange) => void | Promise<void>;
+    }): FoliumPlaybackSession;
+}
+
+/** Typed experimental surfaces; reading an undeclared name throws. */
+export interface FoliumExperimentalServices {
+    /** Opt-in external playback ownership. */
+    readonly 'playback.sessions': FoliumPlaybackSessions;
+    /** Other experimental registries retain their existing contracts. */
+    readonly [name: string]: unknown;
+}
+
 // ---------------------------------------------------------------- Services
 
 /**
@@ -943,6 +1068,8 @@ export interface FoliumPlaybackService {
     previous(): void;
     /** Plays a song by its host `ref`. Resolves false when the ref is unknown. Needs `playback.control`. */
     playSong(song: FoliumSong): Promise<boolean>;
+    /** Audition a host-ref song locally; false if an active owner does not support audition. Never enqueues. Needs `playback.control`. */
+    auditionSong(song: FoliumSong): Promise<boolean>;
     /** Appends a song (by `ref`) to the queue. Needs `playback.control`. */
     enqueue(song: FoliumSong): boolean;
     /**
@@ -990,6 +1117,8 @@ export interface FoliumUiService {
     toast(message: string, options?: { type?: 'info' | 'success' | 'error'; durationMs?: number }): void;
     /** Opens the player panel, optionally on one of this mod's panel tabs (local id). */
     openPlayerPanel(tabId?: string): void;
+    /** Open the native player queue. */
+    openQueue(): void;
     /** Switches to the home or player view. */
     navigate(view: 'home' | 'player'): void;
     /** Folium 1.3: opens the host volume panel (the command palette's volume command). */
@@ -1246,7 +1375,7 @@ export interface FoliumClientApi {
     /** Folium 1.3. */
     readonly theme: FoliumThemeHelpers;
     /** Unfrozen surfaces; each requires the matching manifest `experimental` opt-in. */
-    readonly experimental: Readonly<Record<string, unknown>>;
+    readonly experimental: Readonly<FoliumExperimentalServices>;
     /**
      * Host internals with no compatibility promise. Only available when the
      * manifest pins host versions with `"folia"`; otherwise accessing it throws.

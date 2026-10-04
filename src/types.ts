@@ -1217,6 +1217,8 @@ export interface ReplayGainInfo {
 }
 
 export interface SongResult {
+    /** Presentation-only occurrence identity for an externally owned queue; never part of media/cache identity. */
+    externalQueueEntryKey?: string;
   id: MediaId;
   name: string;
   artists: Artist[];

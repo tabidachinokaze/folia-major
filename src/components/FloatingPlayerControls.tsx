@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Square } from 'lucide-react';
+import { useExternalStopControl } from '../hooks/useExternalStopControl';
 import { MotionValue } from 'framer-motion';
 import ProgressBar from './ProgressBar';
 import { PlayerState, LyricData, Theme } from '../types';
@@ -495,6 +496,8 @@ const ExpandedView: React.FC<ExpandedViewProps> = ({
     slotSecondary,
     slotContext,
 }) => {
+    const { t } = useTranslation();
+    const stopControl = useExternalStopControl();
     return (
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Desktop Layout - responsive grid positions apply from the sm breakpoint */}
@@ -528,13 +531,16 @@ const ExpandedView: React.FC<ExpandedViewProps> = ({
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    onTogglePlay();
+                    if (stopControl) stopControl.stop();
+                    else onTogglePlay();
                 }}
-                disabled={!canTogglePlay || controlsDisabled}
+                disabled={stopControl ? stopControl.disabled : !canTogglePlay || controlsDisabled}
+                aria-label={stopControl?.label ?? (playerState === PlayerState.PLAYING ? t('player.pause') : t('player.play'))}
+                title={stopControl?.label ?? (playerState === PlayerState.PLAYING ? t('player.pause') : t('player.play'))}
                 className={`col-start-2 row-start-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-(--text-primary) text-black shadow-lg transition-transform sm:col-start-1 sm:row-start-1 sm:row-span-2 ${controlsDisabled ? 'cursor-not-allowed opacity-45' : 'hover:scale-105'}`}
                 style={{ backgroundColor: primaryColor, color: 'var(--bg-color)' }}
             >
-                {playerState === PlayerState.PLAYING ? (
+                {stopControl ? <Square size={20} fill="currentColor" /> : playerState === PlayerState.PLAYING ? (
                     <Pause size={20} fill="currentColor" />
                 ) : (
                     <Play size={20} fill="currentColor" className="ml-1" />
