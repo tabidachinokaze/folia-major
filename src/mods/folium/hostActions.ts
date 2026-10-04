@@ -1,3 +1,6 @@
+import { homeTabsRegistry } from './registries/homeTabs';
+import { useSearchNavigationStore } from '@/stores/useSearchNavigationStore';
+import { createFoliumCatalogNavigation, type FoliumCollectionNavigation } from './catalogNavigation';
 import { useEffect, useRef } from 'react';
 import type { SongResult } from '@/types';
 import { PlayerState } from '@/types';
@@ -33,6 +36,7 @@ export interface FoliumAppActions {
     enqueue: (song: SongResult) => void;
     navigateToPlayer: () => void;
     navigateToHome: () => void;
+    navigateToCollection: FoliumCollectionNavigation;
     shuffleQueue: () => void;
     toggleLike: () => void | Promise<void>;
     openVolume: () => void;
@@ -61,6 +65,9 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
     ).disabled;
 
     useEffect(() => {
+        const catalogNavigation = createFoliumCatalogNavigation(
+            (collection, origin) => actionsRef.current.navigateToCollection(collection, origin),
+        );
         registerFoliumHostActions({
             getPlaybackState: () => {
                 const state = usePlaybackStore.getState();
@@ -110,10 +117,19 @@ export const useFoliumHostActions = (actions: FoliumAppActions) => {
                 if (tab) view.setPanelTab(tab as PanelTab);
                 view.setIsPanelOpen(true);
             },
+            openHomeTab: (tab) => {
+                if (!homeTabsRegistry.list().some(entry => entry.id === tab)) throw new Error('home-tab-unavailable');
+                actionsRef.current.navigateToHome();
+                useSearchNavigationStore.getState().setHomeModTab(tab);
+            },
+            openAlbum: catalogNavigation.openAlbum,
             navigate: (target) => (target === 'player' ? actionsRef.current.navigateToPlayer() : actionsRef.current.navigateToHome()),
             openVolume: () => actionsRef.current.openVolume(),
         });
-        return () => registerFoliumHostActions(null);
+        return () => {
+            catalogNavigation.dispose();
+            registerFoliumHostActions(null);
+        };
     }, []);
 
     // playback.likeChanged follows the value getState().liked reports, whatever changed it.

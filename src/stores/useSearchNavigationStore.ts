@@ -36,6 +36,8 @@ type SearchCacheEntry = {
 
 interface SearchNavigationState {
     homeViewTab: HomeViewTab;
+    homeModTab: string | null;
+    setHomeModTab: (tab: string | null) => void;
     searchQuery: string;
     searchSourceTab: SearchSource;
     searchResults: UnifiedSong[] | null;
@@ -178,6 +180,8 @@ const getInitialHomeViewTab = (): HomeViewTab => {
 
 export const useSearchNavigationStore = create<SearchNavigationState>((set, get) => ({
     homeViewTab: getInitialHomeViewTab(),
+    homeModTab: null,
+    setHomeModTab: (tab) => set({ homeModTab: tab }),
     searchQuery: '',
     searchSourceTab: 'netease',
     searchResults: null,
@@ -196,7 +200,7 @@ export const useSearchNavigationStore = create<SearchNavigationState>((set, get)
         if (typeof window !== 'undefined') {
             localStorage.setItem(LAST_HOME_VIEW_TAB_KEY, tab);
         }
-        set({ homeViewTab: tab });
+        set({ homeViewTab: tab, homeModTab: null });
     },
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchScrollTop: (scrollTop) => set(state => {

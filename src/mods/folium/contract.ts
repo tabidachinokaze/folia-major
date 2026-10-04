@@ -767,7 +767,7 @@ export interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = Foliu
 }
 
 /**
- * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
+ * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs, homeTabs,
  * controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
  */
 export interface FoliumRegistries {
@@ -785,6 +785,8 @@ export interface FoliumRegistries {
     settingsSections: FoliumRegistry<FoliumSettingsSectionDef, FoliumSettingsSectionHandle>;
     /** Player panel tabs. */
     playerPanelTabs: FoliumRegistry<FoliumPlayerPanelTabDef>;
+    /** Full-page mod views in the home navigation capsule. */
+    homeTabs: FoliumRegistry<FoliumPlayerPanelTabDef>;
     /** Progress bar buttons. */
     controlButtons: FoliumRegistry<FoliumControlButtonDef>;
     /** Layers over the progress track. */
@@ -990,6 +992,16 @@ export interface FoliumUiService {
     toast(message: string, options?: { type?: 'info' | 'success' | 'error'; durationMs?: number }): void;
     /** Opens the player panel, optionally on one of this mod's panel tabs (local id). */
     openPlayerPanel(tabId?: string): void;
+    /** Open a mod's home tab in the top navigation capsule. */
+    openHomeTab(tabId: string): void;
+    /** Open the native player queue. */
+    openQueue(): void;
+    /**
+     * Opens an online provider's album in the native collection view, without changing
+     * playback or the active provider. False when unavailable, missing, or superseded
+     * by another navigation. Invalid arguments and provider request failures reject.
+     */
+    openAlbum(provider: string, albumId: string): Promise<boolean>;
     /** Switches to the home or player view. */
     navigate(view: 'home' | 'player'): void;
     /** Folium 1.3: opens the host volume panel (the command palette's volume command). */

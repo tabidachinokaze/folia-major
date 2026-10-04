@@ -2104,6 +2104,7 @@ export default function App() {
         enqueue: addOnlineSongToQueue,
         navigateToPlayer,
         navigateToHome,
+        navigateToCollection,
         shuffleQueue,
         toggleLike: handleLike,
         openVolume: () => commandPalette.invokeCommandById('playback-volume'),

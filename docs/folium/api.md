@@ -354,7 +354,7 @@ interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = FoliumRegist
 
 ### FoliumRegistries
 
-All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
+All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs, homeTabs,
 controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
 
 | 成员 | 类型 | 说明 |
@@ -366,6 +366,7 @@ controlButtons, progressLayers, styles) accept registrations and do nothing in t
 | `stageLayers` | `FoliumRegistry<FoliumStageLayerDef>` | Player page layers (`ui.stage`). |
 | `settingsSections` | `FoliumRegistry<FoliumSettingsSectionDef, FoliumSettingsSectionHandle>` | The mod's own settings. |
 | `playerPanelTabs` | `FoliumRegistry<FoliumPlayerPanelTabDef>` | Player panel tabs. |
+| `homeTabs` | `FoliumRegistry<FoliumPlayerPanelTabDef>` | Full-page mod views in the home navigation capsule. |
 | `controlButtons` | `FoliumRegistry<FoliumControlButtonDef>` | Progress bar buttons. |
 | `progressLayers` | `FoliumRegistry<FoliumProgressLayerDef>` | Layers over the progress track. |
 | `styles` | `FoliumRegistry<FoliumStyleDef>` | Mod CSS for public parts. |
@@ -695,6 +696,9 @@ Folium 1.2: options for `folium.ui.icon`.
 | --- | --- | --- |
 | `toast()` | `(message: string, options?: { type?: 'info' \| 'success' \| 'error'; durationMs?: number }): void` | Shows a status message. |
 | `openPlayerPanel()` | `(tabId?: string): void` | Opens the player panel, optionally on one of this mod's panel tabs (local id). |
+| `openHomeTab()` | `(tabId: string): void` | Open a mod's home tab in the top navigation capsule. |
+| `openQueue()` | `(): void` | Open the native player queue. |
+| `openAlbum()` | `(provider: string, albumId: string): Promise<boolean>` | Opens an online provider's album in the native collection view, without changing playback or the active provider. False when unavailable, missing, or superseded by another navigation. Invalid arguments and provider request failures reject. |
 | `navigate()` | `(view: 'home' \| 'player'): void` | Switches to the home or player view. |
 | `openVolume()` | `(): void` | Folium 1.3: opens the host volume panel (the command palette's volume command). |
 | `pickFile()` | `(options?: { accept?: 'video' \| 'audio' \| 'image' \| 'any'; persist?: boolean }): Promise<FoliumFileHandle \| null>` | Lets the user pick a local file; null when cancelled. With `persist` (Folium 1.1) the pick is remembered for this mod and the handle carries a `grantId` for restoreFile. |

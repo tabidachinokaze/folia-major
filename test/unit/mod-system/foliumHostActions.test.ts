@@ -1,3 +1,7 @@
+import { homeTabsRegistry } from '@/mods/folium/registries/homeTabs';
+import { createFoliumUiService } from '@/mods/folium/services';
+import { useSearchNavigationStore } from '@/stores/useSearchNavigationStore';
+import { isTextEntryTarget } from '@/utils/keyboardTargets';
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,7 +46,7 @@ const song = (id: number) => ({ id, name: `song ${id}` }) as unknown as SongResu
 const appActions = (overrides: Partial<FoliumAppActions> = {}): FoliumAppActions => ({
     play: vi.fn(), pause: vi.fn(), toggle: vi.fn(), seek: vi.fn(), seekToLyricTime: vi.fn(),
     next: vi.fn(), previous: vi.fn(), playSong: vi.fn(), enqueue: vi.fn(),
-    navigateToPlayer: vi.fn(), navigateToHome: vi.fn(),
+    navigateToPlayer: vi.fn(), navigateToHome: vi.fn(), navigateToCollection: vi.fn(),
     shuffleQueue: vi.fn(), toggleLike: vi.fn(), openVolume: vi.fn(),
     isLiked: false, controlsDisabled: false,
     ...overrides,
@@ -75,6 +79,33 @@ afterEach(() => {
 });
 
 describe('folium host actions', () => {
+    it('opens namespaced home tabs and clears selection on built-in navigation or unload', () => {
+        const actions = appActions();
+        render(actions);
+        const handle = homeTabsRegistry.register(mod.id, { id: 'messages', label: { en: 'Messages' }, mount: () => {} });
+        const ui = createFoliumUiService(mod, 'main');
+        ui.openHomeTab('messages');
+        expect(actions.navigateToHome).toHaveBeenCalled();
+        expect(useSearchNavigationStore.getState().homeModTab).toBe('mod-a:messages');
+        useSearchNavigationStore.getState().setHomeViewTab(useSearchNavigationStore.getState().homeViewTab);
+        expect(useSearchNavigationStore.getState().homeModTab).toBeNull();
+        ui.openHomeTab('messages');
+        handle.unregister();
+        expect(useSearchNavigationStore.getState().homeModTab).toBeNull();
+        expect(() => ui.openHomeTab('messages')).toThrow('home-tab-unavailable');
+    });
+    it('recognizes typing inside nested mod shadow roots', () => {
+        const host = document.createElement('div'), inner = document.createElement('div');
+        document.body.append(host);
+        host.attachShadow({ mode: 'open' }).append(inner);
+        const input = document.createElement('textarea');
+        inner.attachShadow({ mode: 'open' }).append(input);
+        input.focus();
+        expect(isTextEntryTarget(host)).toBe(true);
+        input.blur();
+        expect(isTextEntryTarget(host)).toBe(false);
+    });
+
     it('shuffles only a queue the player bar could shuffle', () => {
         const actions = appActions();
         render(actions);

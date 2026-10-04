@@ -39,6 +39,8 @@ export interface FoliumHostActions {
     toggleLike: () => boolean;
     toast: (message: string, type: 'info' | 'success' | 'error', durationMs?: number) => void;
     openPlayerPanel: (tab: string | null) => void;
+    openHomeTab: (tab: string) => void;
+    openAlbum: (provider: string, albumId: string) => Promise<boolean>;
     navigate: (view: 'home' | 'player') => void;
     openVolume: () => void;
 }
@@ -143,6 +145,19 @@ export const createFoliumUiService = (mod: ModRuntimeInfo, context: FoliumContex
     },
     openPlayerPanel: (tabId?: string) => {
         requireActions('ui', context).openPlayerPanel(tabId ? `folium:${mod.id}:${tabId}` : null);
+    },
+    openHomeTab: (tabId: string) => requireActions('ui', context).openHomeTab(`${mod.id}:${tabId}`),
+    openQueue: () => {
+        const host = requireActions('ui', context);
+        host.navigate('player');
+        host.openPlayerPanel('queue');
+    },
+    openAlbum: async (provider: string, albumId: string) => {
+        const host = requireActions('ui', context);
+        if (typeof provider !== 'string' || !provider.trim() || typeof albumId !== 'string' || !albumId.trim()) {
+            throw new TypeError('ui.openAlbum requires a provider and album id');
+        }
+        return host.openAlbum(provider.trim(), albumId.trim());
     },
     navigate: (view: 'home' | 'player') => {
         if (view !== 'home' && view !== 'player') throw new Error(`ui.navigate: unknown view "${String(view)}"`);
