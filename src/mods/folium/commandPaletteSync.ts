@@ -1,4 +1,5 @@
-import { Puzzle } from 'lucide-react';
+import React from 'react';
+import { Puzzle, type LucideIcon, type LucideProps } from 'lucide-react';
 import i18n from '@/i18n/config';
 import { COMMAND_PALETTE_COMMANDS } from '@/components/command-palette/commandRegistry';
 import type { CommandPaletteCommand } from '@/components/command-palette/types';
@@ -6,6 +7,8 @@ import type { CommandPaletteSurface } from '@/components/command-palette/surface
 import { resolveFoliumLabel } from './params';
 import type { FoliumRegistryEntry } from './registry';
 import { commandsRegistry, runFoliumCommand, type StoredFoliumCommand } from './registries/commands';
+import { FoliumPanelTabIcon } from './FoliumPanelTabIcon';
+import { normalizeFoliumIconPaths } from './icons';
 
 // src/mods/folium/commandPaletteSync.ts
 // Mirrors `folium.registries.commands` into the command palette. Kept out of
@@ -31,13 +34,22 @@ const buildPaletteCommand = (entry: FoliumRegistryEntry<StoredFoliumCommand>): C
     const { def, params } = entry.def;
     const language = i18n.language || 'en';
     const labels = Object.values(def.label ?? {}).filter((value): value is string => Boolean(value));
+    // Snapshot descriptors once per registration; all command surfaces consume
+    // the same stable component, including persisted pinned-command slots.
+    const name = typeof def.icon === 'string' ? def.icon : undefined;
+    const paths = normalizeFoliumIconPaths(def.iconPaths);
+    const icon: LucideIcon = name || paths
+        ? React.forwardRef<SVGSVGElement, LucideProps>(function FoliumCommandIcon(props, ref) {
+            return React.createElement(FoliumPanelTabIcon, { ...props, ref, name, paths });
+        })
+        : Puzzle;
     return {
         id: `${FOLIUM_COMMAND_PREFIX}${entry.id}`,
         group: 'panel',
         title: resolveFoliumLabel(def.label, language, entry.name),
         description: resolveFoliumLabel(def.description, language, entry.modId),
         textSource: 'runtime',
-        icon: Puzzle,
+        icon,
         keywords: [...labels, ...(def.keywords ?? []), entry.name, entry.modId],
         isAvailable: (context) => context?.settings.modSystemEnabled ?? true,
         ...(params.length > 0

@@ -585,6 +585,10 @@ export interface FoliumCommandDef {
     label: FoliumLabel;
     /** Shown under the name. */
     description?: FoliumLabel;
+    /** Optional command icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. */
+    icon?: string;
+    /** Optional SVG path data for a custom line icon on a 24×24 canvas. Uses currentColor and a 2px rounded stroke; valid paths take precedence over `icon`. At most 32 paths, each up to 2048 characters. */
+    iconPaths?: readonly string[];
     /** Extra search terms for the command palette (label texts are always included). */
     keywords?: string[];
     /** Shown in the mods panel and the command palette; a palette entry with params opens a form. */
@@ -679,6 +683,10 @@ export interface FoliumPlayerPanelTabDef {
     id: string;
     /** Tab title. */
     label: FoliumLabel;
+    /** Optional player-panel icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. */
+    icon?: string;
+    /** Optional SVG path data for a custom line icon on a 24×24 canvas. Uses currentColor and a 2px rounded stroke; valid paths take precedence over `icon`. At most 32 paths, each up to 2048 characters. */
+    iconPaths?: readonly string[];
     /** Tab order; default 500. */
     order?: number;
     /** Draws the tab into its container. */

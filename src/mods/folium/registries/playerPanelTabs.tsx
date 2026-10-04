@@ -6,10 +6,11 @@ import { toFoliumTheme } from '../dto';
 import { resolveFoliumLabel } from '../params';
 import { createFoliumRegistry, useFoliumRegistryEntries, type FoliumRegistryEntry } from '../registry';
 import { FoliumMountHost } from '../FoliumMountHost';
+import { normalizeFoliumIconPaths } from '../icons';
 
 // src/mods/folium/registries/playerPanelTabs.tsx
 // `folium.registries.playerPanelTabs`: extra tabs in the player panel. The host
-// adds a tab button (label from the mod, a puzzle icon) and mounts the mod's
+// adds a tab button (label and optional icon from the mod) and mounts the mod's
 // content in an isolated container when that tab is open.
 
 export const FOLIUM_PANEL_TAB_PREFIX = 'folium:';
@@ -34,6 +35,8 @@ export const useFoliumPanelTabs = () => {
         .map((entry) => ({
             id: foliumPanelTabId(entry.id),
             label: resolveFoliumLabel(entry.def.label, i18n.language, entry.name),
+            icon: typeof entry.def.icon === 'string' ? entry.def.icon : undefined,
+            iconPaths: normalizeFoliumIconPaths(entry.def.iconPaths),
         })), [entries, i18n.language]);
 };
 

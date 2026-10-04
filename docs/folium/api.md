@@ -161,6 +161,8 @@ main entry through `folium.rpc`.
 | `id` | `string` | Local id. |
 | `label` | `FoliumLabel` | Command name. |
 | `description?` | `FoliumLabel` | Shown under the name. |
+| `icon?` | `string` | Optional command icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. |
+| `iconPaths?` | `readonly string[]` | Optional SVG path data for a custom line icon on a 24×24 canvas. Uses currentColor and a 2px rounded stroke; valid paths take precedence over `icon`. At most 32 paths, each up to 2048 characters. |
 | `keywords?` | `string[]` | Extra search terms for the command palette (label texts are always included). |
 | `params?` | `FoliumParam[]` | Shown in the mods panel and the command palette; a palette entry with params opens a form. |
 | `run()` | `(ctx: FoliumCommandContext): unknown \| Promise<unknown>` | Runs the command; the result is shown as a summary (a string, `{ outputPath }` or `{ message }`). |
@@ -247,6 +249,8 @@ A tab in the player panel. `folium.ui.openPlayerPanel(id)` opens it.
 | --- | --- | --- |
 | `id` | `string` | Local id; pass it to `folium.ui.openPlayerPanel`. |
 | `label` | `FoliumLabel` | Tab title. |
+| `icon?` | `string` | Optional player-panel icon: a Lucide kebab-case name. Missing or unavailable icons use `puzzle`. |
+| `iconPaths?` | `readonly string[]` | Optional SVG path data for a custom line icon on a 24×24 canvas. Uses currentColor and a 2px rounded stroke; valid paths take precedence over `icon`. At most 32 paths, each up to 2048 characters. |
 | `order?` | `number` | Tab order; default 500. |
 | `mount` | `FoliumMount<FoliumPanelContext>` | Draws the tab into its container. |
 

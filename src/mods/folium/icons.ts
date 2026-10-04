@@ -1,4 +1,5 @@
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
+import type { LucideIcon } from 'lucide-react';
 import type { FoliumIconOptions } from './contract';
 
 // src/mods/folium/icons.ts
@@ -9,13 +10,47 @@ import type { FoliumIconOptions } from './contract';
 // icon, kept out of the PWA precache by vite.config.ts).
 
 type IconNode = Array<[tag: string, attributes: Record<string, string>]>;
-type IconModule = { __iconData?: { node?: IconNode } };
+type IconModule = { default?: LucideIcon; __iconData?: { node?: IconNode } };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const loaders = dynamicIconImports as unknown as Record<string, () => Promise<IconModule>>;
 
 /** True when `name` is a lucide icon name (kebab-case, as listed on lucide.dev). */
 export const hasFoliumIcon = (name: string): boolean => Object.hasOwn(loaders, name);
+
+const pathArity: Record<string, number> = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 0 };
+function validLinePath(path: unknown): path is string {
+    if (typeof path !== 'string' || path.length > 2048 || !/^\s*[Mm]/.test(path)
+        || !/^[MmZzLlHhVvCcSsQqTtAaEe\d\s.,+\-]+$/.test(path)) return false;
+    // Check command arity as well as the character set, so broken paths retain the fallback icon.
+    return (path.match(/[MmZzLlHhVvCcSsQqTtAa][^MmZzLlHhVvCcSsQqTtAa]*/g) ?? []).every(segment => {
+        const command = segment[0].toLowerCase();
+        const args = segment.slice(1);
+        const number = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
+        const values = (args.match(number) ?? []).map(Number);
+        if (args.replace(number, '').replace(/[\s,]/g, '') || values.some(value => !Number.isFinite(value))) return false;
+        const arity = pathArity[command];
+        if (!arity) return values.length === 0;
+        if (!values.length || values.length % arity !== 0) return false;
+        if (command === 'a') for (let index = 0; index < values.length; index += arity) {
+            if (values[index] < 0 || values[index + 1] < 0
+                || ![0, 1].includes(values[index + 3]) || ![0, 1].includes(values[index + 4])) return false;
+        }
+        return true;
+    });
+}
+
+/** Accept path data only, never SVG markup, attributes, links or executable content. */
+export function normalizeFoliumIconPaths(value: unknown): readonly string[] | undefined {
+    if (!Array.isArray(value) || !value.length || value.length > 32) return undefined;
+    if (!Array.from(value).every(validLinePath)) return undefined;
+    return Object.freeze([...value]);
+}
+
+/** The host React icon, loaded from the same per-icon chunks as `folium.ui.icon`. */
+export const loadFoliumIconComponent = async (name: string): Promise<LucideIcon | null> => (
+    typeof name === 'string' && hasFoliumIcon(name) ? (await loaders[name]()).default ?? null : null
+);
 
 const positive = (value: unknown, fallback: number) => (
     typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
