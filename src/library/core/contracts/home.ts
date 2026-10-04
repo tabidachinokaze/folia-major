@@ -50,6 +50,8 @@ export interface LibraryHomeData {
     playlists: ProviderCollection[];
     cloudPlaylist?: ProviderCollection | null;
     currentTrack?: SongResult | null;
+    /** Whether the host has a private or externally owned queue to open. */
+    hasPlaybackQueue?: boolean;
     localSongs: LocalSong[];
     localLibraryCatalog: LibraryLocalCatalogSnapshot;
     localPlaylists: LocalPlaylist[];

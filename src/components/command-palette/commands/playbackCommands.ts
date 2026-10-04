@@ -1,5 +1,6 @@
+import { RefreshCw } from 'lucide-react';
 import { PlayerState } from '../../../types';
-import { Heart, ListX, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Star, VolumeX } from 'lucide-react';
+import { Heart, ListX, Pause, Play, Square, Repeat, Shuffle, SkipBack, SkipForward, Star, VolumeX } from 'lucide-react';
 import { executeModeCommand } from './executeModeCommand';
 import { queueCommand } from './queueCommand';
 import { volumeCommand } from './volumeCommand';
@@ -52,7 +53,18 @@ export const playbackCommands: CommandPaletteCommand[] = [
     createSoundPresetCommand('custom1', 'Sound: Custom 1', 'Apply the first saved custom sound', ['custom 1', 'custom sound 1', '自定义 1', '自定义音效1', 'zidingyi1', 'zdy1']),
     createSoundPresetCommand('custom2', 'Sound: Custom 2', 'Apply the second saved custom sound', ['custom 2', 'custom sound 2', '自定义 2', '自定义音效2', 'zidingyi2', 'zdy2']),
     {
+        id: 'playback-stop',
+        group: 'playback',
+        title: 'Stop temporary playback',
+        description: 'Stop auditioning and resume the active listening session',
+        keywords: ['stop', 'audition', '停止', '试听', '返回房间'],
+        icon: Square,
+        isAvailable: context => context?.playback.canStopPlayback === true,
+        execute: (_input, context) => context.playback.stopPlayback?.() ?? false,
+    },
+    {
         id: 'playback-play',
+        isAvailable: context => !context?.playback.canStopPlayback,
         group: 'playback',
         title: 'Play',
         description: 'Start playback when paused',
@@ -67,6 +79,7 @@ export const playbackCommands: CommandPaletteCommand[] = [
     },
     {
         id: 'playback-pause',
+        isAvailable: context => !context?.playback.canStopPlayback,
         group: 'playback',
         title: 'Pause',
         description: 'Pause current playback',
@@ -116,10 +129,11 @@ export const playbackCommands: CommandPaletteCommand[] = [
         context => context.playback.toggleMute(),
         { icon: VolumeX },
     ),
-    createToggleCommand('playback-shuffle', 'playback', 'Shuffle queue', 'Shuffle current play queue', ['shuffle', '打乱', '打乱队列'], context => context.playback.shuffleQueue(), { icon: Shuffle, executeShortcut: 'r', isAvailable: context => !context?.playback.isFmMode }),
+    createToggleCommand('playback-shuffle', 'playback', 'Shuffle queue', 'Shuffle current play queue', ['shuffle', '打乱', '打乱队列'], context => context.playback.shuffleQueue(), { icon: Shuffle, executeShortcut: 'r', isAvailable: context => !context?.playback.isFmMode && !context?.playback.isExternalSession }),
+    createToggleCommand('playback-sync-queue', 'playback', 'Sync queue', 'Refresh the session queue', ['sync', '同步队列'], context => context.playback.syncQueue?.(), { icon: RefreshCw, isAvailable: context => Boolean(context?.playback.isExternalSession) }),
     {
         id: 'playback-clear-queue',
-        isAvailable: context => (context ? !context.playback.isFmMode && context.playback.queue.length > 0 : true),
+        isAvailable: context => (context ? !context.playback.isFmMode && !context.playback.isExternalSession && context.playback.queue.length > 0 : true),
         group: 'playback',
         title: 'Clear queue',
         description: 'Remove all songs from the current play queue',

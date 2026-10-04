@@ -1,3 +1,5 @@
+import { hasExternalPlayback } from '../services/externalPlaybackSession';
+import { beginPlaybackRequest, invalidatePlaybackRequest } from '../services/playbackRequest';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
 import type { MotionValue } from 'framer-motion';
@@ -208,6 +210,7 @@ export function useStagePlaybackController({
     }), [audioRef, audioSrc, cachedCoverUrl, currentLineIndex, currentSong, currentTime, duration, isFmMode, lyrics, playQueue, playerState]);
 
     const applyPlaybackSnapshot = useCallback((snapshot: PlaybackSnapshot | null) => {
+        if (hasExternalPlayback()) return;
         pendingResumeTimeRef.current = snapshot ? Math.max(0, snapshot.currentTime) : null;
         shouldAutoPlayRef.current = snapshot?.playerState === PlayerState.PLAYING;
         lastAudioRecoverySourceRef.current = null;
@@ -536,6 +539,8 @@ export function useStagePlaybackController({
     }, []);
 
     const loadStageSessionIntoPlayback = useCallback(async (session: StageMediaSession | null, options: LoadPlaybackOptions = {}) => {
+        const request = beginPlaybackRequest();
+        if (!request.isCurrent()) return;
         if (!session) {
             currentSongRef.current = null;
             resetStageLyricsClock();
@@ -559,10 +564,12 @@ export function useStagePlaybackController({
                 console.warn('[Stage] Failed to parse stage lyrics', error);
             }
         }
+        if (!request.isCurrent()) return;
         setCurrentSong(stageSong);
         setLyrics(parsedLyrics);
         setCachedCoverUrl(session.coverArtUrl || session.coverUrl || null);
         setAudioSrc(session.audioSrc);
+        request.finish('source-committed');
         setPlayQueue([]);
         setIsFmMode(false);
         pendingResumeTimeRef.current = typeof options.resumeTime === 'number'
@@ -597,6 +604,8 @@ export function useStagePlaybackController({
         session: StageLyricsSession | null,
         options: LoadPlaybackOptions = {},
     ) => {
+        const request = beginPlaybackRequest();
+        if (!request.isCurrent()) return;
         if (!session) {
             currentSongRef.current = null;
             resetStageLyricsClock();
@@ -611,6 +620,7 @@ export function useStagePlaybackController({
             console.warn('[Stage] Failed to parse stage lyrics session', error);
         }
 
+        if (!request.isCurrent()) return;
         if (!hasRenderableLyrics(parsedLyrics)) {
             resetStageLyricsClock();
             clearPlaybackSurface();
@@ -635,6 +645,7 @@ export function useStagePlaybackController({
         setIsFmMode(false);
         setIsLyricsLoading(false);
         setLyrics(parsedLyrics);
+        request.finish('source-committed');
         currentTime.set(initialTime);
         setCurrentLineIndex(nextLineIndex);
         setDuration(endTimeSec);
@@ -668,6 +679,8 @@ export function useStagePlaybackController({
         lyricPayload: NowPlayingLyricPayload | null,
         requestId: number,
     ) => {
+        const request = beginPlaybackRequest();
+        if (!request.isCurrent()) return;
         const durationSec = Math.max(0, (track?.durationMs ?? lyricPayload?.durationMs ?? 0) / 1000);
         if (isDev) {
             console.log('[NowPlaying][App] loadNowPlayingIntoPlayback', {
@@ -691,7 +704,7 @@ export function useStagePlaybackController({
             }
         }
 
-        if (nowPlayingContentLoadRequestIdRef.current !== requestId) {
+        if (!request.isCurrent() || nowPlayingContentLoadRequestIdRef.current !== requestId) {
             return;
         }
 
@@ -722,6 +735,7 @@ export function useStagePlaybackController({
         setIsFmMode(false);
         setIsLyricsLoading(false);
         setLyrics(renderableLyrics);
+        request.finish('source-committed');
         setDuration(resolvedDurationSec);
 
         const displayTimeSec = clampNowPlayingTimeSec(getNowPlayingDisplayTime(), resolvedDurationSec);
@@ -755,6 +769,7 @@ export function useStagePlaybackController({
     ]);
 
     const restoreStagePlaybackHandoff = useCallback(async (handoff: WindowPlaybackHandoff) => {
+        if (hasExternalPlayback()) return;
         const nextStageStatus = handoff.stage.status;
         const stageSnapshot = handoff.stage.playback ?? handoff.activePlayback;
         mainPlaybackSnapshotRef.current = handoff.mainPlayback;
@@ -869,10 +884,15 @@ export function useStagePlaybackController({
     }, []);
 
     const openStagePlayer = useCallback(async () => {
+        if (hasExternalPlayback()) {
+            setStatusMsg({ type: 'info', text: t('status.externalPlaybackActive') });
+            return;
+        }
         if ((stageSource === 'now-playing' || stageSource === 'playercap') && activePlaybackContext === 'stage') {
             navigateToPlayer();
             return;
         }
+        invalidatePlaybackRequest();
 
         if (activePlaybackContext === 'main') {
             mainPlaybackSnapshotRef.current = buildPlaybackSnapshot();
@@ -958,9 +978,8 @@ export function useStagePlaybackController({
     ]);
 
     const leaveStagePlayback = useCallback(() => {
-        if (activePlaybackContext !== 'stage') {
-            return;
-        }
+        if (hasExternalPlayback() || activePlaybackContext !== 'stage') return;
+        invalidatePlaybackRequest();
 
         if (stageSource === 'now-playing' || stageSource === 'playercap') {
             stagePlaybackSnapshotRef.current = null;
@@ -975,6 +994,7 @@ export function useStagePlaybackController({
     }, [activePlaybackContext, applyPlaybackSnapshot, buildPlaybackSnapshot, clearMainPlaybackContext, setActivePlaybackContext, stageSource]);
 
     const interruptStagePlaybackForMainTransition = useCallback(() => {
+        if (hasExternalPlayback()) return null;
         if (activePlaybackContext !== 'stage') {
             return null;
         }
@@ -1286,7 +1306,7 @@ export function useStagePlaybackController({
     }, [activePlaybackContext, stageSource]);
 
     useEffect(() => {
-        if (!isNowPlayingStageActive) {
+        if (hasExternalPlayback() || !isNowPlayingStageActive) {
             return;
         }
 
@@ -1296,7 +1316,7 @@ export function useStagePlaybackController({
 
     // PlayerCap → main playback pane (passive mirror). Lyrics are already LyricData (no parsing); cover/duration/track update with each event, audio is left empty so <audio> does not hijack the clock.
     useEffect(() => {
-        if (stageSource !== 'playercap' || activePlaybackContext !== 'stage') {
+        if (hasExternalPlayback() || stageSource !== 'playercap' || activePlaybackContext !== 'stage') {
             return;
         }
         const track = playerCapState.track;
@@ -1356,7 +1376,7 @@ export function useStagePlaybackController({
     ]);
 
     useEffect(() => {
-        if (!isPlayerCapStageActive) {
+        if (hasExternalPlayback() || !isPlayerCapStageActive) {
             return;
         }
         const nextPlayerState = playerCapState.playerState === 'playing' ? PlayerState.PLAYING : PlayerState.PAUSED;

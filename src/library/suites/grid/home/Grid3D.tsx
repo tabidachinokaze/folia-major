@@ -45,6 +45,7 @@ interface Grid3DProps {
     playlists: ProviderCollection[];
     cloudPlaylist?: ProviderCollection | null;
     currentTrack?: SongResult | null;
+    hasPlaybackQueue?: boolean;
     localSongs: LocalSong[];
     localLibraryCatalog: LibraryLocalCatalogSnapshot;
     localPlaylists: LocalPlaylist[];
@@ -100,6 +101,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         playlists,
         cloudPlaylist = null,
         currentTrack,
+        hasPlaybackQueue = Boolean(currentTrack),
         localSongs,
         localLibraryCatalog,
         localPlaylists,
@@ -435,10 +437,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                     </button>
                                 )}
                                 {/* 播放队列的海报视图和 Stage 一样属于「去哪儿」，所以它在这一排，
-                                    而不是标题旁的工具图标。没有在播歌曲时队列也是空的，直接不出现。
+                                    而不是标题旁的工具图标。没有在播歌曲且没有外部会话时，直接不出现。
                                     平时只占一个图标的宽度，指针悬停或键盘聚焦时才展开文字——这一排
                                     已经有五个内容 tab，多一个常驻文字就把胶囊撑得太长。点击始终直达。 */}
-                                {onOpenLattice && currentTrack && (
+                                {onOpenLattice && hasPlaybackQueue && (
                                     <button
                                         onClick={onOpenLattice}
                                         data-testid="home-lattice-pill"

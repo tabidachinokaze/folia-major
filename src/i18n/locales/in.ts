@@ -198,6 +198,7 @@ export default {
     "aiThemeGeneratedCustomPreferred": "Tema AI dibuat, tapi tema kustom tetap diutamakan"
   },
   "status": {
+    "externalPlaybackActive": "Sesi pemutaran eksternal sedang aktif. Gunakan kontrol sesi atau keluar dari sesi terlebih dahulu.",
     "playerChromeAlwaysHidden": "Antarmuka akan tetap tersembunyi",
     "playerChromeAlwaysVisible": "Antarmuka akan tetap terlihat",
     "playerChromeAutoHide": "Antarmuka akan otomatis tersembunyi",
@@ -594,6 +595,7 @@ export default {
       "mods": { "title": "Mod (Eksperimental)", "description": "Eksperimental: kelola mod dan ekspor video lirik transparan" },
       "playback-play": { "title": "Putar", "description": "Mulai pemutaran saat jeda" },
       "playback-pause": { "title": "Jeda", "description": "Jeda pemutaran saat ini" },
+      "playback-stop": { "title": "Hentikan pratinjau", "description": "Hentikan pratinjau dan kembali ke sesi mendengarkan" },
       "playback-next": { "title": "Lagu berikutnya", "description": "Putar lagu berikutnya" },
       "queue-keep-open": { "title": "Biarkan palet antrean terbuka", "description": "Ubah apakah palet perintah tetap terbuka setelah memilih lagu antrean" },
       "playback-prev": { "title": "Lagu sebelumnya", "description": "Putar lagu sebelumnya" },
@@ -602,6 +604,7 @@ export default {
       "playback-add-to-playlist": { "title": "Tambahkan ke daftar putar", "description": "Masukkan lagu ini ke salah satu daftar putar Anda" },
       "playback-mute": { "title": "Bisukan", "description": "Bisukan pemutaran, atau kembalikan suaranya" },
       "playback-shuffle": { "title": "Acak antrean", "description": "Acak antrean putar saat ini" },
+      "playback-sync-queue": { "title": "Sinkronkan antrean", "description": "Perbarui antrean sesi saat ini" },
       "playback-clear-queue": { "title": "Kosongkan antrean", "description": "Hapus semua lagu dari antrean putar saat ini" },
       "theme-generate-current": { "title": "Buat tema AI", "description": "Buat tema AI untuk lagu saat ini" },
       "theme-quick-editor": { "title": "Editor tema cepat", "description": "Edit cepat tema AI untuk lagu saat ini" },

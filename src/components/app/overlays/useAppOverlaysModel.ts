@@ -1,3 +1,4 @@
+import { useExternalQueuePresentation } from '../../../hooks/useExternalQueuePresentation';
 import { useMemo } from 'react';
 import { currentTime, lyricCurrentTime } from '../../../stores/motionSignals';
 import { useAppViewStore } from '../../../stores/useAppViewStore';
@@ -31,6 +32,7 @@ const MEMORY_MONITOR_SHORTCUT_LABEL = 'Alt+Shift+M';
  * alone.
  */
 export const useAppOverlaysModel = (deps: AppOverlaysDeps): AppOverlaysModel => {
+    const external = useExternalQueuePresentation();
     const { t } = useTranslation();
     const currentView = useAppViewStore(state => state.view);
     const isPlayerChromeHidden = useAppChromeStore(state => state.isPlayerChromeHidden);
@@ -56,7 +58,7 @@ export const useAppOverlaysModel = (deps: AppOverlaysDeps): AppOverlaysModel => 
     const displayPlayerState = usePlaybackStore(selectDisplayPlayerState);
     const playerControlSlotContext = useMemo(() => ({
         onShuffle: deps.shuffleQueue,
-        canShuffle: !isFmMode && playQueue.length > 1,
+        canShuffle: !external.active && !isFmMode && playQueue.length > 1,
         onLike: deps.handleLike,
         isLiked: deps.isDisplaySongLiked,
         likeDisabled: resolveLikeAvailability(
@@ -68,6 +70,7 @@ export const useAppOverlaysModel = (deps: AppOverlaysDeps): AppOverlaysModel => 
         canInvokeCommandById: deps.canInvokeCommandById,
     }), [
         activePlaybackContext,
+        external.active,
         deps.canInvokeCommandById,
         deps.handleLike,
         deps.invokeCommandById,
@@ -81,6 +84,8 @@ export const useAppOverlaysModel = (deps: AppOverlaysDeps): AppOverlaysModel => 
 
     return useMemo(() => buildAppOverlaysModel({
         ...deps,
+        externalCanNext: external.active ? external.canNext : undefined,
+        externalCanPrevious: external.active ? external.canPrevious : undefined,
         currentView,
         isSearchOpen,
         isDaylight,
@@ -117,6 +122,9 @@ export const useAppOverlaysModel = (deps: AppOverlaysDeps): AppOverlaysModel => 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [
         ...Object.values(deps),
+        external.active,
+        external.canNext,
+        external.canPrevious,
         currentView,
         isSearchOpen,
         isDaylight,

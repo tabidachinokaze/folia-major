@@ -32,6 +32,8 @@ export interface FoliumHostActions {
     previous: () => void;
     /** Resolves a song ref and plays it; false when the ref is unknown. */
     playSongRef: (ref: string) => Promise<boolean>;
+    /** Starts a local audition without enqueueing or recommending to a session. */
+    auditionSongRef: (ref: string) => Promise<boolean>;
     enqueueSongRef: (ref: string) => boolean;
     /** False when the queue cannot be shuffled right now. */
     shuffleQueue: () => boolean;
@@ -93,6 +95,7 @@ export const createFoliumPlaybackService = (mod: ModRuntimeInfo, context: Folium
         next: () => control().next(),
         previous: () => control().previous(),
         playSong: async (song: FoliumSong) => control().playSongRef(requireRef(song)),
+        auditionSong: async (song: FoliumSong) => control().auditionSongRef(requireRef(song)),
         enqueue: (song: FoliumSong) => control().enqueueSongRef(requireRef(song)),
         shuffleQueue: () => control().shuffleQueue(),
         toggleLike: () => control().toggleLike(),
@@ -143,6 +146,11 @@ export const createFoliumUiService = (mod: ModRuntimeInfo, context: FoliumContex
     },
     openPlayerPanel: (tabId?: string) => {
         requireActions('ui', context).openPlayerPanel(tabId ? `folium:${mod.id}:${tabId}` : null);
+    },
+    openQueue: () => {
+        const host = requireActions('ui', context);
+        host.navigate('player');
+        host.openPlayerPanel('queue');
     },
     navigate: (view: 'home' | 'player') => {
         if (view !== 'home' && view !== 'player') throw new Error(`ui.navigate: unknown view "${String(view)}"`);

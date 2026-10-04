@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import GridViewOverlayHost from '../../library/app/GridViewOverlayHost';
 import LibraryAccountHost from '../../library/app/LibraryAccountHost';
 import { createLibraryAccountLayer } from '../../library/app/libraryAccountLayer';
@@ -8,6 +8,7 @@ import { useLibraryDirectoryBatchController } from '../../library/app/useLibrary
 import { useLibraryHomeResources } from '../../library/app/useLibraryHomeResources';
 import type { HomeViewModel } from './home/buildHomeModel';
 import { countRender } from '../../dev/renderCount';
+import { hasExternalPlayback, subscribeExternalPlayback } from '../../services/externalPlaybackSession';
 
 // App-level entry for the home surface backed by a view model.
 // 首页 surface 经 Library registry 解析：选中的 suite 实现了首页就用它，否则回退默认 suite（网格的 Grid3D）。
@@ -20,6 +21,7 @@ type AppHomeProps = {
 
 const Home: React.FC<AppHomeProps> = ({ model, isHomeFullyHidden, isInteractive = true }) => {
     countRender('Home');
+    const hasExternalQueue = useSyncExternalStore(subscribeExternalPlayback, hasExternalPlayback, () => false);
     // 只在切换 suite 时变（开发版浮层）；同一个回退结果是同一个组件，首页不会因此重新挂载。
     const suiteId = useLibrarySuiteStore(state => state.suite);
     // 目录批量动作（本地文件夹 / 专辑 / 歌手的播放、入队、建歌单、删除、重扫）：首页一个控制器，不随渲染重建。
@@ -50,6 +52,7 @@ const Home: React.FC<AppHomeProps> = ({ model, isHomeFullyHidden, isInteractive 
                     <React.Suspense fallback={null}>
                         <HomeSurface
                             {...model.surfaceProps}
+                            hasPlaybackQueue={Boolean(model.surfaceProps.currentTrack) || hasExternalQueue}
                             account={model.account}
                             accountLayerRef={accountLayer.attach}
                             onOpenGridView={openGridView}
