@@ -7,6 +7,16 @@ import { resolveFoliumLabel } from '@/mods/folium/params';
 // src/components/shared/ExternalQueueActions.tsx
 // Shared by the native list, command results, collage and configured shuffle slot.
 const icons = { 'refresh-cw': RefreshCw, 'trash-2': Trash2, 'arrow-up-to-line': ArrowUpToLine, 'thumbs-up': ThumbsUp, square: Square };
+/** Subscribe independently so nickname changes do not rebuild song identity or the poster wall. */
+export function ExternalQueueOverline({ entryKey, className = 'text-[10px] leading-3' }: {
+    entryKey?: string; className?: string;
+}) {
+    const { i18n } = useTranslation();
+    const overline = useExternalQueueStore(state => entryKey ? state.view?.items.get(entryKey)?.overline : undefined);
+    const label = resolveFoliumLabel(overline, i18n.language, '').trim();
+    return label ? <span data-session-overline={entryKey} title={label}
+        className={`block min-w-0 truncate opacity-60 ${className}`}>{label}</span> : null;
+}
 export function ExternalQueueActions({ entryKey = null, className = '', size = 14 }: {
     entryKey?: string | null; className?: string; size?: number;
 }) {

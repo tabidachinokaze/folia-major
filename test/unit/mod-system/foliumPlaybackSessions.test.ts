@@ -213,6 +213,41 @@ describe('experimental playback.sessions', () => {
         expect(() => lease.setQueue({ ...vote(1), entries: [vote(1).entries[0], vote(1).entries[0]] })).toThrow('invalid-queue-entry');
         expect(useExternalQueueStore.getState().view).toBe(after);
     });
+    it('keeps localized overlines on each occurrence without changing media or queue identity', () => {
+        const lease = createFoliumPlaybackSessions(mod()).acquire(options());
+        const track = { id: 'song', source: 'netease', title: 'Repeated', artist: 'Artist' };
+        const firstLabel = { en: 'Alice', 'zh-CN': '小明' };
+        const input = { entries: [
+            { id: 'a', track, overline: firstLabel, actions: [] },
+            { id: 'b', track, overline: { en: 'Bob' }, actions: [] },
+        ], currentId: 'a', canNext: true };
+        lease.setQueue(input);
+        const before = useExternalQueueStore.getState().view!;
+        const keys = before.queue.map(getQueueSongKey);
+        expect(before.items.get(keys[0])?.overline).toEqual({ en: 'Alice', 'zh-CN': '小明' });
+        expect(before.items.get(keys[1])?.overline).toEqual({ en: 'Bob' });
+        firstLabel.en = 'Renamed';
+        expect(before.items.get(keys[0])?.overline?.en).toBe('Alice');
+        lease.setQueue(input);
+        const updated = useExternalQueueStore.getState().view!;
+        expect(updated.queue).toBe(before.queue);
+        expect(updated.currentSong).toBe(before.currentSong);
+        expect(updated.items.get(keys[0])?.overline?.en).toBe('Renamed');
+        expect(updated.items.get(keys[1])).toBe(before.items.get(keys[1]));
+        lease.setQueue({ ...input, entries: input.entries.map(({ overline: _overline, ...entry }) => entry) });
+        const removed = useExternalQueueStore.getState().view!;
+        expect(removed.items.get(keys[0])?.overline).toBeUndefined();
+        expect(removed.queue).toBe(before.queue);
+    });
+    it.each([null, 'Name', ['Name'], { en: 1 }])('rejects invalid overlines (%j) without publishing a partial queue', overline => {
+        const lease = createFoliumPlaybackSessions(mod()).acquire(options());
+        const entry = { id: 'a', track: { id: 'song', source: 'qq', title: 'Song', artist: 'Artist' }, actions: [] };
+        lease.setQueue({ entries: [entry], currentId: 'a', canNext: true });
+        const before = useExternalQueueStore.getState().view;
+        expect(() => lease.setQueue({ entries: [{ ...entry, overline: overline as never }], currentId: 'a', canNext: true }))
+            .toThrow('invalid-queue-overline');
+        expect(useExternalQueueStore.getState().view).toBe(before);
+    });
     it('stops an in-flight source without releasing queue ownership', async () => {
         host.play.mockImplementationOnce(() => new Promise(() => {}));
         const lease = createFoliumPlaybackSessions(mod()).acquire(options());

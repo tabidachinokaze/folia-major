@@ -1,4 +1,4 @@
-import { ExternalQueueActions } from '../shared/ExternalQueueActions';
+import { ExternalQueueActions, ExternalQueueOverline } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { ListEnd, ListPlus, Trash2 } from 'lucide-react';
 import type { RowComponentProps } from 'react-window';
@@ -86,6 +86,7 @@ const CommandPaletteQueueRow = ({
                         #{queueIndex + 1}
                     </span>
                     <span className="min-w-0 flex-1">
+                        {song.externalQueueEntryKey && <ExternalQueueOverline entryKey={song.externalQueueEntryKey} />}
                         <span className="flex items-center gap-2">
                             <span className="truncate text-sm font-medium">{song.name}</span>
                             {unavailable && (

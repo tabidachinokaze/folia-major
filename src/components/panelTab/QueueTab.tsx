@@ -1,5 +1,5 @@
 import { useExternalQueuePresentation } from '../../hooks/useExternalQueuePresentation';
-import { ExternalQueueActions, ExternalQueueSummary } from '../shared/ExternalQueueActions';
+import { ExternalQueueActions, ExternalQueueOverline, ExternalQueueSummary } from '../shared/ExternalQueueActions';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { List, useListRef, type RowComponentProps } from 'react-window';
@@ -79,6 +79,7 @@ const QueueRow = ({
         >
             <div className={`w-1 h-6 rounded-full ${isActive ? activeMarkerClass : 'bg-transparent'}`} />
             <div className="min-w-0 flex-1">
+                {song.externalQueueEntryKey && <ExternalQueueOverline entryKey={song.externalQueueEntryKey} />}
                 <div className="text-xs font-medium truncate">
                     {song.name}
                     {isUnavailable && (
@@ -136,7 +137,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
     const external = useExternalQueuePresentation();
     const playQueue = external.queue ?? personalQueue;
     const currentSong = external.active ? external.currentSong ?? null : personalCurrentSong;
-    const ITEM_HEIGHT = 50;
+    const ITEM_HEIGHT = external.active ? 60 : 50;
     const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
     // Adjust container height calculation if needed, or rely on flex
     // previously CONTAINER_HEIGHT = 200 was passed to List. 

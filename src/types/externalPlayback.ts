@@ -40,6 +40,8 @@ export interface ExternalQueueAction {
 export interface ExternalQueueItem {
     id: string;
     song: SongResult;
+    /** Localized plain-text occurrence metadata, separate from the media identity. */
+    overline?: Record<string, string | undefined>;
     actions: readonly ExternalQueueAction[];
     defaultAction?: string;
 }

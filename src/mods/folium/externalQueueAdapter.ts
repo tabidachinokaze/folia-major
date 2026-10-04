@@ -33,6 +33,9 @@ export function createExternalQueueAdapter(owner: symbol) {
                 || typeof track.id !== 'string' || !track.id || typeof track.source !== 'string' || !track.source
                 || typeof track.title !== 'string' || typeof track.artist !== 'string'
                 || (track.duration !== undefined && (!Number.isFinite(track.duration) || track.duration < 0))) throw new Error('invalid-queue-entry');
+            if (entry.overline !== undefined && (!entry.overline || typeof entry.overline !== 'object' || Array.isArray(entry.overline)
+                || Object.values(entry.overline).some(text => text !== undefined && typeof text !== 'string')))
+                throw new Error('invalid-queue-overline');
             ids.add(entry.id);
             const key = prefix + entry.id, old = previous?.items.get(key);
             const resolved = resolveFoliumSongRef(track.ref);
@@ -50,8 +53,11 @@ export function createExternalQueueAdapter(owner: symbol) {
             const song = old && equal(old.song, candidate) ? old.song : candidate;
             const entryActions = actions(entry.actions);
             if (entry.defaultAction && !entryActions.some(action => action.id === entry.defaultAction)) throw new Error('invalid-queue-default-action');
-            const item = { id: entry.id, song, actions: entryActions, defaultAction: entry.defaultAction };
-            items.set(key, old && old.song === song && equal(old.actions, entryActions) && old.defaultAction === entry.defaultAction ? old : item);
+            const overline = old && equal(old.overline, entry.overline) ? old.overline
+                : entry.overline ? { ...entry.overline } : undefined;
+            const item = { id: entry.id, song, overline, actions: entryActions, defaultAction: entry.defaultAction };
+            items.set(key, old && old.song === song && equal(old.actions, entryActions) && equal(old.overline, overline)
+                && old.defaultAction === entry.defaultAction ? old : item);
             return song;
         });
         if (input.currentId !== null && !ids.has(input.currentId)) throw new Error('queue-current-entry-missing');

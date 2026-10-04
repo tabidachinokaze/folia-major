@@ -11,6 +11,7 @@ import { useLatticeExpansionSettled } from './useLatticeExpansionSettled';
 import { prewarmLatticeLyrics } from './lyrics/prewarmLatticeLyrics';
 import { prewarmLatticePosterArtwork, useLatticePosterArtwork } from './useLatticePosterArtwork';
 import { countRender } from '../../../dev/renderCount';
+import { ExternalQueueOverline } from '../../shared/ExternalQueueActions';
 
 // Renders one poster and its expanded Player Chrome controls.
 const LatticeLyrics = lazy(() => import('./lyrics/LatticeLyrics'));
@@ -234,11 +235,16 @@ function LatticePoster({
                 {isCurrent && <>{t('home.latticeBadgeNow')} · </>}
                 {String(tile.queueIndex + 1).padStart(2, '0')}
             </span>
+            {expanded && expansionSettled && isCurrent && tile.song.externalQueueEntryKey &&
+                <ExternalQueueOverline entryKey={tile.song.externalQueueEntryKey}
+                    className="absolute top-12 left-[22px] right-[22px] text-xs leading-4" />}
             {expanded && expansionSettled && isCurrent ? (
                 <Suspense fallback={<span className="lattice-poster-copy"><LatticeTitle title={tile.title} expanded={expanded} targetPosterWidth={rect.width} /><small>{tile.artist}</small></span>}>
                     <LatticeLyrics key={tile.id} tile={tile} reducedMotion={Boolean(reducedMotion)} />
                 </Suspense>
             ) : <span className="lattice-poster-copy">
+                {tile.song.externalQueueEntryKey && <ExternalQueueOverline entryKey={tile.song.externalQueueEntryKey}
+                    className="text-xs leading-4" />}
                 {/* `rect` is the slot the card is heading for, in world units, so the title is fitted
                     against its final column before the spring has moved it there. */}
                 <LatticeTitle title={tile.title} expanded={expanded} targetPosterWidth={rect.width} />

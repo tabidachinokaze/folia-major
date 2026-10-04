@@ -672,10 +672,11 @@ A queue occurrence. Its identity is separate from its media id, so repeated trac
 | --- | --- | --- |
 | `id` | `string` | Unique id within the session, never the list index. |
 | `track` | `{ id: string; source: string; title: string; artist: string; album?: string \| null; coverUrl?: string; duration?: number; ref?: string \| null }` | Presentation metadata; duration is in seconds. An optional host ref supplies richer metadata. |
+| `overline?` | `FoliumLabel` | Optional plain-text line above the title, such as the recommender's name. The host resolves its locale and renders text only, never HTML. |
 | `actions` | `readonly FoliumQueueAction[]` | Replaces native remove/reorder buttons for this occurrence. |
 | `defaultAction?` | `string` | Optional row activation action. Without it, selecting the row does not start local playback. |
 
-相关：[FoliumQueueAction](#foliumqueueaction)
+相关：[FoliumLabel](#foliumlabel) · [FoliumQueueAction](#foliumqueueaction)
 
 ### FoliumPlaybackQueue
 

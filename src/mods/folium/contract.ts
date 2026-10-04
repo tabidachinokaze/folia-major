@@ -930,6 +930,8 @@ export interface FoliumQueueEntry {
     id: string;
     /** Presentation metadata; duration is in seconds. An optional host ref supplies richer metadata. */
     track: { id: string; source: string; title: string; artist: string; album?: string | null; coverUrl?: string; duration?: number; ref?: string | null };
+    /** Optional plain-text line above the title, such as the recommender's name. The host resolves its locale and renders text only, never HTML. */
+    overline?: FoliumLabel;
     /** Replaces native remove/reorder buttons for this occurrence. */
     actions: readonly FoliumQueueAction[];
     /** Optional row activation action. Without it, selecting the row does not start local playback. */
