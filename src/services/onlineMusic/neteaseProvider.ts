@@ -535,7 +535,16 @@ export const neteaseProvider: OnlineMusicProvider = {
     },
     mutations: {
         async likeSong(song, liked) {
-            await neteaseApi.likeSong(toNeteaseId(typeof song === 'object' ? song.id : song), liked);
+            const response = await neteaseApi.likeSong(toNeteaseId(typeof song === 'object' ? song.id : song), liked);
+            // The transport returns business-error JSON too. Only a confirmed mutation may
+            // update the personal library or notify an external playback session.
+            const code = Number(response?.code);
+            if ([301, 302, 401, 403].includes(code)) {
+                throw new OnlineProviderError('auth-required', 'NetEase rejected the favourite change: not signed in', 'netease');
+            }
+            if (code !== 200) {
+                throw new OnlineProviderError('unavailable', `NetEase did not confirm the favourite change (code ${response?.code})`, 'netease');
+            }
         },
         async updatePlaylistTracks(operation, playlist, tracks) {
             const playlistId = typeof playlist === 'object' ? playlist.id : playlist;
