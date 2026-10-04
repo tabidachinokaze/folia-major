@@ -111,6 +111,7 @@ describe('neteaseProvider', () => {
             hotAlbums: [{
                 id: 7,
                 name: 'Album',
+                type: '专辑',
                 picUrl: 'https://example.test/album.jpg',
                 artist: { id: 9, name: 'Artist' },
                 alias: ['Alias'],
@@ -123,12 +124,33 @@ describe('neteaseProvider', () => {
         const page = await neteaseProvider.catalog!.getArtistAlbums!(9, 10, 0);
         expect(page.items[0]).toMatchObject({
             id: 7,
+            type: 'album',
             coverUrl: 'https://example.test/album.jpg',
             artists: [{ id: 9, name: 'Artist' }],
             aliases: ['Alias'],
             publishedAt: 1704067200000,
             publisher: 'Publisher',
         });
+    });
+
+    it.each(['专辑', 'EP/Single', '精选集'])('keeps release format %s out of the album collection kind', async format => {
+        vi.mocked(neteaseApi.getAlbum).mockResolvedValue({
+            album: { id: 32311, name: '神的游戏', type: format, size: 9 },
+            songs: [],
+        } as any);
+        await expect(neteaseProvider.catalog!.getAlbumDetail!(32311)).resolves.toMatchObject({
+            providerId: 'netease', id: 32311, name: '神的游戏', type: 'album', trackCount: 9,
+        });
+    });
+
+    it('preserves cached canonical collection kinds but not provider numeric type codes', () => {
+        const normalize = neteaseProvider.normalizeCollection!;
+        for (const kind of ['album', 'artist', 'playlist', 'cloud', 'radio']) {
+            expect(normalize({ id: 7, name: 'Collection', type: kind }).type).toBe(kind);
+        }
+        expect(normalize({ id: 7, name: 'Playlist', type: 1 }).type).toBe('playlist');
+        expect(normalize({ id: 7, name: 'Cloud', specialType: 'cloud' }).type).toBe('cloud');
+        expect(normalize({ id: 7, name: 'Album', type: '专辑' }, 'album').type).toBe('album');
     });
 
     it('normalizes artist and full album biographies into the unified description field', async () => {
