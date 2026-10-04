@@ -1,7 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { SlidersHorizontal } from 'lucide-react';
+import SettingsSectionHeading from '@/components/modal/settings/navigation/SettingsSectionHeading';
+import { settingsCardClassFor } from '@/components/modal/settings/settingsCardClasses';
 import type { FoliumParam } from './contract';
 import { formatFoliumParamNumber, resolveFoliumLabel, resolveFoliumParamStep, sanitizeFoliumParams } from './params';
+import { FoliumSettingsField, type FoliumSettingsLayout } from './FoliumSettingsField';
 
 // src/mods/folium/FoliumParamFields.tsx
 // The one param-form implementation in the mod system. Every schema-backed
@@ -39,6 +43,8 @@ interface FoliumParamFieldsProps {
     values: Readonly<Record<string, unknown>>;
     disabled?: boolean;
     token: FoliumParamFieldToken;
+    /** Native settings rows; compact command and effect forms retain their tokens. */
+    settingsLayout?: FoliumSettingsLayout;
     /** Renders the boolean toggle labels; defaults to the shared on/off keys. */
     booleanLabels?: { on: string; off: string };
     onChange: (param: FoliumParam, value: unknown) => void;
@@ -157,6 +163,7 @@ export const FoliumParamFields: React.FC<FoliumParamFieldsProps> = ({
     values,
     disabled = false,
     token,
+    settingsLayout,
     booleanLabels,
     onChange,
 }) => {
@@ -168,6 +175,32 @@ export const FoliumParamFields: React.FC<FoliumParamFieldsProps> = ({
         () => groupParams(sanitizeFoliumParams(params), i18n.language),
         [params, i18n.language],
     );
+
+    if (settingsLayout) {
+        return (
+            <div className="space-y-5">
+                {groups.map((group, index) => (
+                    <div key={group.title ?? `__ungrouped_${index}`}>
+                        {group.title ? <SettingsSectionHeading icon={SlidersHorizontal} label={group.title} /> : null}
+                        <div className={`rounded-xl border overflow-hidden ${settingsCardClassFor(settingsLayout.isDaylight)}`}>
+                            {group.params.map((param, fieldIndex) => (
+                                <FoliumSettingsField
+                                    key={param.key}
+                                    {...settingsLayout}
+                                    param={param}
+                                    value={values[param.key]}
+                                    disabled={disabled}
+                                    isLast={fieldIndex === group.params.length - 1}
+                                    language={i18n.language}
+                                    onChange={onChange}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
     return (
         <>

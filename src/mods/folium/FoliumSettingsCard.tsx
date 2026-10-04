@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RotateCcw, Settings2 } from 'lucide-react';
 import type { Theme } from '@/types';
+import SettingsSectionHeading from '@/components/modal/settings/navigation/SettingsSectionHeading';
 import { colorWithAlpha } from '@/components/visualizer/colorMix';
 import type { FoliumLabel, FoliumMount, FoliumParam, FoliumParamAccess, FoliumSettingsPanelContext } from './contract';
 import { toFoliumTheme } from './dto';
@@ -126,6 +128,38 @@ export const FoliumSettingsCard: React.FC<FoliumSettingsCardProps> = ({
     }), [theme, isDaylight, rangeInputClass, fieldBg, fieldBorder]);
 
     const handleChange = (param: FoliumParam, value: unknown) => access.set({ [param.key]: value });
+
+    if (entryKind === 'settings-section' && !customPanel) {
+        return (
+            <section {...foliumEntryAttributes(modId, entryKind, entryId)}>
+                <SettingsSectionHeading
+                    icon={Settings2}
+                    label={resolveFoliumLabel(title, i18n.language, fallbackTitle)}
+                    action={(
+                        <button
+                            type="button"
+                            onClick={() => access.reset()}
+                            className="flex items-center gap-1.5 shrink-0 text-xs opacity-60 hover:opacity-100"
+                            style={{ color: 'var(--text-secondary)' }}
+                        >
+                            <RotateCcw size={13} />
+                            {t('options.modVisualizerSettingsReset')}
+                        </button>
+                    )}
+                />
+                {description ? (
+                    <p className="mb-4 text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+                ) : null}
+                <FoliumParamFields
+                    params={access.schema}
+                    values={values}
+                    token={token}
+                    settingsLayout={{ theme, isDaylight, rangeInputClass }}
+                    onChange={handleChange}
+                />
+            </section>
+        );
+    }
 
     return (
         <div
