@@ -1,3 +1,4 @@
+import { discardPlaybackWindowResumeForMod, onPlaybackWindowResume } from '@/services/externalPlaybackWindowResume';
 import { getPlaybackSongKey } from '@/utils/appPlaybackGuards';
 import { createExternalQueueAdapter } from './externalQueueAdapter';
 import { clearExternalQueue, setExternalQueue } from '@/services/externalPlaybackQueue';
@@ -43,6 +44,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
     };
     registerFoliumServiceDisposer(mod.id, () => {
         active = false;
+        discardPlaybackWindowResumeForMod(mod.id);
         releaseExternalPlaybackForMod(mod.id);
     });
     return Object.freeze<FoliumPlaybackSessions>({
@@ -50,6 +52,14 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
         supportsHandoff: true,
         supportsAudition: true,
         supportsFavoriteEvents: true,
+        onWindowResume(handler) {
+            requireAccess();
+            if (typeof handler !== 'function') throw new Error('invalid-window-resume-handler');
+            const stop = onPlaybackWindowResume(mod.id, handler,
+                error => reportFoliumIssue(mod.id, 'window playback resume', error));
+            registerFoliumServiceDisposer(mod.id, stop);
+            return stop;
+        },
         async resolveSong(provider, id) {
             requireAccess();
             if (typeof provider !== 'string' || !provider || typeof id !== 'string' || !id || id.length > 2048)
@@ -59,10 +69,11 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
             if (!song) throw new Error('song-unavailable');
             return toFoliumSong(song)!;
         },
-        acquire({ onIntent, restore, audition, onFavoriteChanged }) {
+        acquire({ onIntent, restore, audition, onFavoriteChanged, captureWindowState }) {
             requireAccess();
             if (restore !== 'queue-stopped' || typeof onIntent !== 'function'
-                || (onFavoriteChanged !== undefined && typeof onFavoriteChanged !== 'function'))
+                || (onFavoriteChanged !== undefined && typeof onFavoriteChanged !== 'function')
+                || (captureWindowState !== undefined && typeof captureWindowState !== 'function'))
                 throw new Error('invalid-playback-session-options');
             if (!actions) throw new Error('playback-unavailable');
             const host = actions;
@@ -82,6 +93,7 @@ export function createFoliumPlaybackSessions(mod: ModRuntimeInfo): FoliumPlaybac
                 modId: mod.id,
                 audition: audition === true,
                 report,
+                captureWindowState: captureWindowState ? () => ({ state: captureWindowState(), queue }) : undefined,
                 favoriteChanged: onFavoriteChanged
                     ? event => onFavoriteChanged({ ...event, song: toFoliumSong(event.song)! })
                     : undefined,

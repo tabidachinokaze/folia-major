@@ -104,3 +104,14 @@ describe('windowPlaybackHandoffStore', () => {
         expect(store.consume()).toEqual({ version: 1, capturedAt: 1 });
     });
 });
+
+
+it('allows up to one minute for a rebuilt renderer to become ready, then expires', () => {
+    let now = 0;
+    const store = createWindowPlaybackHandoffStore({ now: () => now });
+    store.save({ version: 1 });
+    now = 30000;
+    expect(store.peek()).not.toBeNull();
+    now = 60001;
+    expect(store.consume()).toBeNull();
+});

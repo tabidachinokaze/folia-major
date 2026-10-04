@@ -1,3 +1,4 @@
+import { capturePlaybackWindowResume, restorePlaybackWindowResume } from '@/services/externalPlaybackWindowResume';
 import { activateExternalQueueSong, invokeExternalQueueAction, stopExternalPlayback, useExternalQueueStore } from '@/services/externalPlaybackQueue';
 import { getPlaybackSongKey, getQueueSongKey } from '@/utils/appPlaybackGuards';
 import { buildLatticeTiles } from '@/components/app/lattice/latticeModel';
@@ -372,6 +373,50 @@ describe('experimental playback.sessions', () => {
         );
         expect(hasExternalPlayback()).toBe(true);
         await reconcileFoliumClients([], 'main');
+        expect(hasExternalPlayback()).toBe(false);
+    });
+});
+
+
+describe('window continuation in the scoped session API', () => {
+    it('carries the original private queue and reacquires only after the host snapshot is ready', () => {
+        const originalQueue = [song('netease', '11')], roomSong = song();
+        usePlaybackStore.setState({ playQueue: originalQueue });
+        const previous = createFoliumPlaybackSessions(mod());
+        previous.acquire({ ...options(), captureWindowState: () => ({ uid: '9', roomId: 'room' }) });
+        const ticket = capturePlaybackWindowResume()!;
+        expect(ticket.queue).toEqual(originalQueue);
+        disposeFoliumServices('session-test');
+        // New renderer: the ordinary handoff has completed source/queue restoration first.
+        usePlaybackStore.setState({ playQueue: ticket.queue, currentSong: roomSong, audioSrc: 'restored-source' });
+        const current = createFoliumPlaybackSessions(mod());
+        let resumed: ReturnType<typeof current.acquire> | undefined;
+        const resume = vi.fn(() => {
+            expect(usePlaybackStore.getState().audioSrc).toBe('restored-source');
+            resumed = current.acquire(options());
+        });
+        current.onWindowResume!(resume);
+        expect(hasExternalPlayback()).toBe(false);
+        restorePlaybackWindowResume(ticket);
+        expect(resume).toHaveBeenCalledOnce();
+        expect(hasExternalPlayback()).toBe(true);
+        resumed!.release();
+        expect(usePlaybackStore.getState().playQueue).toEqual(originalQueue);
+    });
+    it('removes a disabled client listener and respects the host acquisition guard during resume', () => {
+        const old = createFoliumPlaybackSessions(mod()), oldResume = vi.fn();
+        old.onWindowResume!(oldResume);
+        old.acquire({ ...options(), captureWindowState: () => ({ roomId: 'room' }) });
+        const ticket = capturePlaybackWindowResume()!;
+        disposeFoliumServices('session-test');
+        registerExternalPlaybackActions({ ...host, canAcquire: () => false });
+        const next = createFoliumPlaybackSessions(mod()), resume = vi.fn(() => {
+            expect(() => next.acquire(options())).toThrow('external-playback-context-unavailable');
+        });
+        next.onWindowResume!(resume);
+        restorePlaybackWindowResume(ticket);
+        expect(oldResume).not.toHaveBeenCalled();
+        expect(resume).toHaveBeenCalledOnce();
         expect(hasExternalPlayback()).toBe(false);
     });
 });

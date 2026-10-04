@@ -1,4 +1,4 @@
-import type { PlaybackRequest } from './externalPlayback';
+import type { ExternalPlaybackWindowResume, PlaybackRequest } from './externalPlayback';
 import type {
     LyricData,
     NowPlayingLyricPayload,
@@ -105,6 +105,7 @@ export type WindowPlaybackHandoffStageState = {
 };
 
 export type WindowPlaybackHandoff = {
+    externalPlayback?: ExternalPlaybackWindowResume;
     version: 1;
     capturedAt: number;
     activePlaybackContext: 'main' | 'stage';

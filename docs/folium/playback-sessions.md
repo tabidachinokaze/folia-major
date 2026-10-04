@@ -60,6 +60,10 @@ Pause, resume and volume remain local controls. Play, enqueue, next, previous an
 
 Normal release, mod disable/reload, failed activation and host teardown all release ownership and invalidate in-flight source loads. The host cleans up even if the mod's disposer throws. Retained service objects cannot reacquire ownership after disposal. A synchronous or asynchronous `onIntent` failure is reported through Folium diagnostics and releases the session; mods should catch recoverable network/business errors themselves.
 
+## Renderer recreation
+
+Owners may provide synchronous `captureWindowState` JSON data (at most 4096 characters, without credentials) and register `onWindowResume` to reconnect after an Electron window recreation. The host restores audio and the original private queue before delivering this state once; tickets expire after at most 60 seconds. Ordinary launches and mod disable/release do not resume a session. The mod must revalidate the account and remote session before reacquiring playback.
+
 ## Resolving and loading songs
 
 `resolveSong(provider, id)` uses Omni to resolve an online provider's opaque media ID into a `FoliumSong` with a host `ref`. Provider-specific restrictions belong to the mod. Songs obtained from host notifications/hooks can also be passed to `session.play`, including host refs for local and Navidrome tracks.

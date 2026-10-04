@@ -1,3 +1,4 @@
+import type { SongResult } from '../types';
 import type { ExternalPlaybackFavoriteChange, ExternalPlaybackIntent } from '../types/externalPlayback';
 import { configurePlaybackRequestGuard, invalidatePlaybackRequest } from './playbackRequest';
 
@@ -10,6 +11,7 @@ interface Owner {
     cleanup(): void;
     report(error: unknown): void;
     audition?: boolean;
+    captureWindowState?(): { state: unknown; queue: SongResult[] } | null;
     favoriteChanged?(event: ExternalPlaybackFavoriteChange): void | Promise<void>;
 }
 const report = (target: Owner, error: unknown) => {
@@ -121,4 +123,17 @@ export function routeExternalPlayback(intent: ExternalPlaybackIntent) {
         fail(error);
     }
     return true;
+}
+
+/** Read only the live owner; ordinary disable/release immediately removes its continuation. */
+export function captureExternalPlaybackWindowState() {
+    const target = owner;
+    if (!target?.captureWindowState) return null;
+    try {
+        const captured = target.captureWindowState();
+        return owner === target && captured ? { modId: target.modId, ...captured } : null;
+    } catch (error) {
+        report(target, error);
+        return null;
+    }
 }

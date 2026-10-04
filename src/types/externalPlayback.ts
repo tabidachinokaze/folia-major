@@ -58,3 +58,12 @@ export interface ExternalQueueView {
     totalCount: number;
     loading: boolean;
 }
+
+/** Internal one-shot continuation carried only by an Electron window recreation. */
+export interface ExternalPlaybackWindowResume {
+    id: string;
+    modId: string;
+    state: unknown;
+    expiresAt: number;
+    queue: SongResult[];
+}

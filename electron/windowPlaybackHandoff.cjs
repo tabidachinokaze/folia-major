@@ -9,7 +9,7 @@ function isObject(value) {
 }
 
 function createWindowPlaybackHandoffStore(options = {}) {
-  const ttlMs = Number.isFinite(options.ttlMs) ? Math.max(0, options.ttlMs) : 15_000;
+  const ttlMs = Number.isFinite(options.ttlMs) ? Math.max(0, options.ttlMs) : 60_000;
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
   // Optional electron-store-like backing (get/set/delete) so the handoff survives relaunch.
   const storage = options.storage || null;

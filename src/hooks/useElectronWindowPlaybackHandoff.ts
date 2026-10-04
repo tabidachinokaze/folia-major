@@ -1,3 +1,4 @@
+import { capturePlaybackWindowResume, restorePlaybackWindowResume } from '../services/externalPlaybackWindowResume';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
 import type { MotionValue } from 'framer-motion';
@@ -157,6 +158,7 @@ export function useElectronWindowPlaybackHandoff({
     const restoreWindowPlaybackHandoffRef = useRef<((handoff: WindowPlaybackHandoff) => Promise<boolean>) | null>(null);
 
     const captureWindowPlaybackHandoff = useCallback((): WindowPlaybackHandoff => {
+        const externalPlayback = activePlaybackContext === 'main' ? capturePlaybackWindowResume() : undefined;
         const activePlayback = withUntransformedLyrics(buildPlaybackSnapshot({
             audioRef,
             audioSrc,
@@ -167,7 +169,7 @@ export function useElectronWindowPlaybackHandoff({
             duration,
             isFmMode,
             lyrics,
-            playQueue,
+            playQueue: externalPlayback?.queue ?? playQueue,
             playerState,
         }));
         const mainPlayback = activePlaybackContext === 'main'
@@ -176,6 +178,7 @@ export function useElectronWindowPlaybackHandoff({
 
         return {
             version: 1,
+            externalPlayback,
             capturedAt: Date.now(),
             activePlaybackContext,
             mainPlayback,
@@ -337,6 +340,11 @@ export function useElectronWindowPlaybackHandoff({
 
         setActivePlaybackContext('main');
         await restoreMainPlaybackSnapshot(handoff.mainPlayback ?? handoff.activePlayback);
+        // Ordinary source restoration may insert the room track (or replace metadata) in its queue.
+        // A resumed owner must capture the exact pre-session queue, including an empty one.
+        if (handoff.externalPlayback && Array.isArray(handoff.externalPlayback.queue))
+            setPlayQueue(handoff.externalPlayback.queue);
+        restorePlaybackWindowResume(handoff.externalPlayback);
         return true;
     }, [
         mainPlaybackSnapshotRef,
