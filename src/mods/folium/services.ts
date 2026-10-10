@@ -1,4 +1,5 @@
 import type { ModRuntimeInfo } from '../types';
+import { homeTabsRegistry, selectFoliumHomeTab } from './registries/homeTabs';
 import { invokeModNetFetch, invokeModPickFile, invokeModReleaseFile, invokeModRestoreFile } from '../ipc';
 import type {
     FoliumContextKind,
@@ -143,6 +144,13 @@ export const createFoliumUiService = (mod: ModRuntimeInfo, context: FoliumContex
     },
     openPlayerPanel: (tabId?: string) => {
         requireActions('ui', context).openPlayerPanel(tabId ? `folium:${mod.id}:${tabId}` : null);
+    },
+    openHomeTab: (tabId: string) => {
+        const actions = requireActions('ui', context);
+        const id = `${mod.id}:${tabId}` as const;
+        if (!homeTabsRegistry.get(id)) throw new Error(`home-tab-not-registered:${tabId}`);
+        actions.navigate('home');
+        selectFoliumHomeTab(id);
     },
     navigate: (view: 'home' | 'player') => {
         if (view !== 'home' && view !== 'player') throw new Error(`ui.navigate: unknown view "${String(view)}"`);

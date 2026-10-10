@@ -32,7 +32,7 @@ export type BravaisHomeChrome = {
 
 type ChromeProps = Pick<
     LibraryHomeSurfaceProps,
-    'onSearchCommitted' | 'onOpenLattice' | 'onBackToPlayer' | 'onOpenStagePlayer' | 'stageEnabled' | 'stageIsActive' | 'onOpenSettings'
+    'extraTabs' | 'onSearchCommitted' | 'onOpenLattice' | 'onBackToPlayer' | 'onOpenStagePlayer' | 'stageEnabled' | 'stageIsActive' | 'onOpenSettings'
 >;
 
 export const useBravaisHomeChrome = ({
@@ -55,19 +55,23 @@ export const useBravaisHomeChrome = ({
     const latest = useRef({ tab, tabs, selectTab, props });
     latest.current = { tab, tabs, selectTab, props };
 
-    const onSelectTab = useCallback((key: string) => { latest.current.selectTab(key as LibraryHomeTabKey); }, []);
+    const onSelectTab = useCallback((key: string) => {
+        const extra = latest.current.props.extraTabs?.find(tab => tab.id === key);
+        if (extra) extra.select();
+        else latest.current.selectTab(key as LibraryHomeTabKey);
+    }, []);
     const cycleTab = useCallback((delta: 1 | -1) => {
         const { tab: current, tabs: all, selectTab: select } = latest.current;
         const next = cycleHomeTab(all, current, delta);
         return next ? select(next as LibraryHomeTabKey) : false;
     }, []);
 
-    const seamTabs = useMemo<BravaisSeamTab[]>(() => tabs.map(candidate => ({
+    const seamTabs = useMemo<BravaisSeamTab[]>(() => [...tabs.map(candidate => ({
         key: candidate.key,
         label: candidate.label,
         active: candidate.key === tab,
         disabled: Boolean(candidate.disabledReason),
-    })), [tab, tabs]);
+    })), ...(props.extraTabs ?? []).map(entry => ({ key: entry.id, label: entry.label, active: false, disabled: false }))], [tab, tabs, props.extraTabs]);
 
     const search = useMemo<BravaisHomeSearch>(() => ({
         title: t('libraryBravaisHome.search'),

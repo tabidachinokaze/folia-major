@@ -7,6 +7,11 @@ import { useLibrarySuiteStore } from '../../library/core/state/useLibrarySuiteSt
 import { useLibraryDirectoryBatchController } from '../../library/app/useLibraryDirectoryBatchController';
 import { useLibraryHomeResources } from '../../library/app/useLibraryHomeResources';
 import type { HomeViewModel } from './home/buildHomeModel';
+import { useLibraryHomeSources } from '../../library/core/bindings/useLibraryHomeSources';
+import { useThemeSettingsStore } from '../../stores/useThemeSettingsStore';
+import { useFoliumHomeNavigation } from './home/useFoliumHomeNavigation';
+import { closeFoliumHomeTab } from '../../mods/folium/registries/homeTabs';
+import { FoliumHomePage } from './home/FoliumHomePage';
 import { countRender } from '../../dev/renderCount';
 
 // App-level entry for the home surface backed by a view model.
@@ -20,6 +25,9 @@ type AppHomeProps = {
 
 const Home: React.FC<AppHomeProps> = ({ model, isHomeFullyHidden, isInteractive = true }) => {
     countRender('Home');
+    const { extraTabs, activeEntry } = useFoliumHomeNavigation();
+    const nativeSources = useLibraryHomeSources({ account: model.account, ...model.surfaceProps });
+    const isDaylight = useThemeSettingsStore(state => state.isDaylight);
     // 只在切换 suite 时变（开发版浮层）；同一个回退结果是同一个组件，首页不会因此重新挂载。
     const suiteId = useLibrarySuiteStore(state => state.suite);
     // 目录批量动作（本地文件夹 / 专辑 / 歌手的播放、入队、建歌单、删除、重扫）：首页一个控制器，不随渲染重建。
@@ -38,29 +46,38 @@ const Home: React.FC<AppHomeProps> = ({ model, isHomeFullyHidden, isInteractive 
 
     return (
         <>
-            <GridViewOverlayHost
-                surfaceProps={model.surfaceProps}
-                onOpenCollection={model.onOpenCollection}
-                onPushCollection={model.onPushCollection}
-                onPopCollectionTo={model.onPopCollectionTo}
-                onBackCollection={model.onBackCollection}
-                isInteractive={isInteractive}
-            >
-                {(openGridView, isHomeGridInteractive) => (
-                    <React.Suspense fallback={null}>
-                        <HomeSurface
-                            {...model.surfaceProps}
-                            account={model.account}
-                            accountLayerRef={accountLayer.attach}
-                            onOpenGridView={openGridView}
-                            isInteractive={isHomeGridInteractive}
-                            declaredActions={homeSurface.declaredActions}
-                            directoryActions={directoryActions}
-                            homeResources={homeResources}
-                        />
-                    </React.Suspense>
-                )}
-            </GridViewOverlayHost>
+            <div className="absolute inset-0" inert={Boolean(activeEntry)}>
+                <GridViewOverlayHost
+                    surfaceProps={model.surfaceProps}
+                    onOpenCollection={model.onOpenCollection}
+                    onPushCollection={model.onPushCollection}
+                    onPopCollectionTo={model.onPopCollectionTo}
+                    onBackCollection={model.onBackCollection}
+                    isInteractive={isInteractive && !activeEntry}
+                >
+                    {(openGridView, isHomeGridInteractive) => (
+                        <React.Suspense fallback={null}>
+                            <HomeSurface
+                                {...model.surfaceProps}
+                                account={model.account}
+                                extraTabs={extraTabs}
+                                onNativeTabSelected={closeFoliumHomeTab}
+                                accountLayerRef={activeEntry ? undefined : accountLayer.attach}
+                                onOpenGridView={openGridView}
+                                isInteractive={isHomeGridInteractive}
+                                declaredActions={homeSurface.declaredActions}
+                                directoryActions={directoryActions}
+                                homeResources={homeResources}
+                            />
+                        </React.Suspense>
+                    )}
+                </GridViewOverlayHost>
+            </div>
+            {activeEntry && (
+                <FoliumHomePage entry={activeEntry} theme={model.surfaceProps.theme} isDaylight={isDaylight}
+                    tabs={nativeSources.tabs} extraTabs={extraTabs} onClose={closeFoliumHomeTab}
+                    onSelectNativeTab={key => { closeFoliumHomeTab(); nativeSources.setTab(key); }} />
+            )}
             {/* 登录弹窗与切换确认框：寿命与首页 surface 相同（首页整个藏起时卸载），换 suite 不卸载。 */}
             <LibraryAccountHost
                 account={model.account}

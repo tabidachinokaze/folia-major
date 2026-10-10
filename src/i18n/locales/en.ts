@@ -1026,6 +1026,8 @@ export default {
     }
   },
   "mods": {
+    "homeBackToLibrary": "Back to library",
+    "homePageNavigation": "Home pages",
     "title": "Mod Manager",
     "experimental": "Experimental",
     "warning": "Mods are compatible with Folium v{{version}}. Mods marked Verified were reviewed and signed by Folium; all others are third-party and unreviewed. Verified or not, once enabled a mod runs with the full privileges of the app (including the Node.js runtime and any setting, such as the AI service URL and key). Only enable mods from trusted sources.",

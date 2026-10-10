@@ -237,6 +237,13 @@ export type LibraryArtistSurfaceProps = LibrarySurfaceBaseProps & LibraryCollect
     onEditEntity: (entityId: string) => void;
 };
 
+/** Host-owned navigation entry; suites present it without knowing its implementation. */
+export type LibraryHomeExtraTab = {
+    id: string;
+    label: string;
+    select: () => void;
+};
+
 /** 首页 surface：首页模型的数据，加上打开集合的入口。 */
 export type LibraryHomeSurfaceProps = LibrarySurfaceBaseProps & LibraryHomeData & {
     /**
@@ -254,6 +261,10 @@ export type LibraryHomeSurfaceProps = LibrarySurfaceBaseProps & LibraryHomeData 
     directoryActions?: LibraryDirectoryBatchController;
     /** 首页的资源与控制器（宿主创建，见 library/app/useLibraryHomeResources）；suite 只订阅。 */
     homeResources: LibraryHomeResources;
+    /** Additional full-page entries; native music-source tabs remain unchanged. */
+    extraTabs?: readonly LibraryHomeExtraTab[];
+    /** Notify the host when native navigation takes over, even when reselecting the current tab. */
+    onNativeTabSelected?: () => void;
 };
 
 export type LibrarySurfacePropsMap = {

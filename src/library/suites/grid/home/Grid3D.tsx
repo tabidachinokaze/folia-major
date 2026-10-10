@@ -19,7 +19,7 @@ import type { LibraryAccountController } from '../../../core/contracts/account';
 import type { LibraryDirectoryBatchController } from '../../../core/contracts/directory';
 import type { LibraryLocalCatalogSnapshot } from '../../../core/contracts/home';
 import type { LibraryHomeResources } from '../../../core/contracts/homeModel';
-import type { LibraryDeclaredActions } from '../../../core/contracts/suite';
+import type { LibraryHomeExtraTab, LibraryDeclaredActions } from '../../../core/contracts/suite';
 import type { LibraryHomeCard, LibraryHomeListState } from '../../../core/contracts/homeModel';
 import { useLibraryHomeSources } from '../../../core/bindings/useLibraryHomeSources';
 import { useLibraryHomeOnline } from '../../../core/bindings/useLibraryHomeOnline';
@@ -89,6 +89,8 @@ interface Grid3DProps {
     directoryActions?: LibraryDirectoryBatchController;
     /** 首页资源（在线收藏专辑、电台 feed；宿主创建，见 library/app/useLibraryHomeResources）。 */
     homeResources: LibraryHomeResources;
+    extraTabs?: readonly LibraryHomeExtraTab[];
+    onNativeTabSelected?: () => void;
     /** 网格 suite 在 entry 里声明的首页动作（宿主经 registry 传入）：GridMap 的目录 surface 只发布声明 ∩ core 判定。 */
     declaredActions?: LibraryDeclaredActions;
 }
@@ -243,6 +245,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         setTab: tab => {
             const target = homeTabs.find(candidate => candidate.key === tab);
             if (!target || target.disabledReason) return false;
+            props.onNativeTabSelected?.();
             setHomeViewTab(tab);
             return true;
         },
@@ -304,14 +307,21 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         });
     };
 
-    // Tab / Shift+Tab 在可用页签之间循环，切完把焦点交回海报轨道，和点胶囊一样。
+    // Tab / Shift+Tab includes contributed pages; opening one hands keyboard focus to its own navigation.
+    // Its host disables this native surface while the page is open, so subsequent Tab stays inside the page.
+    const navigationTabs = [
+        ...homeTabs.map(tab => ({ id: tab.key, enabled: !tab.disabledReason, select: () => {
+            setHomeViewTab(tab.key);
+            focusActiveSlider();
+        } })),
+        ...(props.extraTabs ?? []).map(tab => ({ ...tab, enabled: true })),
+    ];
     useGrid3DTabKeys({
         isActive: isInteractive,
         onCycleTab: delta => {
-            const next = cycleIndex(homeTabs, homeTabs.findIndex(tab => tab.key === homeViewTab), delta, tab => !tab.disabledReason);
-            if (next < 0 || homeTabs[next].key === homeViewTab) return;
-            setHomeViewTab(homeTabs[next].key);
-            focusActiveSlider();
+            const next = cycleIndex(navigationTabs, navigationTabs.findIndex(tab => tab.id === homeViewTab), delta, tab => tab.enabled);
+            if (next < 0 || navigationTabs[next].id === homeViewTab) return;
+            navigationTabs[next].select();
         },
     });
 
@@ -437,6 +447,12 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                         </span>
                                     );
                                 })}
+                                {props.extraTabs?.map(tab => (
+                                    <button key={tab.id} type="button" onClick={tab.select}
+                                        className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap ${navPillInactiveText}`}>
+                                        {tab.label}
+                                    </button>
+                                ))}
                                 {stageEnabled && (
                                     <button
                                         onClick={() => onOpenStagePlayer?.()}

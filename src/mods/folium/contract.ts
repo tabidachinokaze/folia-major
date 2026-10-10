@@ -7,7 +7,7 @@
 // Removing a field or changing its meaning requires folium 2.
 
 /** The Folium version this host implements; mods read it at runtime as `folium.host.folium`. */
-export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 });
+export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 });
 
 /** `modid:name`, like a Forge ResourceLocation. The mod id part is added by the host. */
 export type FoliumId = string;
@@ -685,6 +685,18 @@ export interface FoliumPlayerPanelTabDef {
     mount: FoliumMount<FoliumPanelContext>;
 }
 
+/** Folium 1.5: an owned full-page tab appended to Grid and Bravais home navigation. */
+export interface FoliumHomeTabDef {
+    /** Local id; pass it to `folium.ui.openHomeTab`. */
+    id: string;
+    /** Localized navigation label. */
+    label: FoliumLabel;
+    /** Order among contributed home tabs; default 500. Native tabs retain their order. */
+    order?: number;
+    /** Mounts in an isolated, bounded full-page container. Returns cleanup on leaving the page. */
+    mount: FoliumMount<FoliumPanelContext>;
+}
+
 /** Progress-bar context shared by control buttons and progress layers. */
 export interface FoliumProgressContext {
     /** The playback clock (audio time). */
@@ -767,7 +779,7 @@ export interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = Foliu
 }
 
 /**
- * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
+ * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs, homeTabs,
  * controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
  */
 export interface FoliumRegistries {
@@ -785,6 +797,8 @@ export interface FoliumRegistries {
     settingsSections: FoliumRegistry<FoliumSettingsSectionDef, FoliumSettingsSectionHandle>;
     /** Player panel tabs. */
     playerPanelTabs: FoliumRegistry<FoliumPlayerPanelTabDef>;
+    /** Folium 1.5: full pages in home navigation; inert outside the main window. */
+    homeTabs: FoliumRegistry<FoliumHomeTabDef>;
     /** Progress bar buttons. */
     controlButtons: FoliumRegistry<FoliumControlButtonDef>;
     /** Layers over the progress track. */
@@ -990,6 +1004,8 @@ export interface FoliumUiService {
     toast(message: string, options?: { type?: 'info' | 'success' | 'error'; durationMs?: number }): void;
     /** Opens the player panel, optionally on one of this mod's panel tabs (local id). */
     openPlayerPanel(tabId?: string): void;
+    /** Folium 1.5: opens this mod's registered home tab (local id). Rejects unknown tabs. */
+    openHomeTab(tabId: string): void;
     /** Switches to the home or player view. */
     navigate(view: 'home' | 'player'): void;
     /** Folium 1.3: opens the host volume panel (the command palette's volume command). */

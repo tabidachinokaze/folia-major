@@ -46,10 +46,11 @@ const BravaisHome: React.FC<LibraryHomeSurfaceProps> = (props) => {
     const selectTab = useCallback((key: LibraryHomeTabKey) => {
         const target = tabs.find(candidate => candidate.key === key);
         if (!target || target.disabledReason) return false;
+        props.onNativeTabSelected?.();
         setBravaisSearchOpen(false);
         setTab(key);
         return true;
-    }, [setTab, tabs]);
+    }, [setTab, tabs, props.onNativeTabSelected]);
     useLibraryHomeTabsRegistration({ getState: () => ({ active: tab, tabs }), setTab: selectTab });
 
     const chrome = useBravaisHomeChrome({
