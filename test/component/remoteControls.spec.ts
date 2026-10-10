@@ -59,7 +59,7 @@ test('fixed native remote size keeps transport and two song actions on one row, 
     const rowButtons = remote.getByTestId('remote-transport-actions').locator('xpath=..').locator('button');
     const readBounds = () => rowButtons.evaluateAll(buttons => buttons.map(button => {
         const { x, y, width, height } = button.getBoundingClientRect();
-        return { id: button.getAttribute('data-remote-action-id') || button.title, x, y, width, height };
+        return { id: button.getAttribute('data-remote-action-id') || button.getAttribute('title'), x, y, width, height };
     }));
     // Wait for the native panel's enter animation before comparing hover/focus geometry.
     let lastBounds = '', lastChanged = Date.now();
