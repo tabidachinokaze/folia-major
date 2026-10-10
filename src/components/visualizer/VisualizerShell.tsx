@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, MotionValue } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
@@ -12,6 +12,7 @@ import VideoLayer from './videoLayer/VideoLayer';
 import { isMainAppSurface } from '../../utils/appSurface';
 import { usePlayerOverlayReservation } from '../../hooks/usePlayerOverlayLayout';
 import type { FoliumLayoutRect } from '../../mods/folium/contract';
+import { useIsPlayerBottomBarHost } from '../floating-player/PlayerBottomBarLayoutContext';
 
 // Shared outer shell for all visualizers.
 // This is where we keep background layering, font injection, and the hover-only back button
@@ -46,9 +47,6 @@ interface VisualizerShellProps {
 
 const PLAYER_CHROME_HOTSPOT_SIZE = 120;
 const TOUCH_GUIDE_DISPLAY_MS = 1400;
-const backRevealArea = (bounds: FoliumLayoutRect): FoliumLayoutRect => ({
-    left: bounds.left, top: bounds.top, width: PLAYER_CHROME_HOTSPOT_SIZE, height: PLAYER_CHROME_HOTSPOT_SIZE,
-});
 const panelRevealArea = (bounds: FoliumLayoutRect): FoliumLayoutRect => ({
     left: bounds.left + bounds.width - PLAYER_CHROME_HOTSPOT_SIZE,
     top: bounds.top + bounds.height - PLAYER_CHROME_HOTSPOT_SIZE,
@@ -73,6 +71,9 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
 }, ref) => {
     const { t } = useTranslation();
     const [showBackButton, setShowBackButton] = useState(false);
+    const backButtonRef = useRef<HTMLButtonElement>(null);
+    const backVisibilityRef = useRef(false);
+    const isPlayerPage = useIsPlayerBottomBarHost();
     const playerPanelGuideHotspotRef = useRef(false);
     const touchGuideHideTimeoutRef = useRef<number | null>(null);
     const resolvedCoverUrl = getSizedCoverUrl(sharedProps?.coverUrl, 1024) || undefined;
@@ -87,9 +88,44 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
     const isBackButtonVisible = sharedProps?.alwaysShowBackButton || showBackButton;
     const showStageLayers = !sharedProps?.isPreviewMode && !resolvedStaticMode;
     // Static visuals still have live native controls and an app.overlay layer.
-    const publishLayout = !sharedProps?.isPreviewMode && isMainAppSurface;
-    usePlayerOverlayReservation('back-reveal', backRevealArea, publishLayout && Boolean(resolvedOnBack));
+    const publishLayout = isPlayerPage && !sharedProps?.isPreviewMode && isMainAppSurface;
+    const hasBackAction = Boolean(resolvedOnBack);
+    const backRevealArea = useCallback((bounds: FoliumLayoutRect): FoliumLayoutRect => {
+        const button = backButtonRef.current;
+        if (!button) return { left: bounds.left, top: bounds.top, width: 0, height: 0 };
+        // Use the native resting hitbox, rather than its fading/scaling presentation or hover threshold.
+        const parent = button.offsetParent?.getBoundingClientRect() ?? bounds;
+        return {
+            left: parent.left + button.offsetLeft, top: parent.top + button.offsetTop,
+            width: button.offsetWidth, height: button.offsetHeight,
+        };
+    }, []);
+    usePlayerOverlayReservation('back-reveal', backRevealArea, publishLayout && hasBackAction, backButtonRef);
     usePlayerOverlayReservation('panel-reveal', panelRevealArea, publishLayout && !resolvedIsPanelOpen);
+
+    const updateBackVisibility = useCallback((visible: boolean) => {
+        if (backVisibilityRef.current === visible) return;
+        backVisibilityRef.current = visible;
+        setShowBackButton(visible);
+    }, []);
+    useEffect(() => {
+        if (!publishLayout || !hasBackAction) return;
+        // Capture sees motion over mod content too; only the button's hitbox needs to stay uncovered.
+        const moved = (event: MouseEvent) => updateBackVisibility(
+            event.clientX >= 0 && event.clientY >= 0
+            && event.clientX <= PLAYER_CHROME_HOTSPOT_SIZE && event.clientY <= PLAYER_CHROME_HOTSPOT_SIZE,
+        );
+        const leftWindow = (event: MouseEvent) => {
+            if (event.relatedTarget === null) updateBackVisibility(false);
+        };
+        window.addEventListener('mousemove', moved, true);
+        window.addEventListener('mouseout', leftWindow, true);
+        return () => {
+            window.removeEventListener('mousemove', moved, true);
+            window.removeEventListener('mouseout', leftWindow, true);
+            updateBackVisibility(false);
+        };
+    }, [publishLayout, hasBackAction, updateBackVisibility]);
 
     const updatePlayerPanelGuideHotspot = (isActive: boolean) => {
         if (playerPanelGuideHotspotRef.current === isActive) {
@@ -149,16 +185,15 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
             onMouseMove={(event) => {
                 // Back button is intentionally hidden most of the time.
                 // Only reveal it near the top-left hot area so it does not pollute the visual field.
-                const nearBackArea = event.clientX <= PLAYER_CHROME_HOTSPOT_SIZE && event.clientY <= PLAYER_CHROME_HOTSPOT_SIZE;
-                if (nearBackArea !== showBackButton) {
-                    setShowBackButton(nearBackArea);
+                if (!isMainAppSurface || sharedProps?.isPreviewMode) {
+                    updateBackVisibility(event.clientX <= PLAYER_CHROME_HOTSPOT_SIZE && event.clientY <= PLAYER_CHROME_HOTSPOT_SIZE);
                 }
 
                 updatePlayerPanelGuideHotspot(!resolvedIsPanelOpen && isNearPlayerPanelHotspot(event.clientX, event.clientY));
             }}
             onMouseLeave={() => {
-                if (showBackButton) {
-                    setShowBackButton(false);
+                if (!isMainAppSurface || sharedProps?.isPreviewMode) {
+                    updateBackVisibility(false);
                 }
                 updatePlayerPanelGuideHotspot(false);
             }}
@@ -176,6 +211,7 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
         >
             {resolvedOnBack && (
                 <motion.button
+                    ref={backButtonRef}
                     type="button"
                     aria-label={t('ui.backToHome')}
                     initial={false}

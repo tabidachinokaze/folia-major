@@ -1,6 +1,53 @@
 // dev/folium/player-layout-demo/client.mjs
 // A small, account-free example: all geometry comes from the public stage context.
 
+const margin = 24;
+const gap = 12;
+const right = rect => rect.left + rect.width;
+const bottom = rect => rect.top + rect.height;
+const overlaps = (a, b) => a.left < right(b) + gap && right(a) > b.left - gap
+    && a.top < bottom(b) + gap && bottom(a) > b.top - gap;
+
+// Find free rectangles without treating every obstacle as a blocked row or column.
+export function computePlayerLayoutDemo({ bounds, obstacles }) {
+    const width = Math.max(0, Math.min(300, bounds.width - margin * 2));
+    const height = Math.max(0, Math.min(96, bounds.height - margin * 2));
+    const desired = { left: right(bounds) - margin - width, top: bounds.top + margin, width, height };
+    const rects = obstacles.map(item => item.rect);
+    const xs = new Set([desired.left, bounds.left + margin]);
+    const ys = new Set([desired.top]);
+    for (const rect of rects) {
+        xs.add(rect.left - width - gap); xs.add(right(rect) + gap);
+        ys.add(rect.top - height - gap); ys.add(bottom(rect) + gap);
+    }
+    let dialog = null;
+    let distance = Infinity;
+    for (const left of xs) for (const top of ys) {
+        const candidate = { left, top, width, height };
+        if (left < bounds.left + margin || top < bounds.top + margin
+            || right(candidate) > right(bounds) - margin || bottom(candidate) > bottom(bounds) - margin
+            || rects.some(rect => overlaps(candidate, rect))) continue;
+        const nextDistance = Math.abs(left - desired.left) + Math.abs(top - desired.top);
+        if (nextDistance < distance) { dialog = candidate; distance = nextDistance; }
+    }
+    // A tall chat occupies a free vertical interval; unrelated right-side rectangles do not move it.
+    const left = bounds.left + margin;
+    let intervals = [{ top: bounds.top + margin, bottom: bottom(bounds) - margin }];
+    for (const rect of [...rects, ...(dialog ? [dialog] : [])]) {
+        if (rect.left >= left + width + gap || right(rect) <= left - gap) continue;
+        intervals = intervals.flatMap(interval => {
+            if (rect.top - gap >= interval.bottom || bottom(rect) + gap <= interval.top) return [interval];
+            return [
+                { top: interval.top, bottom: Math.min(interval.bottom, rect.top - gap) },
+                { top: Math.max(interval.top, bottom(rect) + gap), bottom: interval.bottom },
+            ].filter(item => item.bottom > item.top);
+        });
+    }
+    const interval = intervals.sort((a, b) => (b.bottom - b.top) - (a.bottom - a.top) || b.bottom - a.bottom)[0];
+    const chat = interval ? { left, top: interval.top, width, height: interval.bottom - interval.top } : null;
+    return { chat, dialog };
+}
+
 export function mountPlayerLayoutDemo(container, ctx) {
     const chat = document.createElement('div');
     const dialog = document.createElement('div');
@@ -20,40 +67,12 @@ export function mountPlayerLayoutDemo(container, ctx) {
         if (layout === previous) return;
         previous = layout;
         container.dataset.layoutDemoSnapshot = JSON.stringify(layout);
-        for (const box of [chat, dialog]) box.hidden = !layout;
-        if (!layout) return;
-        const { bounds, obstacles } = layout;
-        const margin = 24;
-        const width = Math.max(0, Math.min(300, bounds.width - margin * 2));
-        const left = bounds.left + margin;
-        let right = bounds.left + bounds.width - margin - width;
-        // A tall native surface at the right edge is a side panel, not a bottom button.
-        for (const { rect } of obstacles) {
-            if (rect.height > bounds.height / 2 && rect.left > bounds.left + bounds.width / 2 && rect.left < right + width)
-                right = Math.max(left, rect.left - margin - width);
+        const positions = layout ? computePlayerLayoutDemo(layout) : { chat: null, dialog: null };
+        for (const [box, rect] of [[chat, positions.chat], [dialog, positions.dialog]]) {
+            box.hidden = !rect || rect.height < 32 || rect.width < 32;
+            if (!rect) continue;
+            for (const key of ['left', 'top', 'width', 'height']) box.style[key] = `${rect[key]}px`;
         }
-        const position = (box, x, desiredHeight) => {
-            let top = bounds.top + margin;
-            let bottom = bounds.top + bounds.height - margin;
-            for (const { rect } of obstacles) {
-                if (rect.left >= x + width || rect.left + rect.width <= x) continue;
-                if (rect.top < bounds.top + bounds.height / 2) top = Math.max(top, rect.top + rect.height + 12);
-                else bottom = Math.min(bottom, rect.top - 12);
-            }
-            box.style.left = `${x}px`;
-            box.style.top = `${top}px`;
-            box.style.width = `${width}px`;
-            box.style.height = `${Math.max(0, Math.min(desiredHeight, bottom - top))}px`;
-        };
-        position(chat, left, bounds.height);
-        position(dialog, right, 96);
-        if (right < left + width + 12) {
-            const top = Number.parseFloat(dialog.style.top) + Number.parseFloat(dialog.style.height) + 12;
-            const bottom = Number.parseFloat(chat.style.top) + Number.parseFloat(chat.style.height);
-            chat.style.top = `${top}px`;
-            chat.style.height = `${Math.max(0, bottom - top)}px`;
-        }
-        for (const box of [chat, dialog]) box.hidden = Number.parseFloat(box.style.height) < 32;
     };
     const off = ctx.subscribe(update);
     update();

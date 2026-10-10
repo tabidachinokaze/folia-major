@@ -13,6 +13,7 @@ import { playerBottomBarLiveOffset } from '../../src/stores/motionSignals';
 import { PlayerState } from '../../src/types';
 import { mountPlayerLayoutDemo } from '../folium/player-layout-demo/client.mjs';
 import type { ProbeDefinition } from './definition';
+import { PlayerBottomBarLayoutContext } from '../../src/components/floating-player/PlayerBottomBarLayoutContext';
 
 // dev/probes/playerLayout.probe.tsx
 // Real native controls and a public-context-only mod exercise pointer reveal and animated geometry.
@@ -40,6 +41,7 @@ const PlayerLayoutProbe: React.FC = () => {
     const [backHits, setBackHits] = useState(0);
     const [cardHits, setCardHits] = useState(0);
     const [panel, setPanel] = useState(false);
+    const [lowerPanel, setLowerPanel] = useState(false);
     const [toast, setToast] = useState(false);
     const [toastVersion, setToastVersion] = useState(0);
     const [hidden, setHidden] = useState(false);
@@ -54,10 +56,12 @@ const PlayerLayoutProbe: React.FC = () => {
             showMainWindowClickThroughToggle={false} onToggleMainWindowClickThrough={noop}
             isDaylight={false} audioElement={null}>
             <div data-probe-layout data-back-hits={backHits} data-card-hits={cardHits} className="absolute inset-0">
-                <VisualizerShell theme={DEFAULT_THEME} audioPower={power} audioBands={bands}
-                    renderBackground={false} sharedProps={{ onBack: () => setBackHits(v => v + 1), isPanelOpen: panel, staticMode: staticVisuals }}>
-                    <div className="text-white/30">Native player layout</div>
-                </VisualizerShell>
+                <PlayerBottomBarLayoutContext.Provider value={active}>
+                    <VisualizerShell theme={DEFAULT_THEME} audioPower={power} audioBands={bands}
+                        renderBackground={false} sharedProps={{ onBack: () => setBackHits(v => v + 1), isPanelOpen: panel, staticMode: staticVisuals }}>
+                        <div className="text-white/30">Native player layout</div>
+                    </VisualizerShell>
+                </PlayerBottomBarLayoutContext.Provider>
                 <FloatingPlayerControls currentSong={{ name: 'Layout probe' }} playerState={PlayerState.PLAYING}
                     currentTime={clock} duration={180} loopMode="all" currentView="player" audioSrc={null}
                     canTogglePlay lyrics={null} onSeek={noop} onTogglePlay={noop} onToggleLoop={noop}
@@ -69,13 +73,15 @@ const PlayerLayoutProbe: React.FC = () => {
                 <NowPlayingToast song={{ title: 'Native song card', artist: 'Probe', coverUrl: null }}
                     trackKey="probe" mode="always" isDaylight={false} onActivate={() => setCardHits(v => v + 1)}
                     activateLabel="Activate native card" />
-                {panel && <div ref={panelRef} data-probe-panel className="absolute right-8 top-24 bottom-24 w-80 bg-zinc-800 rounded-3xl z-60" />}
+                {panel && <div ref={panelRef} data-probe-panel style={{ top: lowerPanel ? '40%' : 96 }}
+                    className="absolute right-8 bottom-24 w-80 bg-zinc-800 rounded-3xl z-60" />}
                 <DemoLayer />
             </div>
         </AppShell>
         <AppDialogs model={{ statusToast: toast ? { type: 'success', text: `Native status toast ${toastVersion}`, toastKey: `probe-${toastVersion}`, isDaylight: false } : null }} />
         <div className="fixed left-1/2 -translate-x-1/2 top-40 z-[11000] flex flex-wrap gap-2 text-white text-xs">
-            <button data-probe-action="panel" onClick={() => setPanel(v => !v)}>Toggle panel</button>
+            <button data-probe-action="panel" onClick={() => { setLowerPanel(false); setPanel(v => !v); }}>Toggle panel</button>
+            <button data-probe-action="lower-panel" onClick={() => { setLowerPanel(true); setPanel(true); }}>Lower panel</button>
             <button data-probe-action="toast" onClick={() => setToast(v => !v)}>Toggle toast</button>
             <button data-probe-action="replace-toast" onClick={() => setToastVersion(v => v + 1)}>Replace toast</button>
             <button data-probe-action="lift" onClick={() => playerBottomBarLiveOffset.set(120)}>Lift bottom bar</button>

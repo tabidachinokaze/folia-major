@@ -498,11 +498,11 @@ export interface FoliumLayoutRect {
     readonly height: number;
 }
 
-/** A native player control or a region needed to reveal hidden controls. */
+/** A native player control or an interactive region kept reachable while controls are hidden. */
 export interface FoliumPlayerObstacle {
     /** Stable host identifier; compare by id rather than array order. */
     readonly id: string;
-    /** Reveal areas remain reserved even when their controls are hidden. */
+    /** Reveal areas reserve interactive hitboxes even when hidden; wider pointer tracking can continue behind mod content. */
     readonly kind: 'control' | 'reveal-area';
     /** Bounds clipped to the player area, in viewport CSS pixels. */
     readonly rect: FoliumLayoutRect;

@@ -44,9 +44,10 @@ export const usePlayerOverlayReservation = (
     id: string,
     read: (bounds: FoliumLayoutRect) => FoliumLayoutRect,
     enabled = true,
+    observedRef?: RefObject<HTMLElement | null>,
 ) => {
     useLayoutEffect(() => {
         if (!enabled) return;
-        return playerOverlayLayout.register(null, (bounds) => ({ id, kind: 'reveal-area', rect: read(bounds) }));
-    }, [id, read, enabled]);
+        return playerOverlayLayout.register(observedRef?.current ?? null, (bounds) => ({ id, kind: 'reveal-area', rect: read(bounds) }));
+    }, [id, read, enabled, observedRef]);
 };

@@ -8,7 +8,7 @@ test.beforeEach(async ({ mount }) => { await mount('playerLayout'); });
 test('full chat preserves the hidden back-button reveal region and native card clicks', async ({ page }) => {
     const chat = page.locator('[data-layout-demo-chat]');
     await expect(chat).toBeVisible();
-    await expect.poll(async () => (await chat.boundingBox())!.y).toBeGreaterThanOrEqual(132);
+    await expect.poll(async () => (await chat.boundingBox())!.y).toBe(76);
     await page.mouse.move(42, 42);
     const back = page.getByRole('button', { name: 'Back to home' });
     await expect(back).toHaveCSS('pointer-events', 'auto');
@@ -69,9 +69,58 @@ test('static visuals keep live app-overlay geometry and hidden control reveal re
         const ids = JSON.parse(text ?? 'null')?.obstacles.map((item: { id: string }) => item.id) ?? [];
         return ids.includes('back-reveal') && ids.includes('panel-reveal');
     }).toBe(true);
-    await expect.poll(async () => (await chat.boundingBox())!.y).toBeGreaterThanOrEqual(132);
+    await expect.poll(async () => (await chat.boundingBox())!.y).toBe(76);
     await page.mouse.move(42, 42);
     const back = page.getByRole('button', { name: 'Back to home' });
+    await expect(back).toHaveCSS('pointer-events', 'auto');
+    await back.click();
+    await expect(page.locator('[data-probe-layout]')).toHaveAttribute('data-back-hits', '1');
+});
+
+test('a lower side panel leaves the non-overlapping upper-right dialog in place', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1200, height: 800 });
+    const dialog = page.locator('[data-layout-demo-dialog]');
+    await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(876);
+    const before = (await dialog.boundingBox())!;
+    await page.locator('[data-probe-action="lower-panel"]').click();
+    await expect(page.locator('[data-probe-panel]')).toBeVisible();
+    await expect.poll(async () => (await page.locator('[data-probe-demo]').getAttribute('data-layout-demo-snapshot'))?.includes('player-panel')).toBe(true);
+    const after = (await dialog.boundingBox())!;
+    const panel = (await page.locator('[data-probe-panel]').boundingBox())!;
+    expect(after.x).toBe(before.x);
+    expect(after.y).toBe(before.y);
+    expect(after.y + after.height + 12).toBeLessThanOrEqual(panel.y);
+    await page.screenshot({ path: testInfo.outputPath('lower-panel-geometry.png') });
+});
+
+test('moving over chat inside the broad hover area still reveals the native button', async ({ page }) => {
+    const chat = page.locator('[data-layout-demo-chat]');
+    await expect(chat).toBeVisible();
+    await expect.poll(async () => (await chat.boundingBox())?.y).toBe(76);
+    const back = page.getByRole('button', { name: 'Back to home' });
+    await page.mouse.move(400, 300);
+    await expect(back).toHaveCSS('pointer-events', 'none');
+    await page.mouse.move(42, 90);
+    expect(await page.evaluate(() => Boolean(document.elementFromPoint(42, 90)?.closest('[data-layout-demo-chat]')))).toBe(true);
+    await expect(back).toHaveCSS('pointer-events', 'auto');
+    await page.mouse.move(-10, -10);
+    await expect(back).toHaveCSS('pointer-events', 'none');
+    await page.mouse.move(42, 90);
+    await expect(back).toHaveCSS('pointer-events', 'auto');
+    await back.click();
+    await expect(page.locator('[data-probe-layout]')).toHaveAttribute('data-back-hits', '1');
+    await page.locator('[data-probe-action="page"]').click();
+    await page.mouse.move(400, 300);
+    await page.mouse.move(42, 42);
+    await expect(back).toHaveCSS('pointer-events', 'none');
+});
+
+test('the reserved return hitbox follows the actual native rem layout', async ({ page }) => {
+    await page.evaluate(() => { document.documentElement.style.fontSize = '20px'; });
+    const chat = page.locator('[data-layout-demo-chat]');
+    await expect.poll(async () => (await chat.boundingBox())?.y).toBe(92);
+    const back = page.getByRole('button', { name: 'Back to home' });
+    await page.mouse.move(42, 92);
     await expect(back).toHaveCSS('pointer-events', 'auto');
     await back.click();
     await expect(page.locator('[data-probe-layout]')).toHaveAttribute('data-back-hits', '1');

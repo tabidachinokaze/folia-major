@@ -504,12 +504,12 @@ A rectangle in browser viewport CSS pixels, matching getBoundingClientRect().
 
 ### FoliumPlayerObstacle
 
-A native player control or a region needed to reveal hidden controls.
+A native player control or an interactive region kept reachable while controls are hidden.
 
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
 | `readonly id` | `string` | Stable host identifier; compare by id rather than array order. |
-| `readonly kind` | `'control' \| 'reveal-area'` | Reveal areas remain reserved even when their controls are hidden. |
+| `readonly kind` | `'control' \| 'reveal-area'` | Reveal areas reserve interactive hitboxes even when hidden; wider pointer tracking can continue behind mod content. |
 | `readonly rect` | `FoliumLayoutRect` | Bounds clipped to the player area, in viewport CSS pixels. |
 
 相关：[FoliumLayoutRect](#foliumlayoutrect)
