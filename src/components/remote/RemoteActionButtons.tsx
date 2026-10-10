@@ -44,17 +44,18 @@ export function RemoteActionButtons({ snapshot, group, isDaylight, send, onNavig
         if (hovered.current) onHover?.(null);
         hovered.current = null;
     }, [onHover]);
-    const base = 'flex h-8 min-w-8 items-center justify-center gap-1 rounded-full px-1 transition disabled:cursor-not-allowed disabled:opacity-30';
+    const base = 'group/remote-action relative flex shrink-0 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30';
     return <span className="flex flex-wrap items-center gap-0.5" data-testid={`remote-${group}-actions`}>
         {snapshot[group].map(item => {
             const label = resolveFoliumLabel(item.label, i18n.language, item.id);
             const direction = item.id === 'host:previous' ? 'prev' : item.id === 'host:next' ? 'next' : null;
+            const size = item.primary ? 'h-9 w-9' : direction ? 'h-8 w-8' : 'h-7 w-7';
             const color = item.primary ? (isDaylight ? 'bg-zinc-900 text-white hover:bg-zinc-800' : 'bg-white text-zinc-950 hover:bg-white/90')
                 : item.pressed ? (item.tone === 'alert' ? 'text-rose-400 hover:bg-rose-400/10' : (isDaylight ? 'text-zinc-900 hover:bg-black/5' : 'text-white hover:bg-white/10'))
                     : (isDaylight ? 'text-zinc-900/50 hover:bg-black/5 hover:text-zinc-900' : 'text-white/45 hover:bg-white/5 hover:text-white');
             return <button key={item.id} type="button" title={label} aria-label={label} aria-pressed={item.pressed}
                 disabled={item.disabled} data-remote-action-id={item.id}
-                className={`${base} ${item.primary ? 'h-9 min-w-9' : ''} ${item.id === 'host:loop' ? 'ml-2' : ''} ${color}`}
+                className={`${base} ${size} ${item.id === 'host:loop' ? 'ml-2' : ''} ${color}`}
                 onMouseEnter={() => { if (direction && !item.disabled) { hovered.current = direction; onHover?.(direction); } }}
                 onMouseLeave={() => { if (direction) { hovered.current = null; onHover?.(null); } }}
                 onClick={() => {
@@ -62,7 +63,10 @@ export function RemoteActionButtons({ snapshot, group, isDaylight, send, onNavig
                     if (direction && onNavigate) onNavigate(direction, command); else send(command);
                 }}>
                 <ActionIcon item={item} />
-                {item.count !== undefined && <span className="text-[10px] tabular-nums">{item.count}</span>}
+                {item.count !== undefined && <span data-remote-action-count
+                    className={`pointer-events-none invisible absolute -right-1 -top-1 rounded-full px-1 text-[10px] leading-4 tabular-nums group-hover/remote-action:visible group-focus-visible/remote-action:visible ${isDaylight ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-950'}`}>
+                    {item.count}
+                </span>}
             </button>;
         })}
     </span>;

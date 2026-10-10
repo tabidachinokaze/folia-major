@@ -4,6 +4,8 @@ Folium 1.5 adds `folium.registries.remoteControls.register({ id, order, edit })`
 
 Native ids are `host:previous`, `host:play-pause`, `host:next`, `host:loop` and `host:like`. The heart means the user's personal collection. A mod's repeated reaction belongs to a separate namespaced button, for example `music-party:vote`, with its own callback and optional count. A count or pressed appearance does not limit clicks.
 
+Counts appear when hovering or focusing a button with the keyboard, without changing the button's size or pushing adjacent actions into another row.
+
 Callbacks execute in the main playback renderer. Window controls, volume, seeking and recording remain native; this API does not grant playback-session ownership. New button ids must begin with the registering mod's id. Labels use the host's localized label format, icons use host lucide names, and each list is limited to 32 entries. Keep lists short enough for the compact remote window. Invalid or asynchronous edits are discarded and logged; later editors still run. Native disabled guards cannot be bypassed.
 
 Call `folium.ui.refreshRemoteControls()` after mod state changes. This also invalidates outstanding activation tickets, so call it when a button's business target changes even if the media id is unchanged. Unregistering or disabling a mod invalidates its callbacks and restores the remaining contributors or native layout. The export context accepts inert registrations and cannot refresh remote UI.

@@ -10,10 +10,11 @@ import type { ProbeDefinition } from './definition';
 // dev/probes/remoteControls.probe.tsx
 // Real remote UI, with an in-memory transport standing in for Electron IPC.
 function RemoteControlsProbe() {
+    const nativeLayout = new URLSearchParams(window.location.search).has('nativeLayout');
     const [ready, setReady] = useState(false);
     const [commands, setCommands] = useState<string[]>([]);
     useEffect(() => {
-        let count = 0, enabled = false, movePrevious = false, removePrevious = false;
+        let count = nativeLayout ? 3 : 0, enabled = false, movePrevious = false, removePrevious = false;
         let handle: ReturnType<typeof remoteControlsRegistry.register> | null = null;
         const state: RemoteControlSnapshot = {
             hasTrack: true, trackKey: 'probe:a', title: 'Remote action demo', artist: 'Offline fixture', coverUrl: null,
@@ -50,8 +51,10 @@ function RemoteControlsProbe() {
             if (action === 'toggle') {
                 enabled = !enabled;
                 if (enabled) handle = remoteControlsRegistry.register('remote-probe', { id: 'buttons', edit: event => {
-                    event.transport = event.transport.filter(item => item.id !== 'host:loop');
-                    event.transport.reverse();
+                    if (!nativeLayout) {
+                        event.transport = event.transport.filter(item => item.id !== 'host:loop');
+                        event.transport.reverse();
+                    }
                     const previous = event.transport.find(item => item.id === 'host:previous');
                     if (movePrevious || removePrevious) event.transport = event.transport.filter(item => item !== previous);
                     if (movePrevious && !removePrevious && previous) event.actions.push(previous);
@@ -69,14 +72,14 @@ function RemoteControlsProbe() {
         return () => {
             document.removeEventListener('click', control); remove(); handle?.unregister(); bridge.dispose(); window.electron = previous;
         };
-    }, []);
+    }, [nativeLayout]);
     return <div className="p-8 text-white bg-zinc-900 min-h-screen">
         <div className="flex gap-4 mb-8">
             <button data-remote-demo="toggle">Toggle mod</button><button data-remote-demo="track">Change track</button>
             <button data-remote-demo="disabled">Disable native actions</button>
             <button data-remote-demo="move">Move previous</button><button data-remote-demo="remove">Remove previous</button>
         </div>
-        <div data-testid="remote-window" className="w-[460px] h-[225px]">{ready && <RemoteControlApp />}</div>
+        <div data-testid="remote-window" className={nativeLayout ? 'fixed inset-0 isolate' : 'w-[460px] h-[225px]'}>{ready && <RemoteControlApp />}</div>
         <output data-testid="remote-log">{commands.join(', ')}</output>
     </div>;
 }
