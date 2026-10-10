@@ -2,7 +2,7 @@
 
 # Folium API 参考
 
-当前契约版本：**Folium 1.4**（运行时用 `folium.host.folium.minor` 做功能探测）。
+当前契约版本：**Folium 1.5**（运行时用 `folium.host.folium.minor` 做功能探测）。
 
 本文列出模组能用到的全部公开类型，内容直接来自契约文件 [`src/mods/folium/contract.ts`](../../src/mods/folium/contract.ts)，
 成员说明保留契约里的原文注释。平台规则（清单、权限、生命周期、安全模型）见 [Folium 规范](../../mods/README.md)，
@@ -11,7 +11,7 @@
 ## 目录
 
 - **客户端入口**：[FoliumContextKind](#foliumcontextkind) · [FoliumHostInfo](#foliumhostinfo) · [FoliumStorage](#foliumstorage) · [FoliumRpc](#foliumrpc) · [FoliumLogger](#foliumlogger) · [FoliumClientApi](#foliumclientapi) · [FoliumClientModule](#foliumclientmodule)
-- **注册表与条目**：[FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandContext](#foliumcommandcontext) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundContext](#foliumbackgroundcontext) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageSlot](#foliumstageslot) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumProgressContext](#foliumprogresscontext) · [FoliumControlSlot](#foliumcontrolslot) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRegistryHandle](#foliumregistryhandle) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumRegistry](#foliumregistry) · [FoliumRegistries](#foliumregistries)
+- **注册表与条目**：[FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandContext](#foliumcommandcontext) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundContext](#foliumbackgroundcontext) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageSlot](#foliumstageslot) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumProgressContext](#foliumprogresscontext) · [FoliumControlSlot](#foliumcontrolslot) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRegistryHandle](#foliumregistryhandle) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumRegistry](#foliumregistry) · [FoliumRemoteAction](#foliumremoteaction) · [FoliumRemoteControlsEvent](#foliumremotecontrolsevent) · [FoliumRemoteControlsDef](#foliumremotecontrolsdef) · [FoliumRegistries](#foliumregistries)
 - **宿主容器与上下文**：[FoliumMount](#foliummount) · [FoliumPanelContext](#foliumpanelcontext) · [FoliumSettingsPanelContext](#foliumsettingspanelcontext) · [FoliumClock](#foliumclock) · [FoliumSurface](#foliumsurface) · [FoliumAudioBands](#foliumaudiobands) · [FoliumAudio](#foliumaudio) · [FoliumDisplay](#foliumdisplay) · [FoliumStageContext](#foliumstagecontext)
 - **事件**：[FoliumEventPriority](#foliumeventpriority) · [FoliumNotificationEvents](#foliumnotificationevents) · [FoliumLyricsTransformEvent](#foliumlyricstransformevent) · [FoliumBeforePlayEvent](#foliumbeforeplayevent) · [FoliumOmniLyricsEvent](#foliumomnilyricsevent) · [FoliumOmniAudioEvent](#foliumomniaudioevent) · [FoliumHookEvents](#foliumhookevents) · [FoliumEventMap](#foliumeventmap) · [FoliumEvents](#foliumevents)
 - **服务**：[FoliumPlaybackService](#foliumplaybackservice) · [FoliumFileHandle](#foliumfilehandle) · [FoliumIconOptions](#foliumiconoptions) · [FoliumUiService](#foliumuiservice) · [FoliumFetchInit](#foliumfetchinit) · [FoliumFetchResponse](#foliumfetchresponse) · [FoliumNetService](#foliumnetservice)
@@ -352,10 +352,52 @@ interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = FoliumRegist
 
 相关：[FoliumRegistryHandle](#foliumregistryhandle)
 
+### FoliumRemoteAction
+
+A button in the independent remote's transport or song-action row (Folium 1.5).
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | Stable namespaced id. Newly inserted actions must start with the registering mod's id. |
+| `label` | `FoliumLabel` | Accessible, localized name used by the tooltip. |
+| `icon` | `string` | A host lucide icon name. |
+| `disabled?` | `boolean` | Disables activation. Native unavailability cannot be overridden. |
+| `pressed?` | `boolean` | Toggle appearance, independent of whether repeated activation is allowed. |
+| `count?` | `number` | Optional nonnegative badge; it does not impose an activation limit. |
+| `primary?` | `boolean` | Uses the central playback button's appearance; independent of the action's behavior. |
+| `tone?` | `'normal' \| 'alert'` | The alert tone is used by the native personal-collection heart. |
+| `run()` | `(): void \| Promise<void>` | Runs in the main playback renderer, never in the remote window. |
+
+相关：[FoliumLabel](#foliumlabel)
+
+### FoliumRemoteControlsEvent
+
+Context is immutable; edit the two ordered action arrays synchronously.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly context` | `{ readonly song: FoliumSong \| null; readonly state: FoliumPlaybackState; readonly controlsDisabled: boolean; readonly canPrevious: boolean; readonly canNext: boolean; }` | Current displayed song and native transport availability. |
+| `transport` | `FoliumRemoteAction[]` | Ordered transport buttons; native previous, play/pause, next and loop by default. |
+| `actions` | `FoliumRemoteAction[]` | Ordered song buttons; defaults to the personal-collection heart. |
+
+相关：[FoliumSong](#foliumsong) · [FoliumPlaybackState](#foliumplaybackstate) · [FoliumRemoteAction](#foliumremoteaction)
+
+### FoliumRemoteControlsDef
+
+Edits only remote playback/song actions, not window tools or recording UI.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | Local registration name, automatically namespaced by the host. |
+| `order?` | `number` | Lower values edit first; default 500, ties follow registration order. |
+| `edit()` | `(event: FoliumRemoteControlsEvent): void` | Synchronously edits copied lists; invalid edits are discarded. |
+
+相关：[FoliumRemoteControlsEvent](#foliumremotecontrolsevent)
+
 ### FoliumRegistries
 
 All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
-controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
+controlButtons, progressLayers, styles, remoteControls) accept registrations and do nothing in the export window.
 
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
@@ -369,8 +411,9 @@ controlButtons, progressLayers, styles) accept registrations and do nothing in t
 | `controlButtons` | `FoliumRegistry<FoliumControlButtonDef>` | Progress bar buttons. |
 | `progressLayers` | `FoliumRegistry<FoliumProgressLayerDef>` | Layers over the progress track. |
 | `styles` | `FoliumRegistry<FoliumStyleDef>` | Mod CSS for public parts. |
+| `remoteControls` | `FoliumRegistry<FoliumRemoteControlsDef>` | Ordered transport and song-action lists in the independent remote (Folium 1.5). |
 
-相关：[FoliumRegistry](#foliumregistry) · [FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef)
+相关：[FoliumRegistry](#foliumregistry) · [FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRemoteControlsDef](#foliumremotecontrolsdef)
 
 ## 宿主容器与上下文
 
@@ -693,6 +736,7 @@ Folium 1.2: options for `folium.ui.icon`.
 
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
+| `refreshRemoteControls()` | `(): void` | Refresh remote actions after mod state changes, including when the action target changes. |
 | `toast()` | `(message: string, options?: { type?: 'info' \| 'success' \| 'error'; durationMs?: number }): void` | Shows a status message. |
 | `openPlayerPanel()` | `(tabId?: string): void` | Opens the player panel, optionally on one of this mod's panel tabs (local id). |
 | `navigate()` | `(view: 'home' \| 'player'): void` | Switches to the home or player view. |
@@ -1173,7 +1217,7 @@ online song. Use folium.net.fetch for network access.
 The Folium version this host implements; mods read it at runtime as `folium.host.folium`.
 
 ```ts
-const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 })
+const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 })
 ```
 
 ### FoliumId

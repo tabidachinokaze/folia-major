@@ -28,6 +28,10 @@ import { useAppChromeStore } from '../stores/useAppChromeStore';
 import { useThemeSettingsStore } from '../stores/useThemeSettingsStore';
 import { usePlayerChromeSettingsStore } from '../stores/usePlayerChromeSettingsStore';
 import { currentTime } from '../stores/motionSignals';
+import i18n from '../i18n/config';
+import { toFoliumSong } from '../mods/folium/dto';
+import { subscribeRemoteControls } from '../mods/folium/registries/remoteControls';
+import { useRemoteControlActions } from './useRemoteControlActions';
 
 // Bridges Electron-specific shell features without coupling to UI components.
 const DISCORD_PRESENCE_SNAPSHOT_INTERVAL_MS = 1000;
@@ -143,6 +147,7 @@ export const useElectronPlaybackBridge = ({
 
     const [playbackSyncBridgeStatus, setPlaybackSyncBridgeStatus] = useState<ElectronPlaybackSyncBridgeStatus>(() => emptyPlaybackSyncBridgeStatus());
     const pausedByVoiceInputRef = useRef(false);
+    const nativeRemoteCommandRef = useRef<((command: RemoteControlCommand) => void) | null>(null);
     const remoteTrackTransitionRef = useRef<RemoteTrackTransition | null>(null);
     const publishTrackTransitionRef = useRef(publishTrackTransition);
     const isTrackTransitionAudibleRef = useRef(isTrackTransitionAudible);
@@ -273,7 +278,7 @@ export const useElectronPlaybackBridge = ({
         });
     };
 
-    const buildRemoteSnapshot = (options: { includeLyrics?: boolean } = {}): RemoteControlSnapshot => {
+    const buildNativeRemoteSnapshot = (options: { includeLyrics?: boolean } = {}): RemoteControlSnapshot => {
         return {
             ...buildRemoteControlSnapshotFromPlaybackSyncBridge(
             buildPlaybackSyncBridgeModelFromCurrentState(),
@@ -290,6 +295,17 @@ export const useElectronPlaybackBridge = ({
             likeUnavailableProvider,
         };
     };
+
+    const remoteActions = useRemoteControlActions(() => ({
+        snapshot: buildNativeRemoteSnapshot(),
+        song: toFoliumSong(selectDisplaySong(usePlaybackStore.getState())),
+        runNative: (command) => nativeRemoteCommandRef.current?.(command),
+        t: (key, values) => String(i18n.t(key, values)),
+    }));
+    const buildRemoteSnapshot = (options: { includeLyrics?: boolean } = {}): RemoteControlSnapshot => ({
+        ...buildNativeRemoteSnapshot(options),
+        remoteControls: remoteActions.read(),
+    });
 
     const buildDiscordPresenceSnapshot = () => {
         return buildDiscordPresenceSnapshotFromPlaybackSyncBridge(buildPlaybackSyncBridgeModelFromCurrentState());
@@ -495,6 +511,7 @@ export const useElectronPlaybackBridge = ({
 
         publish({ includeLyrics: true });
         const intervalId = window.setInterval(() => publish(), 500);
+        const unsubscribeActions = subscribeRemoteControls(() => publish());
 
         let lastReportedDpr = window.devicePixelRatio || 1;
         const handleResize = () => {
@@ -512,6 +529,7 @@ export const useElectronPlaybackBridge = ({
 
         return () => {
             window.clearInterval(intervalId);
+            unsubscribeActions();
             window.removeEventListener('resize', handleResize);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -554,6 +572,10 @@ export const useElectronPlaybackBridge = ({
         }
 
         const runCommand = (command: RemoteControlCommand) => {
+            if (command.type === 'remote-action') {
+                void remoteActions.activate(command);
+                return;
+            }
             if (onRemoteExportCommand?.(command)) {
                 return;
             }
@@ -640,7 +662,12 @@ export const useElectronPlaybackBridge = ({
             }
         };
 
-        return window.electron.onRemoteControlCommand(runCommand);
+        nativeRemoteCommandRef.current = runCommand;
+        const unsubscribe = window.electron.onRemoteControlCommand(runCommand);
+        return () => {
+            unsubscribe();
+            if (nativeRemoteCommandRef.current === runCommand) nativeRemoteCommandRef.current = null;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePlaybackContext, audioRef, canLikeCurrentSong, currentTime, duration, isNowPlayingControlDisabledRef, mediaSessionNextRef, mediaSessionPauseRef, mediaSessionPlayRef, mediaSessionPrevRef, onRemoteCycleLoopMode, onRemoteExportCommand, onRemotePlayerChromeVisibilityModeCycle, onRemoteTransitionSeek, setShowTransparentWindowBorder, syncStageLyricsClock, taskbarHasTrackRef, taskbarPlayerStateRef, onLike]);
 

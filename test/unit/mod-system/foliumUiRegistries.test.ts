@@ -27,6 +27,7 @@ import { hasVisualizerBackgroundMode, VISUALIZER_BACKGROUND_REGISTRY } from '@/c
 import { commandsRegistry } from '@/mods/folium/registries/commands';
 import { COMMAND_PALETTE_COMMANDS } from '@/components/command-palette/commandRegistry';
 import { installFoliumCommandPaletteSync } from '@/mods/folium/commandPaletteSync';
+import { remoteControlsRegistry } from '@/mods/folium/registries/remoteControls';
 
 // test/unit/mod-system/foliumUiRegistries.test.ts
 // The UI registries a client reaches through `folium.registries`: validation of
@@ -53,6 +54,23 @@ const mod = (overrides: Partial<ModRuntimeInfo> = {}): ModRuntimeInfo => ({
 });
 
 const noopMount = () => () => {};
+
+describe('remote controls owner and context', () => {
+    it('binds registration to its mod and includes it in mod teardown', () => {
+        const api = createFoliumClientApi(mod(), { context: 'main', internals: null });
+        const handle = api.registries.remoteControls.register({ id: 'buttons', edit: () => {} });
+        expect(handle.id).toBe('mod-a:buttons');
+        expect(remoteControlsRegistry.list()).toHaveLength(1);
+        listFoliumHostRegistries().forEach(registry => registry.unregisterAll('mod-a'));
+        expect(remoteControlsRegistry.list()).toHaveLength(0);
+    });
+    it('keeps export registrations inert and prevents remote UI refresh there', () => {
+        const api = createFoliumClientApi(mod(), { context: 'export', internals: null });
+        api.registries.remoteControls.register({ id: 'buttons', edit: () => {} });
+        expect(remoteControlsRegistry.list()).toHaveLength(0);
+        expect(() => api.ui.refreshRemoteControls()).toThrow();
+    });
+});
 
 afterEach(() => {
     listFoliumHostRegistries().forEach((registry) => registry.unregisterAll('mod-a'));

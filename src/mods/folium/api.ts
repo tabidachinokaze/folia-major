@@ -22,6 +22,7 @@ import { settingsSectionsRegistry } from './registries/settingsSections';
 import { playerPanelTabsRegistry } from './registries/playerPanelTabs';
 import { controlButtonsRegistry, progressLayersRegistry } from './registries/progress';
 import { stylesRegistry } from './registries/styles';
+import { remoteControlsRegistry } from './registries/remoteControls';
 import { addFoliumEventHandler } from './events';
 import { createFoliumNetService, createFoliumPlaybackService, createFoliumUiService } from './services';
 import { FOLIUM_LYRICS_HELPERS, FOLIUM_THEME_HELPERS } from './sharedHelpers';
@@ -46,6 +47,7 @@ const UI_ONLY_REGISTRIES = new Set<keyof FoliumRegistries>([
     'controlButtons',
     'progressLayers',
     'styles',
+    'remoteControls',
 ]);
 
 type AnyHostRegistry = FoliumHostRegistry<any, any>;
@@ -61,6 +63,7 @@ const HOST_REGISTRIES: Record<keyof FoliumRegistries, AnyHostRegistry> = {
     controlButtons: controlButtonsRegistry,
     progressLayers: progressLayersRegistry,
     styles: stylesRegistry,
+    remoteControls: remoteControlsRegistry,
 };
 
 // Registries of lazily loaded surfaces (experimental.ts) join teardown once loaded.
@@ -178,6 +181,7 @@ export const createFoliumClientApi = (mod: ModRuntimeInfo, options: FoliumClient
         controlButtons: bindRegistry(controlButtonsRegistry, modId, inert('controlButtons')),
         progressLayers: bindRegistry(progressLayersRegistry, modId, inert('progressLayers')),
         styles: bindRegistry(stylesRegistry, modId, inert('styles')),
+        remoteControls: bindRegistry(remoteControlsRegistry, modId, inert('remoteControls')),
     }) as FoliumRegistries;
 
     const log = Object.freeze({

@@ -9,6 +9,7 @@ const { createStageApi } = require('./stageApi.cjs');
 const { createModSystem } = require('./modSystem/modSystem.cjs');
 const { MOD_PROTOCOL_PRIVILEGED_SCHEME } = require('./modSystem/modProtocol.cjs');
 const { createWindowPlaybackHandoffStore } = require('./windowPlaybackHandoff.cjs');
+const { sanitizeRemoteControls, isCurrentRemoteAction } = require('./remoteControlActions.cjs');
 const {
   REMOTE_CONTROL_HIDE_TITLEBAR_SETTING_KEY,
   REMOTE_CONTROL_CLICK_THROUGH_SETTING_KEY,
@@ -6351,6 +6352,7 @@ ipcMain.handle('remote-control-publish-snapshot', (event, snapshot) => {
         ? { lyrics: latestRemoteControlSnapshot.lyrics }
         : {}),
       ...snapshot,
+      remoteControls: sanitizeRemoteControls(snapshot.remoteControls),
       mainWindowClickThroughEnabled,
       mainWindowAlwaysOnTop,
     }
@@ -6372,6 +6374,10 @@ ipcMain.handle('remote-control-get-snapshot', (event) => {
 ipcMain.handle('remote-control-send-command', (event, command) => {
   if (!isTrustedRemoteControlContents(event.sender)) {
     throw new Error('Untrusted renderer attempted to send a remote control command.');
+  }
+
+  if (command?.type === 'remote-action' && !isCurrentRemoteAction(command, latestRemoteControlSnapshot)) {
+    return false;
   }
 
   if (command?.type === 'set-main-window-click-through') {

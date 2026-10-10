@@ -1,3 +1,4 @@
+import { RemoteActionButtons } from './RemoteActionButtons';
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, Repeat, Repeat1, RepeatOff, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -305,9 +306,9 @@ const RemoteControlApp: React.FC = () => {
         isIncomingBackground ? incomingCoverUrl : currentCoverUrl,
     ) ?? coverColors;
 
-    const navigateTrack = (direction: 'prev' | 'next') => {
+    const navigateTrack = (direction: 'prev' | 'next', command?: RemoteControlCommand) => {
         recordNavIntent(direction);
-        sendCommand({ type: direction === 'prev' ? 'previous' : 'next' });
+        sendCommand(command ?? { type: direction === 'prev' ? 'previous' : 'next' });
     };
 
     const previewTitle = hoverNavSide === 'prev' && snapshot.canGoPrevious
@@ -823,6 +824,10 @@ const RemoteControlApp: React.FC = () => {
                                                             {/* Playback Actions */}
                                                             <div className="flex w-full items-center justify-between">
                                                                 {/* Playback domain: transport with loop mode trailing it */}
+                                                                {snapshot.remoteControls ? <RemoteActionButtons
+                                                                    snapshot={snapshot.remoteControls} group="transport" isDaylight={isDaylight}
+                                                                    send={sendCommand} onNavigate={navigateTrack} onHover={setHoverNavSide}
+                                                                /> : (
                                                                 <div className="flex items-center gap-0.5">
                                                                     <button
                                                                         type="button"
@@ -869,9 +874,14 @@ const RemoteControlApp: React.FC = () => {
                                                                         {snapshot.loopMode === 'off' ? <RepeatOff size={15} strokeWidth={2} /> : snapshot.loopMode === 'one' ? <Repeat1 size={15} strokeWidth={2} /> : <Repeat size={15} strokeWidth={2} />}
                                                                     </button>
                                                                 </div>
+                                                                )}
 
                                                                 {/* Track reaction, then window tools */}
                                                                 <div className="flex items-center gap-0.5">
+                                                                    {snapshot.remoteControls ? <RemoteActionButtons
+                                                                        snapshot={snapshot.remoteControls} group="actions" isDaylight={isDaylight}
+                                                                        send={sendCommand} onNavigate={navigateTrack} onHover={setHoverNavSide}
+                                                                    /> : (
                                                                     <span className="flex" title={likeUnavailableReason || (snapshot.isLiked ? t('remote.unlike') : t('remote.like'))}>
                                                                         <button
                                                                             type="button"
@@ -884,6 +894,7 @@ const RemoteControlApp: React.FC = () => {
                                                                             <Heart size={15} fill={snapshot.isLiked ? 'currentColor' : 'none'} strokeWidth={2} />
                                                                         </button>
                                                                     </span>
+                                                                    )}
                                                                     <button
                                                                         type="button"
                                                                         title={t('remote.transparentControls')}

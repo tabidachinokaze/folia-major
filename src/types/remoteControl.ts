@@ -15,6 +15,7 @@ export interface RemoteTrackTransition {
 }
 
 export type RemoteControlCommand =
+    | RemoteActionActivation
     | { type: 'play-pause' }
     | { type: 'play' }
     | { type: 'pause' }
@@ -35,7 +36,37 @@ export type RemoteControlCommand =
     | { type: 'cancel-export' }
     | { type: 'toggle-like' };
 
+/** Portable descriptions; callbacks stay in the main playback renderer. */
+export interface RemoteActionDescription {
+    id: string;
+    handle: string;
+    label: Record<string, string | undefined>;
+    icon: string;
+    disabled?: boolean;
+    pressed?: boolean;
+    primary?: boolean;
+    tone?: 'normal' | 'alert';
+    count?: number;
+}
+export interface RemoteControlsSnapshot {
+    epoch: string;
+    revision: number;
+    trackKey: string | null;
+    transport: RemoteActionDescription[];
+    actions: RemoteActionDescription[];
+}
+export interface RemoteActionActivation {
+    type: 'remote-action';
+    epoch: string;
+    revision: number;
+    trackKey: string | null;
+    group: 'transport' | 'actions';
+    id: string;
+    handle: string;
+}
+
 export interface RemoteControlSnapshot {
+    remoteControls?: RemoteControlsSnapshot;
     hasTrack: boolean;
     /** 当前曲目标识，遥控窗口据此判断"换歌了"并触发过渡 */
     trackKey: string | null;

@@ -7,7 +7,7 @@
 // Removing a field or changing its meaning requires folium 2.
 
 /** The Folium version this host implements; mods read it at runtime as `folium.host.folium`. */
-export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 });
+export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 });
 
 /** `modid:name`, like a Forge ResourceLocation. The mod id part is added by the host. */
 export type FoliumId = string;
@@ -766,9 +766,57 @@ export interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = Foliu
     register(def: Def): Handle;
 }
 
+/** A button in the independent remote's transport or song-action row (Folium 1.5). */
+export interface FoliumRemoteAction {
+    /** Stable namespaced id. Newly inserted actions must start with the registering mod's id. */
+    id: string;
+    /** Accessible, localized name used by the tooltip. */
+    label: FoliumLabel;
+    /** A host lucide icon name. */
+    icon: string;
+    /** Disables activation. Native unavailability cannot be overridden. */
+    disabled?: boolean;
+    /** Toggle appearance, independent of whether repeated activation is allowed. */
+    pressed?: boolean;
+    /** Optional nonnegative badge; it does not impose an activation limit. */
+    count?: number;
+    /** Uses the central playback button's appearance; independent of the action's behavior. */
+    primary?: boolean;
+    /** The alert tone is used by the native personal-collection heart. */
+    tone?: 'normal' | 'alert';
+    /** Runs in the main playback renderer, never in the remote window. */
+    run(): void | Promise<void>;
+}
+
+/** Context is immutable; edit the two ordered action arrays synchronously. */
+export interface FoliumRemoteControlsEvent {
+    /** Current displayed song and native transport availability. */
+    readonly context: {
+        readonly song: FoliumSong | null;
+        readonly state: FoliumPlaybackState;
+        readonly controlsDisabled: boolean;
+        readonly canPrevious: boolean;
+        readonly canNext: boolean;
+    };
+    /** Ordered transport buttons; native previous, play/pause, next and loop by default. */
+    transport: FoliumRemoteAction[];
+    /** Ordered song buttons; defaults to the personal-collection heart. */
+    actions: FoliumRemoteAction[];
+}
+
+/** Edits only remote playback/song actions, not window tools or recording UI. */
+export interface FoliumRemoteControlsDef {
+    /** Local registration name, automatically namespaced by the host. */
+    id: string;
+    /** Lower values edit first; default 500, ties follow registration order. */
+    order?: number;
+    /** Synchronously edits copied lists; invalid edits are discarded. */
+    edit(event: FoliumRemoteControlsEvent): void;
+}
+
 /**
  * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
- * controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
+ * controlButtons, progressLayers, styles, remoteControls) accept registrations and do nothing in the export window.
  */
 export interface FoliumRegistries {
     /** Lyric animation modes. */
@@ -791,6 +839,8 @@ export interface FoliumRegistries {
     progressLayers: FoliumRegistry<FoliumProgressLayerDef>;
     /** Mod CSS for public parts. */
     styles: FoliumRegistry<FoliumStyleDef>;
+    /** Ordered transport and song-action lists in the independent remote (Folium 1.5). */
+    remoteControls: FoliumRegistry<FoliumRemoteControlsDef>;
 }
 
 // ---------------------------------------------------------------- Events
@@ -986,6 +1036,8 @@ export interface FoliumIconOptions {
 
 /** `folium.ui`. Unavailable in the export window, except `icon`. */
 export interface FoliumUiService {
+    /** Refresh remote actions after mod state changes, including when the action target changes. */
+    refreshRemoteControls(): void;
     /** Shows a status message. */
     toast(message: string, options?: { type?: 'info' | 'success' | 'error'; durationMs?: number }): void;
     /** Opens the player panel, optionally on one of this mod's panel tabs (local id). */

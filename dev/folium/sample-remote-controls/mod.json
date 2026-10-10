@@ -1,0 +1,10 @@
+{
+  "folium": 1,
+  "id": "sample-remote-controls",
+  "name": "Remote action list demo",
+  "version": "1.0.0",
+  "author": "Folia Mod Samples",
+  "description": "Offline remote action insertion, reordering, replacement and removal, with execution logs.",
+  "client": "client.mjs",
+  "permissions": []
+}

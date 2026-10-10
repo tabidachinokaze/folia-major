@@ -238,6 +238,7 @@ declare global {
   type ElectronTaskbarControlAction = 'previous' | 'play-pause' | 'next';
 
   type ElectronRemoteControlCommand =
+    | import('./types/remoteControl').RemoteActionActivation
     | { type: 'play-pause' }
     | { type: 'play' }
     | { type: 'pause' }
@@ -299,6 +300,7 @@ declare global {
   }
 
   interface ElectronRemoteControlSnapshot {
+    remoteControls?: import('./types/remoteControl').RemoteControlsSnapshot;
     hasTrack: boolean;
     trackKey: string | null;
     title: string | null;

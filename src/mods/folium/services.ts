@@ -1,4 +1,5 @@
 import type { ModRuntimeInfo } from '../types';
+import { refreshRemoteControls } from './registries/remoteControls';
 import { invokeModNetFetch, invokeModPickFile, invokeModReleaseFile, invokeModRestoreFile } from '../ipc';
 import type {
     FoliumContextKind,
@@ -138,6 +139,10 @@ const createEmbed = (
 };
 
 export const createFoliumUiService = (mod: ModRuntimeInfo, context: FoliumContextKind): FoliumUiService => Object.freeze({
+    refreshRemoteControls: () => {
+        if (context !== 'main') throw new Error(`ui-unavailable-in-${context}-context`);
+        refreshRemoteControls();
+    },
     toast: (message: string, options: { type?: 'info' | 'success' | 'error'; durationMs?: number } = {}) => {
         requireActions('ui', context).toast(String(message), options.type ?? 'info', options.durationMs);
     },
