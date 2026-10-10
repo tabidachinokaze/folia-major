@@ -20,6 +20,7 @@ import { useFoliumStageContext, type FoliumStageInputs } from '../stageContext';
 import { FoliumMountHost, foliumThemeVars } from '../FoliumMountHost';
 import { toFoliumTheme } from '../dto';
 import { stageLayersRegistry } from './stageLayers';
+import { playerOverlayLayout } from '@/services/playerOverlayLayout';
 
 // src/mods/folium/registries/stageLayerView.tsx
 // The store-reading half of the stage layer slot (see stageLayers.tsx for why
@@ -98,6 +99,7 @@ const FoliumStageLayer: React.FC<{
         surface: STAGE_SURFACE,
         settings: null,
         audio: STAGE_AUDIO,
+        layout: playerOverlayLayout.source,
     });
     const foliumTheme = useMemo(() => toFoliumTheme(theme, isDaylight), [theme, isDaylight]);
     return (

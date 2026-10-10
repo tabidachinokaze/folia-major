@@ -10,6 +10,8 @@ import { getSizedCoverUrl } from '../../utils/coverUrl';
 import { FoliumStageLayerSlot } from '../../mods/folium/registries/stageLayers';
 import VideoLayer from './videoLayer/VideoLayer';
 import { isMainAppSurface } from '../../utils/appSurface';
+import { usePlayerOverlayReservation } from '../../hooks/usePlayerOverlayLayout';
+import type { FoliumLayoutRect } from '../../mods/folium/contract';
 
 // Shared outer shell for all visualizers.
 // This is where we keep background layering, font injection, and the hover-only back button
@@ -44,6 +46,14 @@ interface VisualizerShellProps {
 
 const PLAYER_CHROME_HOTSPOT_SIZE = 120;
 const TOUCH_GUIDE_DISPLAY_MS = 1400;
+const backRevealArea = (bounds: FoliumLayoutRect): FoliumLayoutRect => ({
+    left: bounds.left, top: bounds.top, width: PLAYER_CHROME_HOTSPOT_SIZE, height: PLAYER_CHROME_HOTSPOT_SIZE,
+});
+const panelRevealArea = (bounds: FoliumLayoutRect): FoliumLayoutRect => ({
+    left: bounds.left + bounds.width - PLAYER_CHROME_HOTSPOT_SIZE,
+    top: bounds.top + bounds.height - PLAYER_CHROME_HOTSPOT_SIZE,
+    width: PLAYER_CHROME_HOTSPOT_SIZE, height: PLAYER_CHROME_HOTSPOT_SIZE,
+});
 
 const isNearPlayerPanelHotspot = (clientX: number, clientY: number) => (
     typeof window !== 'undefined'
@@ -76,6 +86,10 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
     const onPlayerPanelGuideHotspotChange = sharedProps?.onPlayerPanelGuideHotspotChange;
     const isBackButtonVisible = sharedProps?.alwaysShowBackButton || showBackButton;
     const showStageLayers = !sharedProps?.isPreviewMode && !resolvedStaticMode;
+    // Static visuals still have live native controls and an app.overlay layer.
+    const publishLayout = !sharedProps?.isPreviewMode && isMainAppSurface;
+    usePlayerOverlayReservation('back-reveal', backRevealArea, publishLayout && Boolean(resolvedOnBack));
+    usePlayerOverlayReservation('panel-reveal', panelRevealArea, publishLayout && !resolvedIsPanelOpen);
 
     const updatePlayerPanelGuideHotspot = (isActive: boolean) => {
         if (playerPanelGuideHotspotRef.current === isActive) {

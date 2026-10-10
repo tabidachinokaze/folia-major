@@ -5,6 +5,7 @@ import type { FoliumDisplay, FoliumParamAccess, FoliumParamValues, FoliumStageCo
 import { toFoliumLines, toFoliumSongFromMeta, toFoliumTheme } from './dto';
 import { createFoliumAudio, type FoliumAudioSource } from './audio';
 import { resolveSingleTrackSubtitleMode } from '@/utils/lyrics/alternateText';
+import type { PlayerLayoutSource } from '@/services/playerOverlayLayout';
 
 // src/mods/folium/stageContext.ts
 // Builds the FoliumStageContext handed to lyric-synced content (visualizers,
@@ -40,6 +41,8 @@ export interface FoliumStageInputs {
     settings: FoliumParamAccess | null;
     /** The analyser signals behind `ctx.audio`; absent reads as silence. */
     audio?: FoliumAudioSource;
+    /** Only live player stage layers receive host layout geometry. */
+    layout?: PlayerLayoutSource;
 }
 
 const EMPTY_SETTINGS: FoliumParamValues = Object.freeze({});
@@ -141,11 +144,21 @@ export const useFoliumStageContext = (inputs: FoliumStageInputs): FoliumStageCon
             },
             getCoverUrl: () => inputsRef.current.coverUrl,
             getDisplay: () => displayRef.current,
+            getLayout: () => inputsRef.current.isPreview || inputsRef.current.staticMode
+                ? null
+                : inputsRef.current.layout?.get() ?? null,
             getSettings: () => inputsRef.current.settings?.get() ?? EMPTY_SETTINGS,
             getSurface: () => inputsRef.current.surface,
             subscribe: (listener: () => void) => {
                 listenersRef.current.add(listener);
-                return () => listenersRef.current.delete(listener);
+                const offLayout = inputsRef.current.layout?.subscribe(listener);
+                let disposed = false;
+                return () => {
+                    if (disposed) return;
+                    disposed = true;
+                    listenersRef.current.delete(listener);
+                    offLayout?.();
+                };
             },
             audio: createFoliumAudio(() => inputsRef.current.audio ?? NO_AUDIO),
         });

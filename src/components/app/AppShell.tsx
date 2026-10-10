@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Lock, LockOpen } from 'lucide-react';
 import TitlebarDragZone from '../TitlebarDragZone';
 import WindowControls from '../WindowControls';
+import { usePlayerOverlayRoot, usePlayerOverlayReservation } from '../../hooks/usePlayerOverlayLayout';
+import type { FoliumLayoutRect } from '../../mods/folium/contract';
 
 // Shared shell for the app container, Electron titlebar, and mounted audio node.
 type AppShellProps = {
@@ -24,6 +26,10 @@ type AppShellProps = {
     children: React.ReactNode;
 };
 
+const titlebarRevealArea = (bounds: FoliumLayoutRect): FoliumLayoutRect => ({
+    left: bounds.left, top: bounds.top, width: bounds.width, height: 56,
+});
+
 const AppShell: React.FC<AppShellProps> = ({
     appStyle,
     isElectronWindow,
@@ -42,6 +48,9 @@ const AppShell: React.FC<AppShellProps> = ({
     children,
 }) => {
     const { t } = useTranslation();
+    const layoutRootRef = useRef<HTMLDivElement>(null);
+    usePlayerOverlayRoot(layoutRootRef, isPlayerView);
+    usePlayerOverlayReservation('window-titlebar-reveal', titlebarRevealArea, usesCustomWindowChrome);
     const [isWindowMaximized, setIsWindowMaximized] = useState(false);
     const hasFullscreenTitlebarButton = isElectronWindow && !hideFullscreenButton;
 
@@ -90,6 +99,7 @@ const AppShell: React.FC<AppShellProps> = ({
 
     return (
         <div
+            ref={layoutRootRef}
             className="fixed inset-0 w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-500"
             style={{
                 ...appStyle,

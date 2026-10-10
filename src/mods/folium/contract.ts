@@ -7,7 +7,7 @@
 // Removing a field or changing its meaning requires folium 2.
 
 /** The Folium version this host implements; mods read it at runtime as `folium.host.folium`. */
-export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 });
+export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 });
 
 /** `modid:name`, like a Forge ResourceLocation. The mod id part is added by the host. */
 export type FoliumId = string;
@@ -486,6 +486,36 @@ export interface FoliumDisplay {
     visualizerOpacity: number;
 }
 
+/** A rectangle in browser viewport CSS pixels, matching getBoundingClientRect(). */
+export interface FoliumLayoutRect {
+    /** Distance from the viewport's left edge. */
+    readonly left: number;
+    /** Distance from the viewport's top edge. */
+    readonly top: number;
+    /** Width in CSS pixels. */
+    readonly width: number;
+    /** Height in CSS pixels. */
+    readonly height: number;
+}
+
+/** A native player control or a region needed to reveal hidden controls. */
+export interface FoliumPlayerObstacle {
+    /** Stable host identifier; compare by id rather than array order. */
+    readonly id: string;
+    /** Reveal areas remain reserved even when their controls are hidden. */
+    readonly kind: 'control' | 'reveal-area';
+    /** Bounds clipped to the player area, in viewport CSS pixels. */
+    readonly rect: FoliumLayoutRect;
+}
+
+/** Folium 1.5: immutable player layout, without access to native DOM elements. */
+export interface FoliumPlayerLayout {
+    /** The player area in viewport CSS pixels. */
+    readonly bounds: FoliumLayoutRect;
+    /** Native controls and reserved pointer reveal regions to avoid. */
+    readonly obstacles: readonly FoliumPlayerObstacle[];
+}
+
 /**
  * Context for lyric-synced content (visualizers, stage layers). Snapshot fields are fixed for one mount; the
  * host remounts only when the lyric data, the song or `staticMode` changes (or the preview line in static
@@ -523,11 +553,13 @@ export interface FoliumStageContext {
     getCoverUrl(): string | null;
     /** Folium 1.3. The same object until a value changes; `subscribe` announces changes. */
     getDisplay(): FoliumDisplay;
+    /** Folium 1.5: stable until layout changes. Null outside live player stage layers, including previews, OBS and export. */
+    getLayout(): FoliumPlayerLayout | null;
     /** This entry's settings values (defaults merged); empty without a schema. */
     getSettings(): FoliumParamValues;
     /** What the host draws around this content. */
     getSurface(): FoliumSurface;
-    /** Called when the line index, pause, theme, subtitle theme, cover, display, settings or surface change. */
+    /** Called when the line index, pause, theme, subtitle theme, cover, display, layout, settings or surface change. */
     subscribe(listener: () => void): FoliumDisposer;
     /** Folium 1.2. */
     readonly audio: FoliumAudio;

@@ -2,7 +2,7 @@
 
 # Folium API 参考
 
-当前契约版本：**Folium 1.4**（运行时用 `folium.host.folium.minor` 做功能探测）。
+当前契约版本：**Folium 1.5**（运行时用 `folium.host.folium.minor` 做功能探测）。
 
 本文列出模组能用到的全部公开类型，内容直接来自契约文件 [`src/mods/folium/contract.ts`](../../src/mods/folium/contract.ts)，
 成员说明保留契约里的原文注释。平台规则（清单、权限、生命周期、安全模型）见 [Folium 规范](../../mods/README.md)，
@@ -12,7 +12,7 @@
 
 - **客户端入口**：[FoliumContextKind](#foliumcontextkind) · [FoliumHostInfo](#foliumhostinfo) · [FoliumStorage](#foliumstorage) · [FoliumRpc](#foliumrpc) · [FoliumLogger](#foliumlogger) · [FoliumClientApi](#foliumclientapi) · [FoliumClientModule](#foliumclientmodule)
 - **注册表与条目**：[FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandContext](#foliumcommandcontext) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundContext](#foliumbackgroundcontext) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageSlot](#foliumstageslot) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumProgressContext](#foliumprogresscontext) · [FoliumControlSlot](#foliumcontrolslot) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRegistryHandle](#foliumregistryhandle) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumRegistry](#foliumregistry) · [FoliumRegistries](#foliumregistries)
-- **宿主容器与上下文**：[FoliumMount](#foliummount) · [FoliumPanelContext](#foliumpanelcontext) · [FoliumSettingsPanelContext](#foliumsettingspanelcontext) · [FoliumClock](#foliumclock) · [FoliumSurface](#foliumsurface) · [FoliumAudioBands](#foliumaudiobands) · [FoliumAudio](#foliumaudio) · [FoliumDisplay](#foliumdisplay) · [FoliumStageContext](#foliumstagecontext)
+- **宿主容器与上下文**：[FoliumMount](#foliummount) · [FoliumPanelContext](#foliumpanelcontext) · [FoliumSettingsPanelContext](#foliumsettingspanelcontext) · [FoliumClock](#foliumclock) · [FoliumSurface](#foliumsurface) · [FoliumAudioBands](#foliumaudiobands) · [FoliumAudio](#foliumaudio) · [FoliumDisplay](#foliumdisplay) · [FoliumLayoutRect](#foliumlayoutrect) · [FoliumPlayerObstacle](#foliumplayerobstacle) · [FoliumPlayerLayout](#foliumplayerlayout) · [FoliumStageContext](#foliumstagecontext)
 - **事件**：[FoliumEventPriority](#foliumeventpriority) · [FoliumNotificationEvents](#foliumnotificationevents) · [FoliumLyricsTransformEvent](#foliumlyricstransformevent) · [FoliumBeforePlayEvent](#foliumbeforeplayevent) · [FoliumOmniLyricsEvent](#foliumomnilyricsevent) · [FoliumOmniAudioEvent](#foliumomniaudioevent) · [FoliumHookEvents](#foliumhookevents) · [FoliumEventMap](#foliumeventmap) · [FoliumEvents](#foliumevents)
 - **服务**：[FoliumPlaybackService](#foliumplaybackservice) · [FoliumFileHandle](#foliumfilehandle) · [FoliumIconOptions](#foliumiconoptions) · [FoliumUiService](#foliumuiservice) · [FoliumFetchInit](#foliumfetchinit) · [FoliumFetchResponse](#foliumfetchresponse) · [FoliumNetService](#foliumnetservice)
 - **共享工具**：[FoliumWordSegment](#foliumwordsegment) · [FoliumWordColorRange](#foliumwordcolorrange) · [FoliumLyricsHelpers](#foliumlyricshelpers) · [FoliumThemeHelpers](#foliumthemehelpers)
@@ -491,6 +491,40 @@ and draws its own reads the subtitle settings here.
 | `isPanelOpen` | `boolean` | The player panel is open. |
 | `visualizerOpacity` | `number` | Lyric layer opacity, 0..1. |
 
+### FoliumLayoutRect
+
+A rectangle in browser viewport CSS pixels, matching getBoundingClientRect().
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly left` | `number` | Distance from the viewport's left edge. |
+| `readonly top` | `number` | Distance from the viewport's top edge. |
+| `readonly width` | `number` | Width in CSS pixels. |
+| `readonly height` | `number` | Height in CSS pixels. |
+
+### FoliumPlayerObstacle
+
+A native player control or a region needed to reveal hidden controls.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly id` | `string` | Stable host identifier; compare by id rather than array order. |
+| `readonly kind` | `'control' \| 'reveal-area'` | Reveal areas remain reserved even when their controls are hidden. |
+| `readonly rect` | `FoliumLayoutRect` | Bounds clipped to the player area, in viewport CSS pixels. |
+
+相关：[FoliumLayoutRect](#foliumlayoutrect)
+
+### FoliumPlayerLayout
+
+Folium 1.5: immutable player layout, without access to native DOM elements.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly bounds` | `FoliumLayoutRect` | The player area in viewport CSS pixels. |
+| `readonly obstacles` | `readonly FoliumPlayerObstacle[]` | Native controls and reserved pointer reveal regions to avoid. |
+
+相关：[FoliumLayoutRect](#foliumlayoutrect) · [FoliumPlayerObstacle](#foliumplayerobstacle)
+
 ### FoliumStageContext
 
 Context for lyric-synced content (visualizers, stage layers). Snapshot fields are fixed for one mount; the
@@ -513,12 +547,13 @@ including while paused, when `currentTime` is idle.
 | `getSubtitleTheme()` | `(): FoliumTheme` | Folium 1.3: the theme the host's subtitles use; equals getTheme() where there is none. |
 | `getCoverUrl()` | `(): string \| null` | Folium 1.3. |
 | `getDisplay()` | `(): FoliumDisplay` | Folium 1.3. The same object until a value changes; `subscribe` announces changes. |
+| `getLayout()` | `(): FoliumPlayerLayout \| null` | Folium 1.5: stable until layout changes. Null outside live player stage layers, including previews, OBS and export. |
 | `getSettings()` | `(): FoliumParamValues` | This entry's settings values (defaults merged); empty without a schema. |
 | `getSurface()` | `(): FoliumSurface` | What the host draws around this content. |
-| `subscribe()` | `(listener: () => void): FoliumDisposer` | Called when the line index, pause, theme, subtitle theme, cover, display, settings or surface change. |
+| `subscribe()` | `(listener: () => void): FoliumDisposer` | Called when the line index, pause, theme, subtitle theme, cover, display, layout, settings or surface change. |
 | `readonly audio` | `FoliumAudio` | Folium 1.2. |
 
-相关：[FoliumLine](#foliumline) · [FoliumSong](#foliumsong) · [FoliumClock](#foliumclock) · [FoliumTheme](#foliumtheme) · [FoliumDisplay](#foliumdisplay) · [FoliumParamValues](#foliumparamvalues) · [FoliumSurface](#foliumsurface) · [FoliumDisposer](#foliumdisposer) · [FoliumAudio](#foliumaudio)
+相关：[FoliumLine](#foliumline) · [FoliumSong](#foliumsong) · [FoliumClock](#foliumclock) · [FoliumTheme](#foliumtheme) · [FoliumDisplay](#foliumdisplay) · [FoliumPlayerLayout](#foliumplayerlayout) · [FoliumParamValues](#foliumparamvalues) · [FoliumSurface](#foliumsurface) · [FoliumDisposer](#foliumdisposer) · [FoliumAudio](#foliumaudio)
 
 ## 事件
 
@@ -1173,7 +1208,7 @@ online song. Use folium.net.fetch for network access.
 The Folium version this host implements; mods read it at runtime as `folium.host.folium`.
 
 ```ts
-const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 })
+const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 })
 ```
 
 ### FoliumId
