@@ -5,6 +5,9 @@ import CommandPaletteQueueList, { type CommandPaletteQueueListProps } from './Co
 import type { QueueSearchEvaluation, QueueSearchSuggestion } from './queueSearch';
 import type { QueueBatchAction, QueueFacetKind } from './queueQuery';
 
+import CommandPaletteQueueToolbar from './CommandPaletteQueueToolbar';
+import { useQueueView } from '@/mods/folium/registries/queueViews';
+
 // src/components/command-palette/CommandPaletteQueueView.tsx
 // Adds queue syntax suggestions and an explicit batch-action preview above the virtualized results.
 
@@ -52,7 +55,9 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
     const { t } = useTranslation();
     const { parsed, suggestions } = evaluation;
     const ActionIcon = parsed.action ? actionIcon[parsed.action] : null;
+    const view = useQueueView();
     const canExecuteBatch = Boolean(
+        !view &&
         parsed.action
         && evaluation.hasMeaningfulFilter
         && evaluation.eligibleTargetIndices.length > 0
@@ -64,27 +69,8 @@ const CommandPaletteQueueView: React.FC<CommandPaletteQueueViewProps> = ({
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-2" data-testid="command-palette-queue-view">
-            <div className="flex shrink-0 items-start justify-between gap-3 px-3 py-1 text-[11px]">
-                <div className="min-w-0 flex-1 opacity-40" data-testid="command-palette-queue-syntax-hint">
-                    {!parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text
-                        ? t('commandPalette.queueSyntaxHint')
-                        : null}
-                </div>
-                <label
-                    className="flex shrink-0 cursor-pointer items-center gap-1.5 opacity-65 hover:opacity-100"
-                    title={t('commandPalette.queueKeepOpenHint')}
-                >
-                    <span>{t('commandPalette.queueKeepOpen')}</span>
-                    <input
-                        type="checkbox"
-                        checked={keepOpenOnSongChange}
-                        disabled={isExecuting}
-                        onChange={event => onKeepOpenOnSongChange(event.target.checked)}
-                        className="h-3.5 w-3.5 cursor-pointer disabled:cursor-wait"
-                        style={{ accentColor }}
-                    />
-                </label>
-            </div>
+            <CommandPaletteQueueToolbar query={listProps.query} showHelp={!parsed.action && parsed.actionDraft === null && parsed.facetDraft === null && !parsed.text}
+                checked={keepOpenOnSongChange} disabled={isExecuting} onChange={onKeepOpenOnSongChange} />
             {(parsed.action || parsed.actionDraft !== null || parsed.facetDraft !== null) && (
                 <div className="flex flex-wrap items-center gap-1.5 px-1">
                     {parsed.action && ActionIcon && (

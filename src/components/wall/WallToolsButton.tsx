@@ -8,6 +8,10 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { usePlayerBottomBarBottomPx } from '../../hooks/usePlayerBottomBarBottomPx';
 import { SlideActionButton } from '../shared/SlideActionButton';
 import './WallToolsButton.css';
+import { QueueSlotIcon } from '../shared/QueueSlotItems';
+import type { FoliumUiSlotItem } from '@/mods/folium/contract';
+import { resolveFoliumLabel } from '@/mods/folium/params';
+import { invokeUiSlotItem } from '@/mods/folium/uiSlots';
 
 // src/components/wall/WallToolsButton.tsx
 // 海报墙右下角的工具按钮（Lattice 与 bravais 共用）：点按打开锚定的玻璃面板，向左滑打开命令面板。
@@ -24,10 +28,15 @@ import './WallToolsButton.css';
 
 /** 面板里的一行：动作（点了默认收起面板）或开关（menuitemcheckbox，点了不收起）。 */
 export type WallToolsEntry =
+    | { kind: 'mod'; id: string; item: FoliumUiSlotItem }
     | {
         kind: 'action';
         id: string;
         icon: LucideIcon;
+        /** Optional public icon override from an editable host list. */
+        iconName?: string | null;
+        count?: number;
+        pressed?: boolean;
         label: string;
         /** 右侧的按键提示（`: + C` 这类）。 */
         kbd?: string;
@@ -44,6 +53,9 @@ export type WallToolsEntry =
         kind: 'toggle';
         id: string;
         icon: LucideIcon;
+        iconName?: string | null;
+        count?: number;
+        disabled?: boolean;
         label: string;
         checked: boolean;
         onToggle: (next: boolean) => void;
@@ -238,7 +250,26 @@ function WallToolsQuickRow({ actions, onDone }: { actions: readonly WallToolsQui
 }
 
 /** 一行条目。 */
+function WallToolsModRow({ item, onDone }: { item: FoliumUiSlotItem; onDone: () => void }) {
+    const { i18n } = useTranslation();
+    const label = resolveFoliumLabel(item.label, i18n.language, item.id);
+    if (item.kind === 'text') return <div className="lattice-tools-heading" data-ui-slot-item={item.id}>{label}</div>;
+    return <button type="button" role={item.kind === 'toggle' ? 'menuitemcheckbox' : 'menuitem'}
+        aria-checked={item.kind === 'toggle' ? item.checked : undefined}
+        aria-pressed={item.kind === 'button' ? item.pressed : undefined}
+        aria-label={label} title={label} disabled={item.disabled} className="lattice-tools-action" data-ui-slot-item={item.id}
+        onClick={() => {
+            void invokeUiSlotItem(item, item.kind === 'toggle' ? !item.checked : undefined);
+            if (item.kind === 'button') onDone();
+        }}>
+        <QueueSlotIcon name={item.icon} /><span>{label}</span>
+        {item.count !== undefined && <span className="lattice-tools-value">{item.count}</span>}
+        {item.kind === 'toggle' && <span className={`lattice-tools-toggle ${item.checked ? 'is-on' : ''}`} aria-hidden="true"><span /></span>}
+    </button>;
+}
+
 function WallToolsRow({ entry, onDone }: { entry: WallToolsEntry; onDone: () => void }) {
+    if (entry.kind === 'mod') return <WallToolsModRow item={entry.item} onDone={onDone} />;
     if (entry.kind === 'slider') return <WallToolsSliderRow entry={entry} />;
     if (entry.kind === 'heading') {
         return (
@@ -248,17 +279,20 @@ function WallToolsRow({ entry, onDone }: { entry: WallToolsEntry; onDone: () => 
         );
     }
     const Icon = entry.icon;
+    const icon = entry.iconName === null ? null : entry.iconName ? <QueueSlotIcon name={entry.iconName} /> : <Icon aria-hidden="true" />;
     if (entry.kind === 'toggle') {
         return (
             <button
                 type="button"
                 role="menuitemcheckbox"
                 aria-checked={entry.checked}
+                disabled={entry.disabled}
                 className="lattice-tools-action"
                 onClick={() => entry.onToggle(!entry.checked)}
             >
-                <Icon aria-hidden="true" />
+                {icon}
                 <span>{entry.label}</span>
+                {entry.count !== undefined && <span className="lattice-tools-value">{entry.count}</span>}
                 <span className={`lattice-tools-toggle ${entry.checked ? 'is-on' : ''}`} aria-hidden="true">
                     <span />
                 </span>
@@ -269,6 +303,7 @@ function WallToolsRow({ entry, onDone }: { entry: WallToolsEntry; onDone: () => 
         <button
             type="button"
             role="menuitem"
+            aria-pressed={entry.pressed}
             className="lattice-tools-action"
             onClick={() => {
                 entry.onSelect();
@@ -276,8 +311,9 @@ function WallToolsRow({ entry, onDone }: { entry: WallToolsEntry; onDone: () => 
             }}
             disabled={entry.disabled}
         >
-            <Icon aria-hidden="true" />
+            {icon}
             <span>{entry.label}</span>
+            {entry.count !== undefined && <span className="lattice-tools-value">{entry.count}</span>}
             {entry.value !== undefined && <span className="lattice-tools-value">{entry.value}</span>}
             {entry.kbd !== undefined && (entry.kbdHidden ? <kbd aria-hidden="true">{entry.kbd}</kbd> : <kbd>{entry.kbd}</kbd>)}
         </button>

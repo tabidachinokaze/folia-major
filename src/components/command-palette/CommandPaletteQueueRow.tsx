@@ -1,13 +1,15 @@
 import React from 'react';
-import { ListEnd, ListPlus, Trash2 } from 'lucide-react';
 import type { RowComponentProps } from 'react-window';
 import { getSongUnavailableLabel, isSongUnavailable } from '../../services/onlineMusic/songAvailability';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
-import { getPlaybackSongKey } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../utils/appPlaybackGuards';
 import type { CommandPaletteMatch } from './types';
 
+import { QueueSlotItems } from '../shared/QueueSlotItems';
+import { useQueueEntrySlots } from '../shared/useQueueEntrySlots';
+
 // src/components/command-palette/CommandPaletteQueueRow.tsx
-// Renders one searchable queue entry and its three hover editing actions.
+// Renders one searchable occurrence and its host-rendered hover actions.
 
 export type CommandPaletteQueueRowProps = {
     activeIndex: number;
@@ -49,12 +51,17 @@ const CommandPaletteQueueRow = ({
     const match = matches[index];
     const song = match?.command.queueSong;
     const queueIndex = match?.command.queueIndex;
+    const slots = useQueueEntrySlots(song ?? { id: '', name: '', artists: [], album: { id: 0, name: '' }, durationMs: 0 }, 'palette', [
+        { id: 'host:queue-play-next', kind: 'button', label: { en: labels.playNext }, icon: 'list-plus', run: () => { if (queueIndex !== undefined) onMoveSongToNext(queueIndex); } },
+        { id: 'host:queue-move-end', kind: 'button', label: { en: labels.moveToEnd }, icon: 'list-end', run: () => { if (queueIndex !== undefined) onMoveSongToEnd(queueIndex); } },
+        { id: 'host:queue-remove', kind: 'button', label: { en: labels.remove }, icon: 'trash-2', run: () => { if (queueIndex !== undefined) onRemoveSong(queueIndex); } },
+    ]);
     if (!match || !song || queueIndex === undefined) {
         return null;
     }
 
     const isSelected = index === activeIndex;
-    const isPlaying = currentSongKey === getPlaybackSongKey(song);
+    const isPlaying = currentSongKey === getQueueSongKey(song);
     const unavailable = isSongUnavailable(song);
     const selectedClass = isDaylight ? 'bg-black/10' : 'bg-white/10';
     const hoverClass = isDaylight ? 'hover:bg-black/[0.05]' : 'hover:bg-white/[0.06]';
@@ -85,6 +92,7 @@ const CommandPaletteQueueRow = ({
                         #{queueIndex + 1}
                     </span>
                     <span className="min-w-0 flex-1">
+                        <QueueSlotItems items={slots.overline} className="text-[9px]" />
                         <span className="flex items-center gap-2">
                             <span className="truncate text-sm font-medium">{song.name}</span>
                             {unavailable && (
@@ -114,30 +122,7 @@ const CommandPaletteQueueRow = ({
                         group-hover/queue-row:pointer-events-auto group-hover/queue-row:opacity-100
                         focus-within:pointer-events-auto focus-within:opacity-100`}
                 >
-                    {[
-                        { label: labels.playNext, icon: ListPlus, action: onMoveSongToNext },
-                        { label: labels.moveToEnd, icon: ListEnd, action: onMoveSongToEnd },
-                        { label: labels.remove, icon: Trash2, action: onRemoveSong },
-                    ].map(({ label, icon: Icon, action }) => (
-                        <button
-                            key={label}
-                            type="button"
-                            title={label}
-                            aria-label={label}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                if (event.detail > 0) {
-                                    event.currentTarget.blur();
-                                }
-                                action(queueIndex);
-                            }}
-                            className={`rounded-lg p-2 transition-colors ${
-                                isDaylight ? 'hover:bg-black/10' : 'hover:bg-white/10'
-                            }`}
-                        >
-                            <Icon size={14} />
-                        </button>
-                    ))}
+                    <QueueSlotItems items={slots.actions} />
                 </span>
             </div>
         </div>

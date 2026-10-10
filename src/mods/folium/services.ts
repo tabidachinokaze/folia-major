@@ -1,3 +1,4 @@
+import { createFoliumUiSlots } from './uiSlots';
 import type { ModRuntimeInfo } from '../types';
 import { invokeModNetFetch, invokeModPickFile, invokeModReleaseFile, invokeModRestoreFile } from '../ipc';
 import type {
@@ -138,6 +139,7 @@ const createEmbed = (
 };
 
 export const createFoliumUiService = (mod: ModRuntimeInfo, context: FoliumContextKind): FoliumUiService => Object.freeze({
+    slots: createFoliumUiSlots(mod.id, context),
     toast: (message: string, options: { type?: 'info' | 'success' | 'error'; durationMs?: number } = {}) => {
         requireActions('ui', context).toast(String(message), options.type ?? 'info', options.durationMs);
     },

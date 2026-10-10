@@ -27,6 +27,8 @@ import { hasVisualizerBackgroundMode, VISUALIZER_BACKGROUND_REGISTRY } from '@/c
 import { commandsRegistry } from '@/mods/folium/registries/commands';
 import { COMMAND_PALETTE_COMMANDS } from '@/components/command-palette/commandRegistry';
 import { installFoliumCommandPaletteSync } from '@/mods/folium/commandPaletteSync';
+import { queueViewsRegistry, readQueueView } from '@/mods/folium/registries/queueViews';
+import { uiSlotsRegistry } from '@/mods/folium/uiSlots';
 
 // test/unit/mod-system/foliumUiRegistries.test.ts
 // The UI registries a client reaches through `folium.registries`: validation of
@@ -96,6 +98,28 @@ describe('backgrounds registry', () => {
 });
 
 describe('client api bindings', () => {
+    it('owns queue UI and list editor registrations in normal mod teardown', () => {
+        const api = createFoliumClientApi(mod(), { context: 'main', internals: null });
+        const stop = vi.fn();
+        api.registries.queueViews.register({ id: 'queue', getSnapshot: () => ({ entries: [], currentId: null }), subscribe: () => stop, onAction() {} });
+        api.ui.slots.register('queue.header', () => {});
+        expect(readQueueView()).not.toBeNull();
+        expect(uiSlotsRegistry.list()).toHaveLength(1);
+        listFoliumHostRegistries().forEach(registry => registry.unregisterAll('mod-a'));
+        expect(readQueueView()).toBeNull();
+        expect(uiSlotsRegistry.list()).toHaveLength(0);
+        expect(stop).toHaveBeenCalledOnce();
+    });
+
+    it('does not subscribe to queue views or editors in the export window', () => {
+        const api = createFoliumClientApi(mod(), { context: 'export', internals: null }), getSnapshot = vi.fn();
+        api.registries.queueViews.register({ id: 'queue', getSnapshot, subscribe: vi.fn(), onAction() {} });
+        api.ui.slots.register('queue.header', () => {});
+        expect(getSnapshot).not.toHaveBeenCalled();
+        expect(queueViewsRegistry.list()).toHaveLength(0);
+        expect(uiSlotsRegistry.list()).toHaveLength(0);
+    });
+
     it('makes UI registries inert in the export context but keeps content ones live', () => {
         const api = createFoliumClientApi(mod(), { context: 'export', internals: null });
         api.registries.styles.register({ id: 's', css: 'a{}' });

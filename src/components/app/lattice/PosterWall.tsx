@@ -21,7 +21,7 @@ import {
     useLatticePlaybackFocus,
 } from './useLatticePlaybackFocus';
 import { setLatticeCurrentSongPosterVisible } from '../../../stores/useLatticeControlsStore';
-import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../../utils/appPlaybackGuards';
 import { useDevicePixelRatio } from '../../../hooks/useMediaQuery';
 import { useReducedMotionFor } from '../../../hooks/useReducedMotionFor';
 import { EXPANSION_SPAN } from '../../wall/blockTemplates';
@@ -249,7 +249,7 @@ export default function PosterWall({
     ), [activePoster, geometry, tiles.length]);
 
     useEffect(() => {
-        const currentSongKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+        const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
         const isTracking = measured && Boolean(currentSongKey);
         const rect = activePoster && activePoster.tile.id === currentSongKey
             ? layout.get(activePoster.instance.instanceId) ?? activePoster.instance
@@ -307,7 +307,7 @@ export default function PosterWall({
         setFocused,
         panTo,
     });
-    const currentSongKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+    const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
     const handoff = useLatticeWallHandoff({
         containerRef,
         cameraRef,

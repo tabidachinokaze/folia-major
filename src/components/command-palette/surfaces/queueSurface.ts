@@ -5,6 +5,8 @@ import type { QueueSearchEvaluation, QueueSearchSuggestion } from '../queueSearc
 import type { CommandPaletteContext } from '../types';
 import type { CommandPaletteSurface, CommandSurfaceRenderArgs } from './types';
 
+import { readQueueView } from '@/mods/folium/registries/queueViews';
+
 // src/components/command-palette/surfaces/queueSurface.ts
 // Declares the queue command's panel takeover: its own match list, `--action` / `@facet`
 // completion, staged escape, and batch execution.
@@ -14,6 +16,7 @@ const acceptSuggestion = (suggestion: QueueSearchSuggestion, setQuery: (next: st
 };
 
 const runBatch = (evaluation: QueueSearchEvaluation, context: CommandPaletteContext, close: () => void) => {
+    if (readQueueView()) return false;
     const action = evaluation.parsed.action;
     if (!action || !evaluation.hasMeaningfulFilter || evaluation.eligibleTargetIndices.length === 0) {
         return false;
@@ -30,7 +33,7 @@ const buildViewProps = ({ context, query, matches, activeIndex, setActiveIndex, 
     const evaluation = evaluateQueueForPalette(context, query);
     return {
         activeIndex,
-        currentSong: context.shared.currentSong,
+        currentSong: readQueueView() ? readQueueView()!.currentSong : context.shared.currentSong,
         evaluation,
         isDaylight,
         isExecuting,

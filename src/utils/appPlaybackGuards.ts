@@ -95,6 +95,9 @@ export const getPlaybackSongKey = (song: SongResult): string => {
     return `${sourceRef.kind}:${sourceRef.mediaId}`;
 };
 
+/** Queue presentation can distinguish repeated occurrences of the same media. */
+export const getQueueSongKey = (song: SongResult): string => song.queuePresentationId ?? getPlaybackSongKey(song);
+
 export const isSamePlaybackSong = (
     first: SongResult | null | undefined,
     second: SongResult | null | undefined,

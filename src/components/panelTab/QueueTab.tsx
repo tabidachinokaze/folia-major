@@ -1,13 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { List, useListRef, type RowComponentProps } from 'react-window';
-import { ListEnd, ListPlus, PanelsTopLeft, Shuffle, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SongResult } from '../../types';
 import TextInputDialog from '../shared/TextInputDialog';
 import { getSongUnavailableLabel, isSongUnavailable } from '../../services/onlineMusic/songAvailability';
 import { getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
-import { getPlaybackSongKey } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../utils/appPlaybackGuards';
+
+import { useQueueView, activateQueueViewSong } from '@/mods/folium/registries/queueViews';
+import { useUiSlots } from '@/hooks/useUiSlots';
+import { QueueSlotItems } from '../shared/QueueSlotItems';
+import { useQueueEntrySlots, queueViewHeaderActions } from '../shared/useQueueEntrySlots';
 
 // src/components/panelTab/QueueTab.tsx
 
@@ -59,7 +63,12 @@ const QueueRow = ({
     labels,
 }: RowComponentProps<QueueRowProps>): React.ReactElement => {
     const song = playQueue[index];
-    const isActive = currentSongKey === getPlaybackSongKey(song);
+    const slots = useQueueEntrySlots(song, 'panel', [
+        { id: 'host:queue-play-next', kind: 'button', label: { en: labels.playNext }, icon: 'list-plus', run: () => onMoveSongToNext(index) },
+        { id: 'host:queue-move-end', kind: 'button', label: { en: labels.moveToEnd }, icon: 'list-end', run: () => onMoveSongToEnd(index) },
+        { id: 'host:queue-remove', kind: 'button', label: { en: labels.remove }, icon: 'trash-2', run: () => onRemoveSong(index) },
+    ]);
+    const isActive = currentSongKey === getQueueSongKey(song);
     const isUnavailable = isSongUnavailable(song);
     const unavailableTagText = getSongUnavailableLabel(song, labels.unavailable);
     const activeRowClass = isDaylight ? 'bg-black/[0.08]' : 'bg-white/20';
@@ -69,7 +78,7 @@ const QueueRow = ({
     return (
         <div
             style={style}
-            onClick={() => onPlaySong(song, playQueue)}
+            onClick={() => { if (!activateQueueViewSong(song)) onPlaySong(song, playQueue); }}
             data-active={isActive}
             {...ariaAttributes}
             className={`group flex items-center gap-3 px-2 py-1 rounded-lg cursor-pointer transition-colors
@@ -77,6 +86,7 @@ const QueueRow = ({
         >
             <div className={`w-1 h-6 rounded-full ${isActive ? activeMarkerClass : 'bg-transparent'}`} />
             <div className="min-w-0 flex-1">
+                <QueueSlotItems items={slots.overline} className="text-[9px]" />
                 <div className="text-xs font-medium truncate">
                     {song.name}
                     {isUnavailable && (
@@ -88,36 +98,15 @@ const QueueRow = ({
                 <div className="text-[10px] opacity-40 truncate">{getSongArtistLabel(song)}</div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto">
-                {[
-                    { label: labels.playNext, icon: ListPlus, action: onMoveSongToNext },
-                    { label: labels.moveToEnd, icon: ListEnd, action: onMoveSongToEnd },
-                    { label: labels.remove, icon: Trash2, action: onRemoveSong },
-                ].map(({ label, icon: Icon, action }) => (
-                    <button
-                        key={label}
-                        type="button"
-                        title={label}
-                        aria-label={label}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            if (event.detail > 0) {
-                                event.currentTarget.blur();
-                            }
-                            action(index);
-                        }}
-                        className={`rounded-md p-1.5 transition-colors ${isDaylight ? 'hover:bg-black/10' : 'hover:bg-white/10'}`}
-                    >
-                        <Icon size={13} />
-                    </button>
-                ))}
+                <QueueSlotItems items={slots.actions} size={13} />
             </div>
         </div>
     );
 };
 
 const QueueTab: React.FC<QueueTabProps> = ({
-    playQueue,
-    currentSong,
+    playQueue: privateQueue,
+    currentSong: privateCurrentSong,
     onPlaySong,
     queueScrollRef,
     shouldScrollToCurrent = false,
@@ -131,8 +120,20 @@ const QueueTab: React.FC<QueueTabProps> = ({
     isDaylight = false,
 }) => {
     const { t } = useTranslation();
-    const ITEM_HEIGHT = 50;
-    const currentSongKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+    const view = useQueueView();
+    const playQueue = view?.queue ?? privateQueue, currentSong = view ? view.currentSong : privateCurrentSong;
+    const header = useUiSlots('queue.header', {
+        leading: [{ id: 'host:queue-title', kind: 'text', label: { en: `${t('queue.title')} (${view?.totalCount ?? playQueue.length})` } }],
+        trailing: [
+            ...(onOpenLattice ? [{ id: 'host:queue-wall', kind: 'button' as const, label: { en: t('home.lattice') }, icon: 'panels-top-left', run: onOpenLattice }] : []),
+            ...(view ? queueViewHeaderActions() : [
+                ...(canSaveLocalPlaylist ? [{ id: 'host:queue-save', kind: 'button' as const, label: { en: t('localMusic.saveQueueAsPlaylist') }, run: () => setIsSaveDialogOpen(true) }] : []),
+                ...(onShuffle ? [{ id: 'host:queue-shuffle', kind: 'button' as const, label: { en: t('queue.shuffle') }, icon: 'shuffle', run: onShuffle }] : []),
+            ]),
+        ],
+    }, { surface: 'panel' });
+    const ITEM_HEIGHT = view ? 62 : 50;
+    const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
     // Adjust container height calculation if needed, or rely on flex
     // previously CONTAINER_HEIGHT = 200 was passed to List. 
     // We should make List take available space.
@@ -190,7 +191,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
     // Auto-scroll to current song
     React.useEffect(() => {
         if (shouldScrollToCurrent && currentSongKey && listRef.current) {
-            const currentIndex = playQueue.findIndex(song => getPlaybackSongKey(song) === currentSongKey);
+            const currentIndex = playQueue.findIndex(song => getQueueSongKey(song) === currentSongKey);
             if (currentIndex >= 0) {
                 const isInitialMount = isInitialMountRef.current;
                 const songChanged = lastScrolledIndexRef.current !== currentIndex && lastScrolledIndexRef.current !== -1;
@@ -213,67 +214,19 @@ const QueueTab: React.FC<QueueTabProps> = ({
         }
     }, [shouldScrollToCurrent, currentSongKey, playQueue, listRef]);
 
-    const handleSavePlaylist = async () => {
-        if (!onSaveCurrentQueueAsPlaylist) {
-            return;
-        }
-        setIsSaveDialogOpen(true);
-    };
-
-    if (playQueue.length === 0) {
-        return (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full max-h-[300px] select-none">
-                <div className="flex items-center justify-center h-full text-xs opacity-40">
-                    {t('queue.empty')}
-                </div>
-            </motion.div>
-        );
-    }
-
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full max-h-[300px] select-none">
                 <div className="flex items-center justify-between px-2 pb-2 shrink-0">
-                    <span className="text-xs font-medium opacity-60">
-                        {t('queue.title')} ({playQueue.length})
-                    </span>
-                    <div className="flex items-center gap-1">
-                        {onOpenLattice && (
-                            <button
-                                onClick={onOpenLattice}
-                                className="p-1.5 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
-                                title={t('home.lattice')}
-                                aria-label={t('home.lattice')}
-                            >
-                                <PanelsTopLeft size={14} />
-                            </button>
-                        )}
-                        {canSaveLocalPlaylist && (
-                            <button
-                                onClick={handleSavePlaylist}
-                                className="px-2 py-1 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100 text-[10px] font-medium"
-                                title={t('localMusic.saveQueueAsPlaylist')}
-                            >
-                                {t('localMusic.saveQueueAsPlaylist')}
-                            </button>
-                        )}
-                        {onShuffle && (
-                            <button
-                                onClick={onShuffle}
-                                className="p-1.5 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
-                                title={t('queue.shuffle')}
-                            >
-                                <Shuffle size={14} />
-                            </button>
-                        )}
-                    </div>
+                    <QueueSlotItems items={header.leading} className="text-xs font-medium" />
+                    <QueueSlotItems items={header.trailing} />
                 </div>
 
                 <div
                     ref={queueScrollRef}
                     className="flex-1 -mx-2 px-2 overflow-hidden"
                 >
-                    <List
+                    {playQueue.length ? <List
                         listRef={listRef}
                         rowCount={playQueue.length}
                         rowHeight={ITEM_HEIGHT}
@@ -282,7 +235,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
                         overscanCount={5}
                         className="custom-scrollbar"
                         style={{ height: CONTAINER_HEIGHT, width: '100%' }}
-                    />
+                    /> : <div className="flex h-full items-center justify-center text-xs opacity-40">{t('queue.empty')}</div>}
                 </div>
             </motion.div>
 

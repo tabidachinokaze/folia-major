@@ -10,6 +10,10 @@ import LatticeChromeTime from './LatticeChromeTime';
 import LatticeExtraControls from './LatticeExtraControls';
 import './LatticeChrome.css';
 
+import { useQueueView } from '@/mods/folium/registries/queueViews';
+import { useQueueEntrySlots } from '../../shared/useQueueEntrySlots';
+import { QueueSlotItems } from '../../shared/QueueSlotItems';
+
 // Adapts the shared Player Chrome transport and progress bar to one expanded wall tile.
 
 type LatticePlaybackControlsProps = {
@@ -35,7 +39,10 @@ export default function LatticePlaybackControls({
     const { t } = useTranslation();
     // Subscribed here rather than threaded through every poster: only this card reads transport state.
     const { currentSong, playerState, currentTime, playbackDuration, canTogglePlayback } = useLatticeTransport();
+    const view = useQueueView();
+    const slots = useQueueEntrySlots(tile.song, 'lattice');
     const isCurrentSong = Boolean(
+        !view &&
         currentSong && getPlaybackSongKey(currentSong) === getPlaybackSongKey(tile.song),
     );
     const canControlCurrent = isCurrentSong && canTogglePlayback;
@@ -63,7 +70,7 @@ export default function LatticePlaybackControls({
                     {isPlaying ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
                 </button>
                 <div className="lattice-chrome-details" inert={!revealed} aria-hidden={!revealed}>
-                    <LatticeExtraControls disabled={!canControlCurrent} />
+                    {view ? <QueueSlotItems items={slots.actions} size={20} /> : <LatticeExtraControls disabled={!canControlCurrent} />}
                 </div>
                 <LatticeChromeTime currentTime={canControlCurrent ? currentTime : idleTime} duration={duration} />
                 <button type="button" className="lattice-secondary-action" onClick={onOpenPlayer}

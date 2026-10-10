@@ -2,7 +2,7 @@
 
 # Folium API 参考
 
-当前契约版本：**Folium 1.4**（运行时用 `folium.host.folium.minor` 做功能探测）。
+当前契约版本：**Folium 1.5**（运行时用 `folium.host.folium.minor` 做功能探测）。
 
 本文列出模组能用到的全部公开类型，内容直接来自契约文件 [`src/mods/folium/contract.ts`](../../src/mods/folium/contract.ts)，
 成员说明保留契约里的原文注释。平台规则（清单、权限、生命周期、安全模型）见 [Folium 规范](../../mods/README.md)，
@@ -14,7 +14,7 @@
 - **注册表与条目**：[FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandContext](#foliumcommandcontext) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundContext](#foliumbackgroundcontext) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageSlot](#foliumstageslot) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumProgressContext](#foliumprogresscontext) · [FoliumControlSlot](#foliumcontrolslot) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef) · [FoliumRegistryHandle](#foliumregistryhandle) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumRegistry](#foliumregistry) · [FoliumRegistries](#foliumregistries)
 - **宿主容器与上下文**：[FoliumMount](#foliummount) · [FoliumPanelContext](#foliumpanelcontext) · [FoliumSettingsPanelContext](#foliumsettingspanelcontext) · [FoliumClock](#foliumclock) · [FoliumSurface](#foliumsurface) · [FoliumAudioBands](#foliumaudiobands) · [FoliumAudio](#foliumaudio) · [FoliumDisplay](#foliumdisplay) · [FoliumStageContext](#foliumstagecontext)
 - **事件**：[FoliumEventPriority](#foliumeventpriority) · [FoliumNotificationEvents](#foliumnotificationevents) · [FoliumLyricsTransformEvent](#foliumlyricstransformevent) · [FoliumBeforePlayEvent](#foliumbeforeplayevent) · [FoliumOmniLyricsEvent](#foliumomnilyricsevent) · [FoliumOmniAudioEvent](#foliumomniaudioevent) · [FoliumHookEvents](#foliumhookevents) · [FoliumEventMap](#foliumeventmap) · [FoliumEvents](#foliumevents)
-- **服务**：[FoliumPlaybackService](#foliumplaybackservice) · [FoliumFileHandle](#foliumfilehandle) · [FoliumIconOptions](#foliumiconoptions) · [FoliumUiService](#foliumuiservice) · [FoliumFetchInit](#foliumfetchinit) · [FoliumFetchResponse](#foliumfetchresponse) · [FoliumNetService](#foliumnetservice)
+- **服务**：[FoliumPlaybackService](#foliumplaybackservice) · [FoliumFileHandle](#foliumfilehandle) · [FoliumIconOptions](#foliumiconoptions) · [FoliumUiSlotItem](#foliumuislotitem) · [FoliumUiSlotContext](#foliumuislotcontext) · [FoliumUiSlotEvent](#foliumuislotevent) · [FoliumUiSlotDefinition](#foliumuislotdefinition) · [FoliumUiSlots](#foliumuislots) · [FoliumQueueViewAction](#foliumqueueviewaction) · [FoliumQueueViewEntry](#foliumqueueviewentry) · [FoliumQueueViewSnapshot](#foliumqueueviewsnapshot) · [FoliumQueueViewDef](#foliumqueueviewdef) · [FoliumUiService](#foliumuiservice) · [FoliumFetchInit](#foliumfetchinit) · [FoliumFetchResponse](#foliumfetchresponse) · [FoliumNetService](#foliumnetservice)
 - **共享工具**：[FoliumWordSegment](#foliumwordsegment) · [FoliumWordColorRange](#foliumwordcolorrange) · [FoliumLyricsHelpers](#foliumlyricshelpers) · [FoliumThemeHelpers](#foliumthemehelpers)
 - **参数 schema**：[FoliumParamType](#foliumparamtype) · [FoliumParamOption](#foliumparamoption) · [FoliumParam](#foliumparam) · [FoliumParamValues](#foliumparamvalues) · [FoliumParamAccess](#foliumparamaccess)
 - **数据结构**：[FoliumLyricRuby](#foliumlyricruby) · [FoliumLyricSyllable](#foliumlyricsyllable) · [FoliumLyricAlternateText](#foliumlyricalternatetext) · [FoliumWord](#foliumword) · [FoliumBackgroundVocal](#foliumbackgroundvocal) · [FoliumLineTimingClass](#foliumlinetimingclass) · [FoliumLineTransitionMode](#foliumlinetransitionmode) · [FoliumWordRevealMode](#foliumwordrevealmode) · [FoliumLineRenderHints](#foliumlinerenderhints) · [FoliumLine](#foliumline) · [FoliumTheme](#foliumtheme) · [FoliumSong](#foliumsong) · [FoliumPlaybackState](#foliumplaybackstate) · [FoliumPlaybackSnapshot](#foliumplaybacksnapshot) · [FoliumLyricFormat](#foliumlyricformat) · [FoliumLyricsTrack](#foliumlyricstrack) · [FoliumLyricsResult](#foliumlyricsresult) · [FoliumLegacyLyricsResult](#foliumlegacylyricsresult) · [FoliumParsedLyrics](#foliumparsedlyrics)
@@ -355,10 +355,11 @@ interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = FoliumRegist
 ### FoliumRegistries
 
 All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
-controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
+controlButtons, progressLayers, styles, queueViews) accept registrations and do nothing in the export window.
 
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
+| `queueViews` | `FoliumRegistry<FoliumQueueViewDef>` | UI-only queue presentation; one view at a time, without owning audio or the private queue. |
 | `visualizers` | `FoliumRegistry<FoliumVisualizerDef>` | Lyric animation modes. |
 | `tunings` | `FoliumRegistry<FoliumTuningDef>` | Tuning knobs for builtin modes. |
 | `commands` | `FoliumRegistry<FoliumCommandDef>` | Commands. |
@@ -370,7 +371,7 @@ controlButtons, progressLayers, styles) accept registrations and do nothing in t
 | `progressLayers` | `FoliumRegistry<FoliumProgressLayerDef>` | Layers over the progress track. |
 | `styles` | `FoliumRegistry<FoliumStyleDef>` | Mod CSS for public parts. |
 
-相关：[FoliumRegistry](#foliumregistry) · [FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef)
+相关：[FoliumRegistry](#foliumregistry) · [FoliumQueueViewDef](#foliumqueueviewdef) · [FoliumVisualizerDef](#foliumvisualizerdef) · [FoliumTuningDef](#foliumtuningdef) · [FoliumCommandDef](#foliumcommanddef) · [FoliumBackgroundDef](#foliumbackgrounddef) · [FoliumStageLayerDef](#foliumstagelayerdef) · [FoliumSettingsSectionDef](#foliumsettingssectiondef) · [FoliumSettingsSectionHandle](#foliumsettingssectionhandle) · [FoliumPlayerPanelTabDef](#foliumplayerpaneltabdef) · [FoliumControlButtonDef](#foliumcontrolbuttondef) · [FoliumProgressLayerDef](#foliumprogresslayerdef) · [FoliumStyleDef](#foliumstyledef)
 
 ## 宿主容器与上下文
 
@@ -687,12 +688,140 @@ Folium 1.2: options for `folium.ui.icon`.
 | `strokeWidth?` | `number` | Stroke width in the icon's 24-unit grid. Default 2. |
 | `color?` | `string` | Any CSS color. Default `currentColor`, so the icon follows the surrounding text. |
 
-### FoliumUiService
+### FoliumUiSlotItem
 
-`folium.ui`. Unavailable in the export window, except `icon`.
+A declarative host-rendered control. IDs are namespaced; counts do not limit repeatable actions.
 
 | 成员 | 类型 | 说明 |
 | --- | --- | --- |
+| `id` | `string` | `modId:localId` for additions; existing `host:*` IDs may be edited or moved. |
+| `kind` | `'text' \| 'button' \| 'toggle'` | Host presentation: plain text, a button, or a boolean toggle. |
+| `label` | `FoliumLabel` | Localized visible text and accessible name. |
+| `icon?` | `string` | Optional public Lucide icon name, e.g. `thumbs-up`. |
+| `disabled?` | `boolean` | Prevents interaction. Editing this cannot enable a disabled original host callback. |
+| `count?` | `number` | A nonnegative finite count. It is display data, not a one-shot or liked state. |
+| `pressed?` | `boolean` | Optional pressed presentation for a button. |
+| `checked?` | `boolean` | Required current value for a toggle. |
+| `run?` | `() => unknown \| Promise<unknown>` | Required for a button; awaited and isolated by the host. |
+| `setChecked?` | `(checked: boolean) => unknown \| Promise<unknown>` | Required for a toggle; receives the requested boolean value. |
+
+相关：[FoliumLabel](#foliumlabel)
+
+### FoliumUiSlotContext
+
+Discrete context; entityId is an occurrence identity, never an array index.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly surface` | `string` | `panel`, `palette`, or `lattice`. |
+| `readonly entityId?` | `string` | Opaque stable occurrence ID on queue.entry; absent on header/tool lists. |
+| `readonly song?` | `FoliumSong \| null` | Display media for queue.entry; never an authorization to start playback. |
+| `readonly commandId?` | `string \| null` | Active command ID for command.toolbar. Currently `queue`. |
+| `readonly query?` | `string` | Current queue-command query. |
+| `readonly locale?` | `string` | Host UI locale, when supplied by the surface. |
+| `readonly values?` | `Readonly<Record<string, string \| number \| boolean \| null>>` | Discrete surface metadata; queue.entry currently supplies `current`. |
+
+相关：[FoliumSong](#foliumsong)
+
+### FoliumUiSlotEvent
+
+One synchronous edit pass; invalid results are discarded independently.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly target` | `string` | Supported target being edited. |
+| `readonly context` | `FoliumUiSlotContext` | Immutable surface and occurrence context for this pass. |
+| `slots` | `Record<string, FoliumUiSlotItem[]>` | Edit these fresh ordered lists synchronously; the host copies the result. |
+
+相关：[FoliumUiSlotContext](#foliumuislotcontext) · [FoliumUiSlotItem](#foliumuislotitem)
+
+### FoliumUiSlotDefinition
+
+The supported groups and control kinds for one UI target.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly id` | `string` | Stable target ID to pass to register/invalidate. |
+| `readonly label` | `FoliumLabel` | Display label for developer tooling. |
+| `readonly groups` | `readonly string[]` | Ordered group names, e.g. leading/trailing. All groups must remain arrays. |
+| `readonly kinds` | `readonly ('text' \| 'button' \| 'toggle')[]` | Kinds accepted in groups without an override. |
+| `readonly groupKinds?` | `Readonly<Record<string, readonly ('text' \| 'button' \| 'toggle')[]>>` | Optional stricter kinds per group; overline accepts text only. |
+
+相关：[FoliumLabel](#foliumlabel)
+
+### FoliumUiSlots
+
+Small public list editors, independent of audio ownership.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `list()` | `(): readonly FoliumUiSlotDefinition[]` | Supported targets and groups; not every application surface is an extension point. |
+| `register()` | `(target: string, handler: (event: FoliumUiSlotEvent) => void, options?: { priority?: FoliumEventPriority }): FoliumDisposer` | Registers a synchronous editor, in priority and then registration order. |
+| `invalidate()` | `(target?: string, entityId?: string): void` | Announces discrete mod state changes. Omit target to invalidate all mounted targets. |
+
+相关：[FoliumUiSlotDefinition](#foliumuislotdefinition) · [FoliumUiSlotEvent](#foliumuislotevent) · [FoliumEventPriority](#foliumeventpriority) · [FoliumDisposer](#foliumdisposer)
+
+### FoliumQueueViewAction
+
+An action in a mod's authoritative queue view.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | Local action identity matching /^[a-z0-9][a-z0-9-]*$/, independent of icon or label. |
+| `label` | `FoliumLabel` | Visible text and accessible name. |
+| `icon?` | `string` | Public Lucide icon name. |
+| `disabled?` | `boolean` | Latest capability state; reread before dispatch. |
+| `count?` | `number` | Nonnegative finite display count; repeat activation is allowed. |
+
+相关：[FoliumLabel](#foliumlabel)
+
+### FoliumQueueViewEntry
+
+A stable occurrence of media; repeated media IDs must use distinct entry IDs.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | Stable business identity for one occurrence; keep it when reordering entries. |
+| `track` | `{ id: string; source: string; title: string; artist: string; album?: string \| null; coverUrl?: string; duration?: number }` | Presentation data. Duration is in seconds; source is the media provider ID. |
+| `overline?` | `FoliumLabel` | E.g. a recommender or system label, rendered above the title in all queue views. |
+| `actions?` | `readonly FoliumQueueViewAction[]` | Per-occurrence controls, replacing local queue edits for this view. |
+| `defaultAction?` | `string` | Omit to consume row selection without starting local playback. |
+
+相关：[FoliumLabel](#foliumlabel) · [FoliumQueueViewAction](#foliumqueueviewaction)
+
+### FoliumQueueViewSnapshot
+
+One coherent UI projection, with no audio state or private queue mutation.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `entries` | `readonly FoliumQueueViewEntry[]` | Authoritative display order; occurrences are keyed by entry ID, never array index. |
+| `currentId` | `string \| null` | One of entries[].id, or null for no highlighted occurrence. |
+| `actions?` | `readonly FoliumQueueViewAction[]` | Header actions, also shown in the queue-command toolbar and Lattice tools. |
+| `totalCount?` | `number` | Optional full count for a partial display; defaults to entries.length. |
+
+相关：[FoliumQueueViewEntry](#foliumqueueviewentry) · [FoliumQueueViewAction](#foliumqueueviewaction)
+
+### FoliumQueueViewDef
+
+UI presentation only. Registering does not stop, start, seek, or replace private playback.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | Local registration ID; competing queue views are rejected. |
+| `getSnapshot()` | `(): FoliumQueueViewSnapshot` | Returns current presentation data; invalid updates retain the last valid view. |
+| `subscribe()` | `(listener: () => void): FoliumDisposer` | Notify after discrete order, metadata, permission or count changes; dispose the listener. |
+| `onAction()` | `(action: { entryId: string \| null; actionId: string }): unknown \| Promise<unknown>` | entryId is null for a header action. Repeated calls are allowed unless disabled. |
+
+相关：[FoliumQueueViewSnapshot](#foliumqueueviewsnapshot) · [FoliumDisposer](#foliumdisposer)
+
+### FoliumUiService
+
+`folium.ui`. Unavailable in the export window, except `icon`; slots are inert there.
+
+| 成员 | 类型 | 说明 |
+| --- | --- | --- |
+| `readonly slots` | `FoliumUiSlots` | Ordered, host-rendered queue and command-toolbar controls. |
 | `toast()` | `(message: string, options?: { type?: 'info' \| 'success' \| 'error'; durationMs?: number }): void` | Shows a status message. |
 | `openPlayerPanel()` | `(tabId?: string): void` | Opens the player panel, optionally on one of this mod's panel tabs (local id). |
 | `navigate()` | `(view: 'home' \| 'player'): void` | Switches to the home or player view. |
@@ -703,7 +832,7 @@ Folium 1.2: options for `folium.ui.icon`.
 | `embed()` | `(container: HTMLElement, url: string, options?: { title?: string; allow?: string[] }): FoliumDisposer` | Embeds an external page in `container` as a sandboxed iframe. The URL's origin must be listed in the manifest `embedOrigins` (needs `net.embed`). |
 | `icon()` | `(name: string, options?: FoliumIconOptions): Promise<SVGSVGElement \| null>` | Folium 1.2: one of the host's icons (lucide, named as on lucide.dev, e.g. "play", "skip-forward") as a new <svg> element the mod owns; null for an unknown name. Works in every context, the export window included. |
 
-相关：[FoliumFileHandle](#foliumfilehandle) · [FoliumDisposer](#foliumdisposer) · [FoliumIconOptions](#foliumiconoptions)
+相关：[FoliumUiSlots](#foliumuislots) · [FoliumFileHandle](#foliumfilehandle) · [FoliumDisposer](#foliumdisposer) · [FoliumIconOptions](#foliumiconoptions)
 
 ### FoliumFetchInit
 
@@ -1173,7 +1302,7 @@ online song. Use folium.net.fetch for network access.
 The Folium version this host implements; mods read it at runtime as `folium.host.folium`.
 
 ```ts
-const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 })
+const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 })
 ```
 
 ### FoliumId

@@ -7,7 +7,7 @@
 // Removing a field or changing its meaning requires folium 2.
 
 /** The Folium version this host implements; mods read it at runtime as `folium.host.folium`. */
-export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 4 });
+export const FOLIUM_VERSION = Object.freeze({ major: 1, minor: 5 });
 
 /** `modid:name`, like a Forge ResourceLocation. The mod id part is added by the host. */
 export type FoliumId = string;
@@ -768,9 +768,11 @@ export interface FoliumRegistry<Def, Handle extends FoliumRegistryHandle = Foliu
 
 /**
  * All registries, as `folium.registries`. UI-only ones (commands, stageLayers, playerPanelTabs,
- * controlButtons, progressLayers, styles) accept registrations and do nothing in the export window.
+ * controlButtons, progressLayers, styles, queueViews) accept registrations and do nothing in the export window.
  */
 export interface FoliumRegistries {
+    /** UI-only queue presentation; one view at a time, without owning audio or the private queue. */
+    queueViews: FoliumRegistry<FoliumQueueViewDef>;
     /** Lyric animation modes. */
     visualizers: FoliumRegistry<FoliumVisualizerDef>;
     /** Tuning knobs for builtin modes. */
@@ -984,8 +986,130 @@ export interface FoliumIconOptions {
     color?: string;
 }
 
-/** `folium.ui`. Unavailable in the export window, except `icon`. */
+/** A declarative host-rendered control. IDs are namespaced; counts do not limit repeatable actions. */
+export interface FoliumUiSlotItem {
+    /** `modId:localId` for additions; existing `host:*` IDs may be edited or moved. */
+    id: string;
+    /** Host presentation: plain text, a button, or a boolean toggle. */
+    kind: 'text' | 'button' | 'toggle';
+    /** Localized visible text and accessible name. */
+    label: FoliumLabel;
+    /** Optional public Lucide icon name, e.g. `thumbs-up`. */
+    icon?: string;
+    /** Prevents interaction. Editing this cannot enable a disabled original host callback. */
+    disabled?: boolean;
+    /** A nonnegative finite count. It is display data, not a one-shot or liked state. */
+    count?: number;
+    /** Optional pressed presentation for a button. */
+    pressed?: boolean;
+    /** Required current value for a toggle. */
+    checked?: boolean;
+    /** Required for a button; awaited and isolated by the host. */
+    run?: () => unknown | Promise<unknown>;
+    /** Required for a toggle; receives the requested boolean value. */
+    setChecked?: (checked: boolean) => unknown | Promise<unknown>;
+}
+/** Discrete context; entityId is an occurrence identity, never an array index. */
+export interface FoliumUiSlotContext {
+    /** `panel`, `palette`, or `lattice`. */
+    readonly surface: string;
+    /** Opaque stable occurrence ID on queue.entry; absent on header/tool lists. */
+    readonly entityId?: string;
+    /** Display media for queue.entry; never an authorization to start playback. */
+    readonly song?: FoliumSong | null;
+    /** Active command ID for command.toolbar. Currently `queue`. */
+    readonly commandId?: string | null;
+    /** Current queue-command query. */
+    readonly query?: string;
+    /** Host UI locale, when supplied by the surface. */
+    readonly locale?: string;
+    /** Discrete surface metadata; queue.entry currently supplies `current`. */
+    readonly values?: Readonly<Record<string, string | number | boolean | null>>;
+}
+/** One synchronous edit pass; invalid results are discarded independently. */
+export interface FoliumUiSlotEvent {
+    /** Supported target being edited. */
+    readonly target: string;
+    /** Immutable surface and occurrence context for this pass. */
+    readonly context: FoliumUiSlotContext;
+    /** Edit these fresh ordered lists synchronously; the host copies the result. */
+    slots: Record<string, FoliumUiSlotItem[]>;
+}
+/** The supported groups and control kinds for one UI target. */
+export interface FoliumUiSlotDefinition {
+    /** Stable target ID to pass to register/invalidate. */
+    readonly id: string;
+    /** Display label for developer tooling. */
+    readonly label: FoliumLabel;
+    /** Ordered group names, e.g. leading/trailing. All groups must remain arrays. */
+    readonly groups: readonly string[];
+    /** Kinds accepted in groups without an override. */
+    readonly kinds: readonly ('text' | 'button' | 'toggle')[];
+    /** Optional stricter kinds per group; overline accepts text only. */
+    readonly groupKinds?: Readonly<Record<string, readonly ('text' | 'button' | 'toggle')[]>>;
+}
+/** Small public list editors, independent of audio ownership. */
+export interface FoliumUiSlots {
+    /** Supported targets and groups; not every application surface is an extension point. */
+    list(): readonly FoliumUiSlotDefinition[];
+    /** Registers a synchronous editor, in priority and then registration order. */
+    register(target: string, handler: (event: FoliumUiSlotEvent) => void, options?: { priority?: FoliumEventPriority }): FoliumDisposer;
+    /** Announces discrete mod state changes. Omit target to invalidate all mounted targets. */
+    invalidate(target?: string, entityId?: string): void;
+}
+/** An action in a mod's authoritative queue view. */
+export interface FoliumQueueViewAction {
+    /** Local action identity matching /^[a-z0-9][a-z0-9-]*$/, independent of icon or label. */
+    id: string;
+    /** Visible text and accessible name. */
+    label: FoliumLabel;
+    /** Public Lucide icon name. */
+    icon?: string;
+    /** Latest capability state; reread before dispatch. */
+    disabled?: boolean;
+    /** Nonnegative finite display count; repeat activation is allowed. */
+    count?: number;
+}
+/** A stable occurrence of media; repeated media IDs must use distinct entry IDs. */
+export interface FoliumQueueViewEntry {
+    /** Stable business identity for one occurrence; keep it when reordering entries. */
+    id: string;
+    /** Presentation data. Duration is in seconds; source is the media provider ID. */
+    track: { id: string; source: string; title: string; artist: string; album?: string | null; coverUrl?: string; duration?: number };
+    /** E.g. a recommender or system label, rendered above the title in all queue views. */
+    overline?: FoliumLabel;
+    /** Per-occurrence controls, replacing local queue edits for this view. */
+    actions?: readonly FoliumQueueViewAction[];
+    /** Omit to consume row selection without starting local playback. */
+    defaultAction?: string;
+}
+/** One coherent UI projection, with no audio state or private queue mutation. */
+export interface FoliumQueueViewSnapshot {
+    /** Authoritative display order; occurrences are keyed by entry ID, never array index. */
+    entries: readonly FoliumQueueViewEntry[];
+    /** One of entries[].id, or null for no highlighted occurrence. */
+    currentId: string | null;
+    /** Header actions, also shown in the queue-command toolbar and Lattice tools. */
+    actions?: readonly FoliumQueueViewAction[];
+    /** Optional full count for a partial display; defaults to entries.length. */
+    totalCount?: number;
+}
+/** UI presentation only. Registering does not stop, start, seek, or replace private playback. */
+export interface FoliumQueueViewDef {
+    /** Local registration ID; competing queue views are rejected. */
+    id: string;
+    /** Returns current presentation data; invalid updates retain the last valid view. */
+    getSnapshot(): FoliumQueueViewSnapshot;
+    /** Notify after discrete order, metadata, permission or count changes; dispose the listener. */
+    subscribe(listener: () => void): FoliumDisposer;
+    /** entryId is null for a header action. Repeated calls are allowed unless disabled. */
+    onAction(action: { entryId: string | null; actionId: string }): unknown | Promise<unknown>;
+}
+
+/** `folium.ui`. Unavailable in the export window, except `icon`; slots are inert there. */
 export interface FoliumUiService {
+    /** Ordered, host-rendered queue and command-toolbar controls. */
+    readonly slots: FoliumUiSlots;
     /** Shows a status message. */
     toast(message: string, options?: { type?: 'info' | 'success' | 'error'; durationMs?: number }): void;
     /** Opens the player panel, optionally on one of this mod's panel tabs (local id). */

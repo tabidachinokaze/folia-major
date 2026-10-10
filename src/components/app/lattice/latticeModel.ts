@@ -1,6 +1,6 @@
 import type { SongResult } from '../../../types';
 import { getSongArtistLabel, getSongCoverUrl } from '../../../services/onlineMusic/songMetadata';
-import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../../utils/appPlaybackGuards';
 
 // Projects the play queue onto the wall; queue order is the only source of truth.
 
@@ -25,10 +25,10 @@ export const buildLatticeTiles = ({
     queue: SongResult[];
     currentSong: SongResult | null;
 }): LatticeTile[] => {
-    const currentKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+    const currentKey = currentSong ? getQueueSongKey(currentSong) : null;
     const currentIndex = currentKey === null
         ? -1
-        : queue.findIndex(song => getPlaybackSongKey(song) === currentKey);
+        : queue.findIndex(song => getQueueSongKey(song) === currentKey);
 
     return queue.map((song, index) => {
         let section: LatticeSection = 'upcoming';
@@ -36,7 +36,7 @@ export const buildLatticeTiles = ({
         else if (currentIndex >= 0 && index < currentIndex) section = 'played';
 
         return {
-            id: getPlaybackSongKey(song),
+            id: getQueueSongKey(song),
             queueIndex: index,
             song,
             title: song.name,

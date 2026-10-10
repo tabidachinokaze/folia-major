@@ -22,6 +22,8 @@ import { settingsSectionsRegistry } from './registries/settingsSections';
 import { playerPanelTabsRegistry } from './registries/playerPanelTabs';
 import { controlButtonsRegistry, progressLayersRegistry } from './registries/progress';
 import { stylesRegistry } from './registries/styles';
+import { queueViewsRegistry } from './registries/queueViews';
+import { uiSlotsRegistry } from './uiSlots';
 import { addFoliumEventHandler } from './events';
 import { createFoliumNetService, createFoliumPlaybackService, createFoliumUiService } from './services';
 import { FOLIUM_LYRICS_HELPERS, FOLIUM_THEME_HELPERS } from './sharedHelpers';
@@ -40,6 +42,7 @@ import { FOLIUM_LYRICS_HELPERS, FOLIUM_THEME_HELPERS } from './sharedHelpers';
  * the export window may read them.
  */
 const UI_ONLY_REGISTRIES = new Set<keyof FoliumRegistries>([
+    'queueViews',
     'commands',
     'stageLayers',
     'playerPanelTabs',
@@ -51,6 +54,7 @@ const UI_ONLY_REGISTRIES = new Set<keyof FoliumRegistries>([
 type AnyHostRegistry = FoliumHostRegistry<any, any>;
 
 const HOST_REGISTRIES: Record<keyof FoliumRegistries, AnyHostRegistry> = {
+    queueViews: queueViewsRegistry,
     visualizers: visualizersRegistry,
     tunings: tuningsRegistry,
     commands: commandsRegistry,
@@ -73,7 +77,7 @@ export const addFoliumTeardownRegistries = (registries: AnyHostRegistry[]) => {
 };
 
 /** Every host registry, for teardown of a mod across all of them. */
-export const listFoliumHostRegistries = (): AnyHostRegistry[] => [...Object.values(HOST_REGISTRIES), ...extraRegistries];
+export const listFoliumHostRegistries = (): AnyHostRegistry[] => [...Object.values(HOST_REGISTRIES), uiSlotsRegistry, ...extraRegistries];
 
 const noopHandle = (modId: string, id: unknown) => Object.freeze({
     id: `${modId}:${String(id)}`,
@@ -153,6 +157,7 @@ export const createFoliumClientApi = (mod: ModRuntimeInfo, options: FoliumClient
 
     const inert = (name: keyof FoliumRegistries) => context !== 'main' && UI_ONLY_REGISTRIES.has(name);
     const registries = Object.freeze({
+        queueViews: bindRegistry(queueViewsRegistry, modId, inert('queueViews')),
         visualizers: bindRegistry(visualizersRegistry, modId, inert('visualizers')),
         tunings: bindRegistry(tuningsRegistry, modId, inert('tunings')),
         commands: bindRegistry(commandsRegistry, modId, inert('commands')),

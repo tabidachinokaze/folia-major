@@ -14,6 +14,8 @@ import { useAppViewStore } from '../../stores/useAppViewStore';
 import { useInteractionSettingsStore } from '../../stores/useInteractionSettingsStore';
 import { resolveCustomShortcutCommand } from './customShortcut';
 
+import { useQueueView } from '@/mods/folium/registries/queueViews';
+
 // src/components/command-palette/useCommandPalette.ts
 import { effectiveKeyCode, isTextEntryTarget } from '../../utils/keyboardTargets';
 
@@ -39,6 +41,7 @@ export const useCommandPalette = ({
     // it is whether something on screen reads typed characters as input. Nothing does on the
     // player, and nothing does on the home shelf either, so bare `s` opens the palette on both.
     // Inside a grid the filter owns them, or one press would fire two things at once.
+    const queueView = useQueueView();
     const ownsBareKeys = !context.scope.filter;
 
     // The search index carries the active locale's title and description alongside English
@@ -146,7 +149,7 @@ export const useCommandPalette = ({
 
     const surfaceMatches = useMemo(() => (
         activeCommand && surface?.buildMatches ? surface.buildMatches({ context, query }) : null
-    ), [activeCommand, surface, context, query]);
+    ), [activeCommand, surface, context, query, queueView]);
 
     const inputModeMatches = useMemo(() => {
         if (!activeCommand || surface?.buildMatches) {

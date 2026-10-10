@@ -6,6 +6,8 @@ import { useRef, type KeyboardEvent, type MouseEvent, type MutableRefObject, typ
 import type { ReflowTile } from '../../wall/layout';
 import type { LatticeTile } from './latticeModel';
 import { useLatticeChromeDisclosure } from './useLatticeChromeDisclosure';
+import { useQueueEntrySlots } from '../../shared/useQueueEntrySlots';
+import { QueueSlotItems } from '../../shared/QueueSlotItems';
 import LatticePlaybackControls from './LatticePlaybackControls';
 import { useLatticeExpansionSettled } from './useLatticeExpansionSettled';
 import { prewarmLatticeLyrics } from './lyrics/prewarmLatticeLyrics';
@@ -146,6 +148,7 @@ function LatticePoster({
 }: LatticePosterProps) {
     countRender('LatticePoster');
     const { t } = useTranslation();
+    const queueSlots = useQueueEntrySlots(tile.song, 'lattice');
     const chrome = useLatticeChromeDisclosure(expanded);
     // The open card is already the foreground and carries the lyric canvas, so it never pops.
     const popped = !expanded && (chrome.hovered || isFocused);
@@ -161,7 +164,8 @@ function LatticePoster({
     const coverUrl = useWallPosterArtwork(tile.coverUrl, Math.max(rect.width, rect.height) * pixelScale);
     // Hover and press are the last moments before the open: warming here keeps the lyric chunk,
     // the Pixi module and the first shader compile off the click path.
-    const warmLyrics = () => { if (isCurrent) prewarmLatticeLyrics(); };
+    const canShowPlayback = isCurrent && !tile.song.queuePresentationId;
+    const warmLyrics = () => { if (canShowPlayback) prewarmLatticeLyrics(); };
     // Deliberately not on hover: a pointer sweeping the wall would pull a full-size cover per card,
     // which costs more than the swap it saves. A press is already an open in all but name.
     const warmExpandedArtwork = () => prewarmWallPosterArtwork(tile.coverUrl, expandedSize * pixelScale);
@@ -216,7 +220,7 @@ function LatticePoster({
                 onExpand(instanceId);
                 return;
             }
-            if (isCurrent) onTogglePlayback();
+            if (canShowPlayback) onTogglePlayback();
             else onPlay(tile);
             return;
         }
@@ -290,13 +294,14 @@ function LatticePoster({
                 {isCurrent && <>{t('home.latticeBadgeNow')} · </>}
                 {String(tile.queueIndex + 1).padStart(2, '0')}
             </span>
-            {expanded && expansionSettled && isCurrent ? (
+            {expanded && expansionSettled && canShowPlayback ? (
                 <Suspense fallback={<span className="lattice-poster-copy"><WallTitle title={tile.title} expanded={expanded} targetPosterWidth={rect.width} /><small>{tile.artist}</small></span>}>
                     <LatticeLyrics key={tile.id} tile={tile} reducedMotion={Boolean(reducedMotion)} />
                 </Suspense>
             ) : <span className="lattice-poster-copy">
                 {/* `rect` is the slot the card is heading for, in world units, so the title is fitted
                     against its final column before the spring has moved it there. */}
+                <QueueSlotItems items={queueSlots.overline} className="text-xs" />
                 <WallTitle title={tile.title} expanded={expanded} targetPosterWidth={rect.width} />
                 <small>{tile.artist}</small>
             </span>}

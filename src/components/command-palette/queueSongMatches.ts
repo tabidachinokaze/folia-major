@@ -3,6 +3,8 @@ import { getProviderSongMetadata } from '../../services/onlineMusic/songMetadata
 import { evaluateQueueSearch, buildQueueSearchIndex, type QueueSearchEvaluation } from './queueSearch';
 import type { CommandPaletteCommand, CommandPaletteContext, CommandPaletteMatch } from './types';
 
+import { activateQueueViewSong } from '@/mods/folium/registries/queueViews';
+
 // src/components/command-palette/queueSongMatches.ts
 // Synthesizes one throwaway command per matching queue song. Kept out of the registry so the
 // queue surface can import it without pulling the whole command list back in.
@@ -23,7 +25,7 @@ const createQueueSongCommand = (
     index: number,
     context: CommandPaletteContext,
 ): CommandPaletteCommand => ({
-    id: `queue-song-${index}-${song.id}`,
+    id: `queue-song-${song.queuePresentationId ?? `${index}-${song.id}`}`,
     group: 'playback',
     title: song.name,
     description: buildQueueSongDescription(song, index, context),
@@ -33,7 +35,7 @@ const createQueueSongCommand = (
     queueSong: song,
     closeAfterExecute: !context.playback.queuePaletteKeepOpen,
     execute: async (_input, commandContext) => {
-        await commandContext.playback.playSong(song, commandContext.playback.queue);
+        if (!activateQueueViewSong(song)) await commandContext.playback.playSong(song, commandContext.playback.queue);
         return true;
     },
 });

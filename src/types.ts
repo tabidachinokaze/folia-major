@@ -1218,6 +1218,8 @@ export interface ReplayGainInfo {
 }
 
 export interface SongResult {
+  /** UI-only queue occurrence identity; excluded from media and playback identity. */
+  queuePresentationId?: string;
   id: MediaId;
   name: string;
   artists: Artist[];

@@ -20,7 +20,7 @@
 - **确认绑定到文件内容。** 模组目录里任何文件变化都会让确认失效，模组被自动禁用，需要重新确认。唯一的例外是开发版里仓库 `mods/` 目录中的模组，见[调试循环](#调试循环)。
 - **签名只是标识。** 发布到模组市场的模组带有 Folium 签名，安装后显示「官方认证」，但启用时同样要确认，权限也不会因此变少。
 
-当前契约版本是 Folium 1.4，运行时通过 `folium.host.folium.minor` 判断宿主支持哪些功能（见[兼容与版本](#兼容与版本)）。
+当前契约版本是 Folium 1.5，运行时通过 `folium.host.folium.minor` 判断宿主支持哪些功能（见[兼容与版本](#兼容与版本)）。
 
 ## 2. 准备开发环境
 
@@ -134,6 +134,8 @@ function mountHello(folium, container, ctx) {
 | 模组自己的设置 | `registries.settingsSections` | — | [FoliumSettingsSectionDef](api.md#foliumsettingssectiondef) |
 | 命令（模组面板与命令面板） | `registries.commands` | — | [FoliumCommandDef](api.md#foliumcommanddef) |
 | 播放器面板里的标签页 | `registries.playerPanelTabs` | — | [FoliumPlayerPanelTabDef](api.md#foliumplayerpaneltabdef) |
+| 发布队列显示、推荐者与条目动作 | `registries.queueViews` | — | [队列界面扩展](queue-views.md)，`test/manual/folium-queue-view` |
+| 编辑队列工具栏、标题、条目与拼贴工具动作列表 | `ui.slots` | — | [FoliumUiSlots](api.md#foliumuislots)，[支持的位置](queue-views.md#支持的位置) |
 | 进度条旁的按钮、轨道上的标记 | `registries.controlButtons` / `progressLayers` | — | [FoliumProgressContext](api.md#foliumprogresscontext)，`sample-progress-bar` |
 | 改宿主外观 | `registries.styles`（只针对公开 part） | — | [FoliumStyleDef](api.md#foliumstyledef)，规范里的「styles 与公开 part」 |
 | 改写歌词、拦截播放 | `events.on('lyrics.transform' / 'playback.beforePlay')` | — | [FoliumHookEvents](api.md#foliumhookevents) |

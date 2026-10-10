@@ -3,6 +3,8 @@ import { buildQueueSearchIndex, evaluateQueueSearch, type QueueSearchEvaluation 
 import type { QueueSearchEntry } from './queueSearchIndex';
 import type { CommandPaletteContext } from './types';
 
+import { readQueueView } from '@/mods/folium/registries/queueViews';
+
 // src/components/command-palette/queueEvaluation.ts
 // Single-entry memo shared by the queue surface's match builder and its view, so one keystroke
 // costs one index lookup and one queue scan instead of two of each.
@@ -26,8 +28,9 @@ let lastQuery: string | null = null;
 let lastEvaluation: QueueSearchEvaluation | null = null;
 
 export const evaluateQueueForPalette = (context: CommandPaletteContext, query: string): QueueSearchEvaluation => {
-    const queue = context.playback.queue;
-    const currentSong = context.shared.currentSong;
+    const view = readQueueView();
+    const queue = view?.queue ?? context.playback.queue;
+    const currentSong = view ? view.currentSong : context.shared.currentSong;
 
     if (lastEvaluation && lastQueue === queue && lastCurrentSong === currentSong && lastQuery === query) {
         return lastEvaluation;

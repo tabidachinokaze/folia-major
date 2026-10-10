@@ -1,0 +1,10 @@
+{
+  "folium": 1,
+  "id": "sample-queue-view",
+  "name": "队列界面（样例）",
+  "version": "1.0.0",
+  "author": "Folia Mod Samples",
+  "description": "无需播放或网络权限的队列界面示例：稳定条目、推荐者、计数动作、工具栏列表增删改与卸载恢复。",
+  "client": "client.mjs",
+  "permissions": []
+}

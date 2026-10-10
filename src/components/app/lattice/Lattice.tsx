@@ -19,6 +19,8 @@ import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
 import { isPrimaryModifierPressed, isSecondaryModifierPressed } from '../../../utils/platform';
 import { resolveWallHandoffRole, useWallHandoffStore } from '../../../stores/useWallHandoffStore';
 
+import { useQueueView, activateQueueViewSong } from '@/mods/folium/registries/queueViews';
+
 // Queue display layer; it renders the play queue and never mutates it.
 // 翻牌交接（设计稿 §7「进入队列」，与资料库墙 bravais）：根节点挂 data-wall-handoff（in / out）与阶段。叠在资料库墙上面的
 // 这段时间里墙面底色不画（下面那面墙的墙面就是同一份），颗粒与暗角由上面这层统一画一份（见 Lattice.css）。
@@ -52,7 +54,7 @@ export default function Lattice({
     currentTime,
     playbackDuration,
     canTogglePlayback,
-    queue,
+    queue: privateQueue,
     isDaylight,
     onBack,
     onOpenPlayer,
@@ -62,13 +64,16 @@ export default function Lattice({
 }: LatticeProps) {
     countRender('Lattice');
     const { t } = useTranslation();
+    const view = useQueueView();
+    const queue = view?.queue ?? privateQueue;
+    const queueCurrent = view ? view.currentSong : currentSong;
     const vignette = useLatticeSettingsStore(state => state.latticeVignette);
     const lightsOn = useLatticeSettingsStore(state => state.latticeLightsOn);
     const posterTintEnabled = useLatticeSettingsStore(state => state.latticePosterTintEnabled);
     const posterTintUseCustomColor = useLatticeSettingsStore(state => state.latticePosterTintUseCustomColor);
     const posterTintColor = useLatticeSettingsStore(state => state.latticePosterTintColor);
     const posterTintIntensity = useLatticeSettingsStore(state => state.latticePosterTintIntensity);
-    const tiles = useMemo(() => buildLatticeTiles({ queue, currentSong }), [currentSong, queue]);
+    const tiles = useMemo(() => buildLatticeTiles({ queue, currentSong: queueCurrent }), [queueCurrent, queue]);
     const handoffSession = useWallHandoffStore(state => state.session);
     const handoffRole = resolveWallHandoffRole(handoffSession, 'lattice');
     const handoffPhase = handoffSession?.phase;
@@ -101,7 +106,7 @@ export default function Lattice({
     // App rebuilds these on every render of its own, and the wall hands them to every poster on
     // screen. Given a permanent identity here they stop being a reason for those posters to render.
     const wall = useStableCallbacks({
-        onPlay: (tile: LatticeTile) => onPlaySong(tile.song, queue),
+        onPlay: (tile: LatticeTile) => { if (!activateQueueViewSong(tile.song)) onPlaySong(tile.song, queue); },
         onTogglePlayback,
         onSeek,
         onOpenPlayer,
@@ -136,7 +141,7 @@ export default function Lattice({
         >
             <PosterWall
                 tiles={tiles}
-                currentSong={currentSong}
+                currentSong={queueCurrent}
                 onPlay={wall.onPlay}
                 onTogglePlayback={wall.onTogglePlayback}
                 onSeek={wall.onSeek}

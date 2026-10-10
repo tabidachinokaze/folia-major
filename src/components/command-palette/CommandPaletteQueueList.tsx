@@ -2,7 +2,7 @@ import React from 'react';
 import { List, useListRef } from 'react-window';
 import { useTranslation } from 'react-i18next';
 import type { SongResult } from '../../types';
-import { getPlaybackSongKey } from '../../utils/appPlaybackGuards';
+import { getQueueSongKey } from '../../utils/appPlaybackGuards';
 import type { CommandPaletteMatch } from './types';
 import CommandPaletteQueueRow, { type CommandPaletteQueueRowProps } from './CommandPaletteQueueRow';
 
@@ -42,7 +42,7 @@ const CommandPaletteQueueList: React.FC<CommandPaletteQueueListProps> = ({
     const { t } = useTranslation();
     const listRef = useListRef(null);
     const hasPositionedRef = React.useRef(false);
-    const currentSongKey = currentSong ? getPlaybackSongKey(currentSong) : null;
+    const currentSongKey = currentSong ? getQueueSongKey(currentSong) : null;
     const currentMatchIndex = React.useMemo(() => {
         if (!currentSong) {
             return -1;
@@ -54,7 +54,7 @@ const CommandPaletteQueueList: React.FC<CommandPaletteQueueListProps> = ({
         return currentSongKey
             ? matches.findIndex(match => (
                 match.command.queueSong
-                && getPlaybackSongKey(match.command.queueSong) === currentSongKey
+                && getQueueSongKey(match.command.queueSong) === currentSongKey
             ))
             : -1;
     }, [currentSong, currentSongKey, matches]);
