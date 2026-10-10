@@ -18,8 +18,8 @@ export function QueueSlotIcon({ name, size = 14 }: { name?: string; size?: numbe
     }, [name, size]);
     return <span ref={ref} className="inline-flex shrink-0" aria-hidden="true" />;
 }
-export function QueueSlotItems({ items, className = '', labels = false, size = 14 }: {
-    items: readonly FoliumUiSlotItem[]; className?: string; labels?: boolean; size?: number;
+export function QueueSlotItems({ items, className = '', labels = false, size = 14, countDisplay = 'inline' }: {
+    items: readonly FoliumUiSlotItem[]; className?: string; labels?: boolean; size?: number; countDisplay?: 'inline' | 'hover';
 }) {
     const { i18n } = useTranslation();
     if (!items.length) return null;
@@ -29,6 +29,7 @@ export function QueueSlotItems({ items, className = '', labels = false, size = 1
         const label = resolveFoliumLabel(item.label, i18n.language, item.id);
         const icon = item.icon && <QueueSlotIcon name={item.icon} size={size} />;
         const count = item.count !== undefined && <span className="shrink-0 text-[10px] tabular-nums">{item.count}</span>;
+        const hoverCount = countDisplay === 'hover' && item.count !== undefined;
         const attrs = { 'data-ui-slot-item': item.id, title: label, 'aria-label': label };
         if (item.kind === 'text') return <span key={item.id} {...attrs} className="min-w-0 break-words opacity-60">{label}{count}</span>;
         if (item.kind === 'toggle') return <label key={item.id} {...attrs} onClick={event => event.stopPropagation()}
@@ -38,9 +39,11 @@ export function QueueSlotItems({ items, className = '', labels = false, size = 1
                 onChange={event => { void invokeUiSlotItem(item, event.target.checked); }} />
         </label>;
         return <button key={item.id} {...attrs} type="button" disabled={item.disabled} aria-pressed={item.pressed}
+            aria-description={hoverCount ? String(item.count) : undefined}
             className="inline-flex shrink-0 items-center gap-1 rounded-md p-1.5 hover:bg-current/10 disabled:opacity-35 disabled:cursor-not-allowed"
             onClick={event => { event.stopPropagation(); void invokeUiSlotItem(item); }}>
-            {icon}{(labels || !icon) && <span className="min-w-0 break-words">{label}</span>}{count}
+            {icon}{(labels || !icon) && <span className="min-w-0 break-words">{label}</span>}
+            {hoverCount ? <span className="queue-slot-hover-count" aria-hidden="true">{item.count}</span> : count}
         </button>;
     })}</span>;
 }

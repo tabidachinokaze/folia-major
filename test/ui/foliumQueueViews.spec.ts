@@ -141,6 +141,42 @@ test('native wall shows duplicate occurrence posters and exposes source actions 
     expect(await page.evaluate(() => (window as any).__queueCalls)).toEqual([['one', 'vote'], [null, 'sync']]);
 });
 
+test('wall action counts appear only on individual hover or keyboard focus without shifting controls', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => {
+        const browser = window as any;
+        browser.__queueState.entries[0].actions[0].count = 15; browser.__queueNotify();
+    });
+    const panel = page.getByTestId('unified-panel-surface');
+    await expect(panel.getByRole('button', { name: 'Vote', exact: true }).first().getByText('15', { exact: true })).toBeVisible();
+    await palette(page);
+    await expect(page.getByTestId('command-palette-panel').getByRole('button', { name: 'Vote', exact: true }).first().getByText('15', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await panel.locator('[data-ui-slot-item="host:queue-wall"]').click();
+    const poster = page.getByRole('region', { name: 'Queue collage' }).locator('.lattice-poster.is-expanded.is-current');
+    await poster.hover();
+    const vote = poster.getByRole('button', { name: 'Vote', exact: true });
+    const count = vote.locator('.queue-slot-hover-count');
+    await expect(vote).toBeVisible(); await expect(vote.locator('svg')).toBeVisible(); await expect(count).toBeHidden();
+    await expect(vote).toHaveAccessibleDescription('15');
+    const sizeBefore = await vote.evaluate(button => ({ width: button.clientWidth, height: button.clientHeight }));
+    const iconOffset = () => vote.evaluate(button => {
+        const buttonBox = button.getBoundingClientRect(), iconBox = button.querySelector('svg')!.getBoundingClientRect();
+        return { x: iconBox.x - buttonBox.x, y: iconBox.y - buttonBox.y };
+    });
+    const beforeOffset = await iconOffset();
+    await vote.hover(); await expect(count).toBeVisible();
+    await vote.click(); await expect(count).toHaveText('16');
+    expect(await vote.evaluate(button => ({ width: button.clientWidth, height: button.clientHeight }))).toEqual(sizeBefore);
+    expect(await iconOffset()).toEqual(beforeOffset);
+    await poster.hover(); await expect(count).toBeHidden();
+    await vote.focus(); await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
+    await expect(vote).toBeFocused(); await expect(count).toBeVisible();
+    await page.keyboard.press('Space'); await expect(count).toHaveText('17');
+    await expect(vote).toHaveAccessibleDescription('17');
+    expect(await page.evaluate(() => (window as any).__queueCalls)).toEqual([['one', 'vote'], ['one', 'vote']]);
+});
+
 test('sample mod inserts, removes and reorders occurrences, edits all queue lists and restores native UI', async ({ page }) => {
     await open(page, true);
     await page.evaluate(async () => { const path = '/src/stores/useAppViewStore.ts'; const { setPanelTab } = await import(path); setPanelTab('folium:queue-test:queue-demo'); });

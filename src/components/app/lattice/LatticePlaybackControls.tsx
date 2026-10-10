@@ -70,7 +70,7 @@ export default function LatticePlaybackControls({
                     {isPlaying ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
                 </button>
                 <div className="lattice-chrome-details" inert={!revealed} aria-hidden={!revealed}>
-                    {view ? <QueueSlotItems items={slots.actions} size={20} /> : <LatticeExtraControls disabled={!canControlCurrent} />}
+                    {view ? <QueueSlotItems items={slots.actions} size={20} countDisplay="hover" /> : <LatticeExtraControls disabled={!canControlCurrent} />}
                 </div>
                 <LatticeChromeTime currentTime={canControlCurrent ? currentTime : idleTime} duration={duration} />
                 <button type="button" className="lattice-secondary-action" onClick={onOpenPlayer}

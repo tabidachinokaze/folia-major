@@ -26,7 +26,7 @@
 .lattice-chrome-transport { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .lattice-chrome-time { margin-left: auto; padding-left: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; transition: opacity 180ms ease; }
 .lattice-chrome.is-revealed .lattice-chrome-time { opacity: 0.6; }
-.lattice-chrome button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; flex-shrink: 0; }
+.lattice-chrome button { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; background: transparent; color: inherit; cursor: pointer; flex-shrink: 0; }
 .lattice-root .lattice-chrome button { border-radius: 12px !important; }
 .lattice-chrome button svg { width: 20px; height: 20px; }
 .lattice-secondary-action, .lattice-chrome-actions button { opacity: 0.65; }
@@ -35,6 +35,22 @@
 .lattice-chrome button:hover, .lattice-chrome button.is-active { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
 .lattice-chrome button:disabled { opacity: 0.25; cursor: default; border-color: transparent; background: transparent; }
 .lattice-chrome button:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
+/* Counts overlay the individual action on hover/focus without shifting its icon or neighbours. */
+.lattice-chrome .queue-slot-hover-count {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    padding: 1px 4px;
+    background: var(--lattice-poster-background);
+    font-size: 10px;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    visibility: hidden;
+}
+.lattice-chrome button:hover .queue-slot-hover-count,
+.lattice-chrome button:focus-visible .queue-slot-hover-count { visibility: visible; }
 /* The readouts live in the transport row, so the bar spans the chrome width, minus the padding
    that centres the arrow glyph inside its 44px button - that glyph is what the bar ends against. */
 .lattice-progress { min-width: 0; margin-right: 12px; }
