@@ -54,6 +54,7 @@ export function RemoteActionButtons({ snapshot, group, isDaylight, send, onNavig
                 : item.pressed ? (item.tone === 'alert' ? 'text-rose-400 hover:bg-rose-400/10' : (isDaylight ? 'text-zinc-900 hover:bg-black/5' : 'text-white hover:bg-white/10'))
                     : (isDaylight ? 'text-zinc-900/50 hover:bg-black/5 hover:text-zinc-900' : 'text-white/45 hover:bg-white/5 hover:text-white');
             return <button key={item.id} type="button" title={label} aria-label={label} aria-pressed={item.pressed}
+                aria-description={item.count === undefined ? undefined : String(item.count)}
                 disabled={item.disabled} data-remote-action-id={item.id}
                 className={`${base} ${size} ${item.id === 'host:loop' ? 'ml-2' : ''} ${color}`}
                 onMouseEnter={() => { if (direction && !item.disabled) { hovered.current = direction; onHover?.(direction); } }}
@@ -63,7 +64,7 @@ export function RemoteActionButtons({ snapshot, group, isDaylight, send, onNavig
                     if (direction && onNavigate) onNavigate(direction, command); else send(command);
                 }}>
                 <ActionIcon item={item} />
-                {item.count !== undefined && <span data-remote-action-count
+                {item.count !== undefined && <span data-remote-action-count aria-hidden="true"
                     className={`pointer-events-none invisible absolute -right-1 -top-1 rounded-full px-1 text-[10px] leading-4 tabular-nums group-hover/remote-action:visible group-focus-visible/remote-action:visible ${isDaylight ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-950'}`}>
                     {item.count}
                 </span>}

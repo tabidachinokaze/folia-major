@@ -83,6 +83,7 @@ test('fixed native remote size keeps transport and two song actions on one row, 
     const vote = remote.getByRole('button', { name: 'Room vote' });
     const count = vote.locator('[data-remote-action-count]');
     await expect(count).toHaveText('3');
+    await expect(vote).toHaveAccessibleDescription('3');
     await expect(count).not.toBeVisible();
     await vote.hover();
     await expect(count).toBeVisible();
@@ -94,6 +95,7 @@ test('fixed native remote size keeps transport and two song actions on one row, 
     expect(await readBounds()).toEqual(resting);
     await vote.press('Enter');
     await expect(count).toHaveText('4');
+    await expect(vote).toHaveAccessibleDescription('4');
     expect(await readBounds()).toEqual(resting);
     await expect(page.getByTestId('remote-log')).toHaveText('vote:4');
 });
